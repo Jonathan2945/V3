@@ -80,6 +80,7 @@
         .positive { color: #00ff88; }
         .negative { color: #ff4757; }
         .neutral { color: #ffa502; }
+        .blocked { color: #ff6b6b; }
 
         .system-controls {
             display: flex;
@@ -96,6 +97,7 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            position: relative;
         }
 
         .btn-start {
@@ -108,8 +110,14 @@
             color: #fff;
         }
 
-        .btn-start:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3); }
-        .btn-stop:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3); }
+        .btn-blocked {
+            background: linear-gradient(45deg, #666, #999);
+            color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-start:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3); }
+        .btn-stop:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3); }
 
         .main-container {
             max-width: 1600px;
@@ -134,6 +142,13 @@
         .four-column-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .full-width-section {
+            display: grid;
+            grid-template-columns: 1fr;
             gap: 20px;
             margin-bottom: 20px;
         }
@@ -186,6 +201,140 @@
             background: linear-gradient(45deg, #ffffff, #cccccc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+
+        /* Progress bar styles */
+        .progress-container {
+            width: 100%;
+            background-color: rgba(52, 73, 94, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 15px 0;
+            height: 20px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00d4ff, #00ff88);
+            transition: width 0.5s ease;
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shine 2s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 8px;
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        /* Backtesting specific styles */
+        .backtest-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .backtest-metric {
+            background: rgba(52, 73, 94, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #34495e;
+        }
+
+        .backtest-metric-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #00d4ff;
+            margin-bottom: 5px;
+        }
+
+        .backtest-metric-label {
+            font-size: 11px;
+            opacity: 0.8;
+            text-transform: uppercase;
+        }
+
+        /* Strategy cards */
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .strategy-card {
+            background: rgba(52, 73, 94, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #34495e;
+            transition: all 0.3s ease;
+        }
+
+        .strategy-card:hover {
+            border-color: #00d4ff;
+            transform: translateY(-2px);
+        }
+
+        .strategy-card h4 {
+            font-size: 14px;
+            color: #00d4ff;
+            margin-bottom: 10px;
+        }
+
+        .strategy-metrics {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .strategy-metric {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Blocking notification styles */
+        .blocking-notification {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid #ff6b6b;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .blocking-notification h4 {
+            color: #ff6b6b;
+            margin-bottom: 8px;
+        }
+
+        .blocking-notification p {
+            opacity: 0.9;
+            font-size: 14px;
         }
 
         .api-status-grid {
@@ -602,6 +751,7 @@
         @media (max-width: 1200px) {
             .dashboard-grid { grid-template-columns: 1fr 1fr; }
             .four-column-grid { grid-template-columns: repeat(2, 1fr); }
+            .strategy-grid { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 768px) {
@@ -610,6 +760,7 @@
             .four-column-grid { grid-template-columns: 1fr; }
             .header-stats { gap: 20px; }
             .trade-item { grid-template-columns: 1fr; }
+            .backtest-status { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -640,7 +791,7 @@
             </div>
 
             <div class="system-controls">
-                <button class="control-btn btn-start" onclick="startTrading()">Start Trading</button>
+                <button class="control-btn btn-start" id="startTradingBtn" onclick="startTrading()">Start Trading</button>
                 <button class="control-btn btn-stop" onclick="stopTrading()">Stop Trading</button>
             </div>
         </div>
@@ -652,12 +803,124 @@
             <span id="alertMessage">System initializing...</span>
         </div>
 
-        <!-- Main Dashboard Grid -->
+        <!-- Trading Blocking Notification -->
+        <div id="tradingBlockedNotification" class="blocking-notification" style="display: none;">
+            <h4>Trading Currently Blocked</h4>
+            <p id="blockingReason">Waiting for comprehensive analysis to complete...</p>
+        </div>
+
+        <!-- Comprehensive Multi-Timeframe Backtesting Section -->
+        <div class="full-width-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Ì†ΩÌ¥¨ Comprehensive Multi-Timeframe Backtesting</h3>
+                    <span id="backtestPhase">Ready</span>
+                </div>
+                
+                <!-- Not Started State -->
+                <div id="backtest-not-started">
+                    <p style="margin-bottom: 15px; opacity: 0.8;">
+                        Run comprehensive backtesting across all 200+ Binance pairs with multi-timeframe confluence analysis.
+                        This will analyze all available timeframes since each crypto launched.
+                    </p>
+                    <p style="margin-bottom: 15px; color: #ffa502; font-weight: 600;">
+                        Ì†ΩÌ∫´ Trading is BLOCKED until comprehensive analysis completes and ML training finishes.
+                    </p>
+                    <button class="control-btn btn-start" onclick="startComprehensiveBacktest()">
+                        Start Comprehensive Analysis
+                    </button>
+                </div>
+                
+                <!-- In Progress State -->
+                <div id="backtest-in-progress" class="hidden">
+                    <div class="alert alert-warning" style="display: block; margin-bottom: 20px;">
+                        Ì†ΩÌ¥Ñ Comprehensive analysis in progress - Trading is BLOCKED until completion
+                    </div>
+                    
+                    <div class="backtest-status">
+                        <div class="backtest-metric">
+                            <div class="backtest-metric-value" id="backtest-progress-percent">0%</div>
+                            <div class="backtest-metric-label">Overall Progress</div>
+                        </div>
+                        <div class="backtest-metric">
+                            <div class="backtest-metric-value" id="current-symbol">-</div>
+                            <div class="backtest-metric-label">Current Pair</div>
+                        </div>
+                        <div class="backtest-metric">
+                            <div class="backtest-metric-value" id="current-strategy">-</div>
+                            <div class="backtest-metric-label">Current Strategy</div>
+                        </div>
+                        <div class="backtest-metric">
+                            <div class="backtest-metric-value" id="pairs-completed">0 / 0</div>
+                            <div class="backtest-metric-label">Combinations Done</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-container">
+                        <div class="progress-bar" id="backtest-progress-bar" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-text" id="backtest-time-estimate">Calculating time estimate...</div>
+                    
+                    <div style="margin-top: 15px; padding: 10px; background: rgba(255, 165, 2, 0.1); border-radius: 5px; text-align: center;">
+                        ‚è≥ Please wait for analysis to complete before starting trading
+                    </div>
+                </div>
+
+                <!-- Completed State -->
+                <div id="backtest-completed" class="hidden">
+                    <div class="alert alert-success" style="display: block;">
+                        ‚úÖ Comprehensive multi-timeframe backtesting completed! ML training finished. Trading now enabled.
+                    </div>
+                    <div class="backtest-status">
+                        <div class="backtest-metric">
+                            <div class="backtest-metric-value" id="total-combinations">0</div>
+                            <div class="backtest-metric-label">Total Combinations</div>
+                        </div>
+                        <div class="backtest-metric">
+                            <div class="backtest-metric-value" id="profitable-strategies">0</div>
+                            <div class="backtest-metric-label">Profitable Strategies</div>
+                        </div>
+                        <div class="backtest-metric">
+                            <div class="backtest-metric-value" id="best-pair">-</div>
+                            <div class="backtest-metric-label">Best Performing Pair</div>
+                        </div>
+                        <div class="backtest-metric">
+                            <div class="backtest-metric-value" id="best-return">0%</div>
+                            <div class="backtest-metric-label">Best Strategy Return</div>
+                        </div>
+                        <div class="backtest-metric">
+                            <div class="backtest-metric-value" id="ml-trained-count">0</div>
+                            <div class="backtest-metric-label">ML-Trained Strategies</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Discovered Multi-Timeframe Strategies -->
+        <div class="full-width-section">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Ì†ΩÌ≥ä Discovered Multi-Timeframe Strategies</h3>
+                    <span id="strategies-count">0 strategies</span>
+                </div>
+                <div id="strategy-results" class="strategy-grid">
+                    <div class="strategy-card">
+                        <h4>Awaiting Analysis</h4>
+                        <p style="font-size: 12px; opacity: 0.7;">
+                            Run comprehensive backtesting to discover optimal multi-timeframe strategies
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Grid (Original with preserved economic data) -->
         <div class="two-column-grid">
             <!-- Open Positions -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">üî• Open Positions</h3>
+                    <h3 class="card-title">Ì†ΩÌ¥• Open Positions</h3>
                     <span class="loading-spinner" id="positionsLoader" style="display: none;"></span>
                 </div>
                 <div class="trades-container scrollbar-custom" id="openPositions">
@@ -670,10 +933,10 @@
                 </div>
             </div>
 
-            <!-- API Status -->
+            <!-- API Status (Enhanced with economic data APIs) -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">üì° API Connections</h3>
+                    <h3 class="card-title">Ì†ΩÌ≥° API Connections</h3>
                     <span id="apiConnectedCount">0/0</span>
                 </div>
                 <div class="api-status-grid" id="apiStatus">
@@ -686,11 +949,11 @@
             </div>
         </div>
 
-        <!-- Performance Metrics -->
+        <!-- Performance Metrics (Original) -->
         <div class="four-column-grid">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">üìä Performance</h3>
+                    <h3 class="card-title">Ì†ΩÌ≥ä Performance</h3>
                 </div>
                 <div class="metrics-grid">
                     <div class="metric-card">
@@ -714,7 +977,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">üí∞ Account Balance</h3>
+                    <h3 class="card-title">Ì†ΩÌ≤∞ Account Balance</h3>
                 </div>
                 <div class="metrics-grid">
                     <div class="metric-card">
@@ -738,7 +1001,7 @@
 
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">üìà Market Sentiment</h3>
+                    <h3 class="card-title">Ì†ΩÌ≥à Market Sentiment</h3>
                 </div>
                 <div class="sentiment-gauge">
                     <div class="gauge-container">
@@ -775,36 +1038,46 @@
             </div>
         </div>
 
-        <!-- Trade History and Holdings -->
+        <!-- Trade History and Holdings (Original) -->
         <div class="two-column-grid">
             <!-- Trade History -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">üìú Recent Trade History</h3>
+                    <h3 class="card-title">Ì†ΩÌ≥ú Recent Trade History</h3>
                     <span id="historyCount">0 trades</span>
                 </div>
                 <div class="trades-container scrollbar-custom" id="tradeHistory">
-                    <!-- Trade history items will be populated here -->
+                    <div class="trade-item">
+                        <div>
+                            <div class="trade-symbol">No trade history</div>
+                            <div class="trade-details">Start trading to see history</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Current Holdings -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">üíé Current Holdings</h3>
+                    <h3 class="card-title">Ì†ΩÌ≤é Current Holdings</h3>
                 </div>
                 <div class="holdings-list scrollbar-custom" id="currentHoldings">
-                    <!-- Holdings will be populated here -->
+                    <div class="holding-item">
+                        <div>
+                            <div class="holding-symbol">No holdings</div>
+                        </div>
+                        <div class="holding-amount">$0.00</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- News and Market Analysis -->
+        <!-- News and Market Analysis (Original - PRESERVED economic data and social posts) -->
         <div class="dashboard-grid">
-            <!-- Market News -->
+            <!-- Market News (Enhanced with economic indicators) -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">üì∞ Market News & Events</h3>
+                    <h3 class="card-title">Ì†ΩÌ≥∞ Market News & Economic Data</h3>
                     <span id="newsCount">Loading...</span>
                 </div>
                 <div class="news-feed scrollbar-custom" id="marketNews">
@@ -812,10 +1085,10 @@
                 </div>
             </div>
 
-            <!-- Social Media Feed -->
+            <!-- Social Media Feed (PRESERVED) -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">üê¶ Social Media Pulse</h3>
+                    <h3 class="card-title">Ì†ΩÌ∞¶ Social Media Pulse</h3>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <span id="socialMediaCount">Loading...</span>
                         <div class="social-tabs">
@@ -833,7 +1106,7 @@
             <!-- P&L Chart -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">üìä P&L Performance</h3>
+                    <h3 class="card-title">Ì†ΩÌ≥ä P&L Performance</h3>
                 </div>
                 <div class="chart-container">
                     <canvas id="pnlChart"></canvas>
@@ -849,7 +1122,10 @@
             lastUpdate: null,
             updateInterval: null,
             currentSocialTab: 'all',
-            socialMediaPosts: []
+            socialMediaPosts: [],
+            tradingBlocked: false,
+            blockingReason: '',
+            backtestProgress: {}
         };
 
         // Initialize dashboard
@@ -859,7 +1135,7 @@
         });
 
         function initializeDashboard() {
-            console.log('Initializing Advanced Trading Dashboard...');
+            console.log('Initializing Advanced Trading Dashboard with Blocking...');
             updateSystemAlert('System initializing...', 'warning');
             
             // Initialize charts
@@ -883,7 +1159,7 @@
 
         async function loadAllData() {
             try {
-                // Load system status
+                // Load system status first (determines if trading is blocked)
                 await loadSystemStatus();
                 
                 // Load trading data
@@ -891,10 +1167,17 @@
                 await loadTradeHistory();
                 await loadPerformanceMetrics();
                 
-                // Load external data
+                // Load external data (PRESERVED - economic and social)
                 await loadAPIStatus();
                 await loadMarketNews();
                 await loadSocialMediaFeed();
+                
+                // Load backtesting data
+                await loadBacktestProgress();
+                await loadDiscoveredStrategies();
+                
+                // Update UI based on blocking status
+                updateTradingControls();
                 
                 dashboardData.lastUpdate = new Date();
                 
@@ -911,6 +1194,8 @@
                 
                 // Update system status
                 dashboardData.isRunning = data.is_running;
+                dashboardData.tradingBlocked = !data.trading_allowed;
+                
                 document.getElementById('systemStatus').textContent = data.is_running ? 'ONLINE' : 'OFFLINE';
                 document.getElementById('systemStatus').className = `stat-value ${data.is_running ? 'positive' : 'negative'}`;
                 
@@ -923,11 +1208,13 @@
                     updateElement('memoryUsage', `${(data.metrics.memory_usage || 0).toFixed(1)}%`);
                 }
 
-                // Update system alert
-                if (data.is_running) {
-                    updateSystemAlert('System operational', 'success');
+                // Update system alert based on trading status
+                if (data.is_running && !dashboardData.tradingBlocked) {
+                    updateSystemAlert('System operational - Trading enabled', 'success');
+                } else if (data.is_running && dashboardData.tradingBlocked) {
+                    updateSystemAlert('System operational - Trading blocked pending analysis', 'warning');
                 } else {
-                    updateSystemAlert('System offline - Click Start Trading to begin', 'warning');
+                    updateSystemAlert('System offline', 'danger');
                 }
 
             } catch (error) {
@@ -936,6 +1223,247 @@
             }
         }
 
+        // Load backtesting progress with blocking logic
+        async function loadBacktestProgress() {
+            try {
+                const response = await fetch('/api/backtest/progress');
+                if (response.ok) {
+                    const data = await response.json();
+                    dashboardData.backtestProgress = data;
+                    
+                    if (data.status === 'not_started') {
+                        showBacktestSection('backtest-not-started');
+                        document.getElementById('backtestPhase').textContent = 'Ready';
+                        dashboardData.blockingReason = 'Comprehensive analysis required';
+                    } else if (data.status === 'in_progress') {
+                        showBacktestSection('backtest-in-progress');
+                        updateBacktestProgress(data);
+                        document.getElementById('backtestPhase').textContent = 'Running';
+                        dashboardData.blockingReason = `Analysis in progress (${Math.round(data.progress_percent || 0)}%)`;
+                    } else if (data.status === 'completed') {
+                        showBacktestSection('backtest-completed');
+                        updateBacktestCompleted(data);
+                        document.getElementById('backtestPhase').textContent = 'Completed';
+                        
+                        if (data.ml_training_completed) {
+                            dashboardData.blockingReason = '';
+                        } else {
+                            dashboardData.blockingReason = 'ML training in progress';
+                        }
+                    }
+                }
+            } catch (error) {
+                showBacktestSection('backtest-not-started');
+                document.getElementById('backtestPhase').textContent = 'Ready';
+            }
+        }
+
+        function showBacktestSection(sectionId) {
+            ['backtest-not-started', 'backtest-in-progress', 'backtest-completed'].forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+        }
+
+        function updateBacktestProgress(data) {
+            const progress = Math.round(data.progress_percent || 0);
+            
+            document.getElementById('backtest-progress-percent').textContent = progress + '%';
+            document.getElementById('backtest-progress-bar').style.width = progress + '%';
+            
+            document.getElementById('current-symbol').textContent = data.current_symbol || '-';
+            document.getElementById('current-strategy').textContent = data.current_strategy || '-';
+            document.getElementById('pairs-completed').textContent = `${data.completed || 0} / ${data.total || 0}`;
+            
+            // Calculate time estimate
+            if (data.eta_minutes) {
+                const hours = Math.floor(data.eta_minutes / 60);
+                const minutes = data.eta_minutes % 60;
+                document.getElementById('backtest-time-estimate').textContent = 
+                    `Estimated time remaining: ${hours}h ${minutes}m`;
+            }
+        }
+
+        function updateBacktestCompleted(data) {
+            document.getElementById('total-combinations').textContent = data.total_combinations || 0;
+            document.getElementById('profitable-strategies').textContent = data.profitable_strategies || 0;
+            document.getElementById('best-pair').textContent = data.best_pair || '-';
+            document.getElementById('best-return').textContent = (data.best_return || 0).toFixed(1) + '%';
+            document.getElementById('ml-trained-count').textContent = data.ml_trained_count || 0;
+        }
+
+        // Update trading controls based on blocking status
+        function updateTradingControls() {
+            const startBtn = document.getElementById('startTradingBtn');
+            const notification = document.getElementById('tradingBlockedNotification');
+            const reasonElement = document.getElementById('blockingReason');
+            
+            if (dashboardData.tradingBlocked || dashboardData.blockingReason) {
+                // Trading is blocked
+                startBtn.disabled = true;
+                startBtn.className = 'control-btn btn-blocked';
+                
+                if (dashboardData.backtestProgress.status === 'in_progress') {
+                    const progress = Math.round(dashboardData.backtestProgress.progress_percent || 0);
+                    startBtn.textContent = `Analysis Running (${progress}%)`;
+                } else if (dashboardData.backtestProgress.status === 'not_started') {
+                    startBtn.textContent = 'Run Analysis First';
+                } else if (dashboardData.blockingReason.includes('ML training')) {
+                    startBtn.textContent = 'ML Training...';
+                } else {
+                    startBtn.textContent = 'Trading Blocked';
+                }
+                
+                // Show blocking notification
+                notification.style.display = 'block';
+                reasonElement.textContent = dashboardData.blockingReason || 'Analysis required before trading';
+                
+            } else {
+                // Trading is allowed
+                startBtn.disabled = false;
+                startBtn.className = 'control-btn btn-start';
+                startBtn.textContent = dashboardData.isRunning ? 'Trading Active' : 'Start Trading';
+                
+                // Hide blocking notification
+                notification.style.display = 'none';
+            }
+        }
+
+        // Load discovered strategies with ML training status
+        async function loadDiscoveredStrategies() {
+            try {
+                const response = await fetch('/api/strategies/discovered');
+                if (response.ok) {
+                    const data = await response.json();
+                    const container = document.getElementById('strategy-results');
+                    
+                    document.getElementById('strategies-count').textContent = 
+                        `${data.strategies ? data.strategies.length : 0} strategies`;
+                    
+                    if (data.strategies && data.strategies.length > 0) {
+                        container.innerHTML = data.strategies.slice(0, 6).map(strategy => `
+                            <div class="strategy-card">
+                                <h4>${strategy.name || 'Multi-TF Strategy'}</h4>
+                                <div class="strategy-metrics">
+                                    <div class="strategy-metric">
+                                        <span>Timeframes:</span>
+                                        <span style="color: #00d4ff;">${strategy.timeframes || 'N/A'}</span>
+                                    </div>
+                                    <div class="strategy-metric">
+                                        <span>Win Rate:</span>
+                                        <span style="color: #00ff88;">${(strategy.win_rate || 0).toFixed(1)}%</span>
+                                    </div>
+                                    <div class="strategy-metric">
+                                        <span>Return:</span>
+                                        <span class="${(strategy.return_pct || 0) >= 0 ? 'positive' : 'negative'}">${(strategy.return_pct || 0).toFixed(1)}%</span>
+                                    </div>
+                                    <div class="strategy-metric">
+                                        <span>Trades:</span>
+                                        <span>${strategy.total_trades || 0}</span>
+                                    </div>
+                                    <div class="strategy-metric">
+                                        <span>Sharpe:</span>
+                                        <span style="color: #ffa502;">${(strategy.sharpe_ratio || 0).toFixed(2)}</span>
+                                    </div>
+                                    <div class="strategy-metric">
+                                        <span>ML Status:</span>
+                                        <span style="color: ${data.ml_training_completed ? '#00ff88' : '#ffa502'};">
+                                            ${data.ml_training_completed ? 'Trained' : 'Pending'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = `
+                            <div class="strategy-card">
+                                <h4>Awaiting Analysis</h4>
+                                <p style="font-size: 12px; opacity: 0.7;">
+                                    Run comprehensive backtesting to discover optimal multi-timeframe strategies
+                                </p>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading discovered strategies:', error);
+            }
+        }
+
+        // Start comprehensive backtesting
+        async function startComprehensiveBacktest() {
+            const button = event.target;
+            button.disabled = true;
+            button.innerHTML = '<span class="loading-spinner"></span> Starting Analysis...';
+            
+            try {
+                const response = await fetch('/api/backtest/comprehensive/start', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateSystemAlert('Comprehensive backtesting started - Trading blocked until completion', 'warning');
+                    showBacktestSection('backtest-in-progress');
+                    dashboardData.tradingBlocked = true;
+                    dashboardData.blockingReason = 'Analysis in progress (0%)';
+                    updateTradingControls();
+                } else {
+                    updateSystemAlert('Failed to start backtesting: ' + result.error, 'danger');
+                    button.disabled = false;
+                    button.textContent = 'Start Comprehensive Analysis';
+                }
+            } catch (error) {
+                updateSystemAlert('Error starting backtesting: ' + error.message, 'danger');
+                button.disabled = false;
+                button.textContent = 'Start Comprehensive Analysis';
+            }
+        }
+
+        // Enhanced start trading with blocking checks
+        async function startTrading() {
+            const startBtn = document.getElementById('startTradingBtn');
+            
+            // Don't attempt if already blocked
+            if (startBtn.disabled) {
+                updateSystemAlert('Trading is blocked. Complete comprehensive analysis first.', 'warning');
+                return;
+            }
+            
+            startBtn.disabled = true;
+            startBtn.innerHTML = '<span class="loading-spinner"></span> Starting...';
+            
+            try {
+                const response = await fetch('/api/start', { method: 'POST' });
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateSystemAlert(`Trading started: ${result.message}`, 'success');
+                    dashboardData.isRunning = true;
+                } else {
+                    // Handle blocking reasons
+                    let alertMessage = result.error;
+                    if (result.blocking_reason) {
+                        alertMessage += ` (${result.blocking_reason})`;
+                    }
+                    
+                    if (result.progress_percent !== undefined) {
+                        alertMessage += ` - ${result.progress_percent.toFixed(1)}% complete`;
+                    }
+                    
+                    updateSystemAlert(alertMessage, 'warning');
+                    
+                    // Keep button disabled if blocked
+                    startBtn.disabled = true;
+                    updateTradingControls();
+                    return;
+                }
+            } catch (error) {
+                updateSystemAlert('Error starting trading: ' + error.message, 'danger');
+            }
+            
+            updateTradingControls();
+        }
+
+        // All other original functions (PRESERVED - loadPositions, loadTradeHistory, etc.)
         async function loadPositions() {
             try {
                 showLoader('positionsLoader');
@@ -970,7 +1498,7 @@
                                 </div>
                                 <div class="trade-details">
                                     Hold: ${formatHoldTime(position.entry_time)}<br>
-                                    Reason: ${position.entry_reason || 'Algorithm'}
+                                    Reason: ${position.entry_reason || 'ML Signal'}
                                 </div>
                                 <div class="trade-details">
                                     Current: $${formatNumber(position.current_price)}<br>
@@ -999,7 +1527,7 @@
                 
                 if (data.trade_history && Array.isArray(data.trade_history)) {
                     const container = document.getElementById('tradeHistory');
-                    const trades = data.trade_history.slice(0, 20); // Show last 20 trades
+                    const trades = data.trade_history.slice(0, 20);
                     
                     document.getElementById('historyCount').textContent = `${trades.length} recent trades`;
                     
@@ -1034,7 +1562,7 @@
                                     </div>
                                     <div class="trade-details">
                                         Hold: ${trade.hold_duration_human || '0m'}<br>
-                                        Reason: ${trade.exit_reason || 'Auto'}
+                                        Source: ${trade.source || 'Auto'}
                                     </div>
                                     <div class="trade-pnl ${pnlClass}">
                                         ${formatCurrency(pnl)}
@@ -1064,6 +1592,9 @@
                     updateElement('totalBalance', formatCurrency(data.total_balance || 0));
                     updateElement('bestTrade', formatCurrency(data.best_trade || 0));
                     updateElement('dailyPnL', formatCurrency(data.daily_pnl || 0));
+                    updateElement('availableBalance', formatCurrency(data.available_balance || 0));
+                    updateElement('unrealizedPnL', formatCurrency(data.unrealized_pnl || 0));
+                    updateElement('avgHoldTime', data.avg_hold_time || '0h 0m');
                     
                     // Update win rate color
                     const winRate = data.win_rate || 0;
@@ -1114,17 +1645,16 @@
             }
         }
 
+        // PRESERVED - Social media feed functionality
         async function loadSocialMediaFeed() {
             try {
                 const response = await fetch('/api/external-data');
                 const data = await response.json();
                 
-                // Try to get social media data from the external data collector
                 let socialPosts = [];
                 
-                // Generate realistic social media posts based on external data
-                if (data.latest_data) {
-                    const sentiment = data.latest_data.market_sentiment?.overall_sentiment || 0;
+                if (data.latest_data && data.latest_data.social_media_sentiment) {
+                    const sentiment = data.latest_data.social_media_sentiment.overall_social_sentiment || 0;
                     socialPosts = generateSocialMediaPosts(sentiment);
                 } else {
                     socialPosts = generateSocialMediaPosts(0);
@@ -1135,8 +1665,6 @@
                 
             } catch (error) {
                 console.error('Error loading social media feed:', error);
-                
-                // Generate fallback posts
                 dashboardData.socialMediaPosts = generateSocialMediaPosts(0);
                 displaySocialMediaPosts();
             }
@@ -1146,55 +1674,38 @@
             const posts = [];
             const currentTime = new Date();
             
-            // Twitter posts
             const twitterPosts = [
                 { 
-                    content: "Bitcoin showing strong momentum today! üöÄ #BTC #crypto",
+                    content: "Bitcoin showing strong momentum today! Ì†ΩÌ∫Ä #BTC #crypto",
                     sentiment: sentimentScore > 0 ? 'bullish' : sentimentScore < -0.2 ? 'bearish' : 'neutral',
                     author: "@CryptoTrader",
                     engagement: { likes: 234, retweets: 45 },
                     time: new Date(currentTime - 5 * 60000)
                 },
                 {
-                    content: "Ethereum network activity hitting new highs. Bullish for $ETH long term üí™",
+                    content: "Comprehensive backtesting shows multi-timeframe strategies outperforming Ì†ΩÌ≤™ #TradingAlgorithms",
                     sentiment: 'bullish',
-                    author: "@EthAnalyst",
+                    author: "@AlgoTrader",
                     engagement: { likes: 156, retweets: 32 },
                     time: new Date(currentTime - 12 * 60000)
                 },
                 {
-                    content: "Market volatility increasing. Time to be cautious with position sizing üìâ",
+                    content: "Market volatility increasing. Time to be cautious with position sizing Ì†ΩÌ≥â",
                     sentiment: 'bearish',
                     author: "@RiskManager",
                     engagement: { likes: 89, retweets: 18 },
                     time: new Date(currentTime - 18 * 60000)
-                },
-                {
-                    content: "DeFi protocols showing resilience despite market conditions üîÑ",
-                    sentiment: 'neutral',
-                    author: "@DeFiWatch",
-                    engagement: { likes: 67, retweets: 15 },
-                    time: new Date(currentTime - 25 * 60000)
                 }
             ];
             
-            // Reddit posts
             const redditPosts = [
                 {
-                    content: "Technical analysis: BTC forming bullish pennant pattern on 4h chart. Could see breakout soon.",
+                    content: "Technical analysis: BTC forming bullish pennant pattern on 4h chart. Multi-timeframe confluence looking good.",
                     sentiment: sentimentScore > 0 ? 'bullish' : 'neutral',
                     author: "u/TechnicalAnalysis",
                     engagement: { upvotes: 342, comments: 67 },
                     time: new Date(currentTime - 8 * 60000),
                     subreddit: "r/cryptocurrency"
-                },
-                {
-                    content: "Just bought the dip. This correction was needed for healthy price discovery.",
-                    sentiment: 'bullish',
-                    author: "u/DiamondHands",
-                    engagement: { upvotes: 156, comments: 34 },
-                    time: new Date(currentTime - 15 * 60000),
-                    subreddit: "r/Bitcoin"
                 },
                 {
                     content: "Institutional adoption continues despite short-term volatility. Long-term outlook remains positive.",
@@ -1203,18 +1714,9 @@
                     engagement: { upvotes: 289, comments: 45 },
                     time: new Date(currentTime - 22 * 60000),
                     subreddit: "r/CryptoMarkets"
-                },
-                {
-                    content: "Fed meeting next week could impact crypto markets. Keep an eye on DXY and bond yields.",
-                    sentiment: 'neutral',
-                    author: "u/MacroAnalyst",
-                    engagement: { upvotes: 123, comments: 29 },
-                    time: new Date(currentTime - 31 * 60000),
-                    subreddit: "r/cryptocurrency"
                 }
             ];
             
-            // Add platform identifier and combine
             twitterPosts.forEach(post => {
                 posts.push({ ...post, platform: 'twitter' });
             });
@@ -1223,7 +1725,6 @@
                 posts.push({ ...post, platform: 'reddit' });
             });
             
-            // Sort by time (newest first)
             return posts.sort((a, b) => b.time - a.time);
         }
 
@@ -1267,10 +1768,10 @@
                         <div class="social-meta">
                             <span>${timeAgo}</span>
                             <div class="social-engagement">
-                                ${post.engagement.likes ? `<span>üëç ${post.engagement.likes}</span>` : ''}
+                                ${post.engagement.likes ? `<span>Ì†ΩÌ±ç ${post.engagement.likes}</span>` : ''}
                                 ${post.engagement.upvotes ? `<span>‚¨Ü ${post.engagement.upvotes}</span>` : ''}
-                                ${post.engagement.retweets ? `<span>üîÑ ${post.engagement.retweets}</span>` : ''}
-                                ${post.engagement.comments ? `<span>üí¨ ${post.engagement.comments}</span>` : ''}
+                                ${post.engagement.retweets ? `<span>Ì†ΩÌ¥Ñ ${post.engagement.retweets}</span>` : ''}
+                                ${post.engagement.comments ? `<span>Ì†ΩÌ≤¨ ${post.engagement.comments}</span>` : ''}
                             </div>
                         </div>
                     </div>
@@ -1293,13 +1794,11 @@
         function switchSocialTab(tab) {
             dashboardData.currentSocialTab = tab;
             
-            // Update tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             document.getElementById(`tab-${tab}`).classList.add('active');
             
-            // Update display
             displaySocialMediaPosts();
         }
 
@@ -1315,6 +1814,7 @@
             return `${Math.floor(hours / 24)}d ago`;
         }
 
+        // PRESERVED - Market news with economic data
         async function loadMarketNews() {
             try {
                 const response = await fetch('/api/external-data');
@@ -1322,24 +1822,34 @@
                 
                 const container = document.getElementById('marketNews');
                 
-                // Use real news data if available, otherwise fallback to mock
                 let newsItems = [];
                 
-                if (data.latest_data?.news_sentiment?.articles_analyzed > 0) {
-                    // Create news items from external data
+                if (data.latest_data) {
+                    const economicData = data.latest_data.economic_indicators || {};
+                    const marketSentiment = data.latest_data.market_sentiment || {};
+                    
                     newsItems = [
-                        { title: 'Market sentiment analysis shows positive trend', time: '5 minutes ago' },
-                        { title: 'Economic indicators remain stable', time: '15 minutes ago' },
-                        { title: 'Cryptocurrency market volatility decreasing', time: '32 minutes ago' },
-                        { title: 'Federal Reserve maintains current stance', time: '1 hour ago' }
+                        { 
+                            title: `Economic Update: GDP Growth at ${(economicData.gdp_growth || 2.5).toFixed(1)}%, Inflation ${(economicData.inflation_rate || 3.2).toFixed(1)}%`,
+                            time: '5 minutes ago' 
+                        },
+                        { 
+                            title: `Market Sentiment Analysis: ${marketSentiment.bullish_indicators || 0} bullish vs ${marketSentiment.bearish_indicators || 0} bearish indicators`,
+                            time: '15 minutes ago' 
+                        },
+                        { title: 'Federal Reserve maintains current stance on interest rates', time: '32 minutes ago' },
+                        { title: 'Cryptocurrency market shows resilience amid global uncertainty', time: '1 hour ago' },
+                        { 
+                            title: `Unemployment Rate Steady at ${(economicData.unemployment_rate || 4.1).toFixed(1)}%`,
+                            time: '2 hours ago' 
+                        }
                     ];
                 } else {
-                    // Fallback news
                     newsItems = [
-                        { title: 'Bitcoin reaches new monthly high', time: '2 minutes ago' },
-                        { title: 'Federal Reserve hints at rate stability', time: '15 minutes ago' },
-                        { title: 'Crypto market shows strong momentum', time: '32 minutes ago' },
-                        { title: 'Economic indicators remain stable', time: '1 hour ago' }
+                        { title: 'Bitcoin reaches new monthly high amid institutional interest', time: '2 minutes ago' },
+                        { title: 'Federal Reserve hints at rate stability for remainder of year', time: '15 minutes ago' },
+                        { title: 'Crypto market shows strong momentum heading into week close', time: '32 minutes ago' },
+                        { title: 'Economic indicators remain stable despite global concerns', time: '1 hour ago' }
                     ];
                 }
                 
@@ -1444,7 +1954,7 @@
         function updateSentiment(sentiment) {
             const scoreElement = document.getElementById('sentimentScore');
             if (scoreElement) {
-                const score = Math.round(sentiment * 50 + 50); // Convert to 0-100
+                const score = Math.round(sentiment * 50 + 50);
                 scoreElement.textContent = score;
                 
                 const label = score >= 70 ? 'BULLISH' : score >= 30 ? 'NEUTRAL' : 'BEARISH';
@@ -1479,22 +1989,6 @@
             if (loader) loader.style.display = 'none';
         }
 
-        // Control functions
-        async function startTrading() {
-            try {
-                const response = await fetch('/api/start', { method: 'POST' });
-                const result = await response.json();
-                
-                if (result.success) {
-                    updateSystemAlert('Trading started successfully', 'success');
-                } else {
-                    updateSystemAlert('Failed to start trading: ' + result.error, 'danger');
-                }
-            } catch (error) {
-                updateSystemAlert('Error starting trading', 'danger');
-            }
-        }
-
         async function stopTrading() {
             try {
                 const response = await fetch('/api/stop', { method: 'POST' });
@@ -1502,6 +1996,8 @@
                 
                 if (result.success) {
                     updateSystemAlert('Trading stopped successfully', 'success');
+                    dashboardData.isRunning = false;
+                    updateTradingControls();
                 } else {
                     updateSystemAlert('Failed to stop trading: ' + result.error, 'danger');
                 }
