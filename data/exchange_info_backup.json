@@ -1,0 +1,7755 @@
+{
+  "timestamp": "2025-08-25T11:42:57.516427",
+  "server_time": "2025-08-25T11:42:57.357000",
+  "symbols_count": 596,
+  "trading_rules": {
+    "BTCUSD4": {
+      "min_qty": "0.00000100",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00000100",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "BTC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ETHUSD4": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "ETH",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XRPUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.0000",
+      "tick_size": "0.0001",
+      "base_asset": "XRP",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BCHUSD4": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "BCH",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LTCUSD4": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "LTC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "USDTUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "USDT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BTCUSDT": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "BTC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ETHUSDT": {
+      "min_qty": "0.00010000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ETH",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XRPUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "XRP",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BCHUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.10000000",
+      "base_asset": "BCH",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LTCUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "LTC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BNBUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "BNB",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BNBUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "BNB",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ETHBTC": {
+      "min_qty": "0.00010000",
+      "max_qty": "100000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "0.00010000",
+      "tick_size": "0.00001000",
+      "base_asset": "ETH",
+      "quote_asset": "BTC",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XRPBTC": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "XRP",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BNBBTC": {
+      "min_qty": "0.00100000",
+      "max_qty": "100000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "0.00010000",
+      "tick_size": "0.00000100",
+      "base_asset": "BNB",
+      "quote_asset": "BTC",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LTCBTC": {
+      "min_qty": "0.00100000",
+      "max_qty": "100000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "0.00010000",
+      "tick_size": "0.00000100",
+      "base_asset": "LTC",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BCHBTC": {
+      "min_qty": "0.00100000",
+      "max_qty": "10000000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "0.00010000",
+      "tick_size": "0.00001000",
+      "base_asset": "BCH",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ADAUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ADA",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BATUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "BAT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ETCUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ETC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XLMUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "XLM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZRXUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ZRX",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ADAUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ADA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BATUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "BAT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ETCUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ETC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XLMUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "XLM",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZRXUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ZRX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LINKUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "LINK",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RVNUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "RVN",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DASHUSD4": {
+      "min_qty": "0.00001000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "DASH",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZECUSD4": {
+      "min_qty": "0.00001000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "ZEC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ALGOUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "ALGO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "IOTAUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "IOTA",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BUSDUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "BUSD",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BTCBUSD": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "BTC",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DOGEUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "DOGE",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "WAVESUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "WAVES",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ATOMUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ATOM",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ATOMUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "ATOM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NEOUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "NEO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NEOUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "NEO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VETUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "VET",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "QTUMUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "QTUM",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "QTUMUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "QTUM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NANOUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "NANO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ICXUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ICX",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ENJUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ENJ",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ONTUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ONT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ONTUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ONT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZILUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ZIL",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZILBUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ZIL",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VETUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "VET",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BNBBUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.10000000",
+      "base_asset": "BNB",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XRPBUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "XRP",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ETHBUSD": {
+      "min_qty": "0.00010000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ETH",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ALGOBUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ALGO",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XTZUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "XTZ",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XTZBUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "XTZ",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "HBARUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "HBAR",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "HBARBUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "HBAR",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OMGUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "OMG",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OMGBUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "OMG",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MATICUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "MATIC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MATICBUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "MATIC",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XTZBTC": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "XTZ",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ADABTC": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "ADA",
+      "quote_asset": "BTC",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "REPBUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "1000000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "REP",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "REPUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "1000000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "REP",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "EOSBUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "EOS",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "EOSUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "EOS",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DOGEUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "DOGE",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KNCUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "KNC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KNCUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "KNC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VTHOUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "VTHO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VTHOUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "VTHO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "USDCUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "USDC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "COMPUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "COMP",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "COMPUSD4": {
+      "min_qty": "0.00001000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "COMP",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MANAUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "MANA",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "HNTUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "HNT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "HNTUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "HNT",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MKRUSD4": {
+      "min_qty": "0.00001000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "MKR",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MKRUSDT": {
+      "min_qty": "0.00010000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.10000000",
+      "base_asset": "MKR",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DAIUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "DAI",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ONEUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ONE",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ONEUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ONE",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BANDUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BAND",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BANDUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "BAND",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "STORJUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "STORJ",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "STORJUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "STORJ",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BUSDUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "15000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "BUSD",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "UNIUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "UNI",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "UNIUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "UNI",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SOLUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "SOL",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SOLUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "SOL",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LINKBTC": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1.0E-7",
+      "base_asset": "LINK",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VETBTC": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "VET",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "UNIBTC": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1.0E-7",
+      "base_asset": "UNI",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "EGLDUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "EGLD",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "EGLDUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "EGLD",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PAXGUSDT": {
+      "min_qty": "0.00010000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "PAXG",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PAXGUSD4": {
+      "min_qty": "0.00000100",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00000100",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "PAXG",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OXTUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "OXT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OXTUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "OXT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZENUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ZEN",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZENUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "ZEN",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BTCUSDC": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "BTC",
+      "quote_asset": "USDC",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ONEBUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ONE",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FILUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "FIL",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FILUSD4": {
+      "min_qty": "0.00010000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "FIL",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AAVEUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "AAVE",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AAVEUSD4": {
+      "min_qty": "0.00010000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "AAVE",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GRTUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "GRT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GRTUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "GRT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SUSHIUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "SUSHI",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ANKRUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ANKR",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AMPUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "AMP",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SHIBUSDT": {
+      "min_qty": "1.00",
+      "max_qty": "46116860414.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "SHIB",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SHIBBUSD": {
+      "min_qty": "1.00",
+      "max_qty": "46116860414.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "SHIB",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CRVUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "CRV",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CRVUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "CRV",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AXSUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "AXS",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AXSUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "AXS",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SOLBTC": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1.0E-7",
+      "base_asset": "SOL",
+      "quote_asset": "BTC",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AVAXUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "AVAX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AVAXUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "AVAX",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CTSIUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "CTSI",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CTSIUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "CTSI",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DOTUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "DOT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DOTUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "DOT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "YFIUSDT": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "1.00000000",
+      "tick_size": "1.00000000",
+      "base_asset": "YFI",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "YFIUSD4": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "YFI",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "1INCHUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "1INCH",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "1INCHUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "1INCH",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FTMUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "FTM",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FTMUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "FTM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "USDCUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "USDC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ETHUSDC": {
+      "min_qty": "0.00010000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ETH",
+      "quote_asset": "USDC",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "USDCBUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "USDC",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MATICUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "MATIC",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MANAUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "MANA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MANABUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "MANA",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ALGOUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "922327.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ALGO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ADABUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ADA",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SOLBUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "SOL",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LINKUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "LINK",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "EOSUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "EOS",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZECUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ZEC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ENJUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ENJ",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NEARUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "NEAR",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NEARBUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "NEAR",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NEARUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "NEAR",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OMGUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "OMG",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SUSHIUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "SUSHI",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LRCUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "LRC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LRCUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "LRC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LRCBTC": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "LRC",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KSHIBUSD4": {
+      "min_qty": "1.0000",
+      "max_qty": "46116860.0000",
+      "step_size": "1.0000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "KSHIB",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LPTUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222440.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "LPT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LPTBUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222440.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "LPT",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LPTUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222440.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "LPT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLYUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "POLY",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLYBUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "POLY",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLYUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "POLY",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLYBTC": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "POLY",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MATICBTC": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "MATIC",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DOTBTC": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1.0E-7",
+      "base_asset": "DOT",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NMRUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "NMR",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NMRUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "NMR",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SLPUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "SLP",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SLPUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "SLP",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ANTUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ANT",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ANTUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "ANT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XNOUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "XNO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CHZUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "CHZ",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CHZUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "CHZ",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OGNUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "OGN",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OGNUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "OGN",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GALAUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "GALA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GALAUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "GALA",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TLMUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "TLM",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TLMUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "TLM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SNXUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "SNX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SNXUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "SNX",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AUDIOUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "AUDIO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AUDIOUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "AUDIO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ENSUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ENS",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MANABTC": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "MANA",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ATOMBTC": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1.0E-7",
+      "base_asset": "ATOM",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AVAXBTC": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1.0E-7",
+      "base_asset": "AVAX",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "WBTCBTC": {
+      "min_qty": "0.00001000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "0.00010000",
+      "tick_size": "0.00010000",
+      "base_asset": "WBTC",
+      "quote_asset": "BTC",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "REQUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "REQ",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "REQUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "REQ",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "APEUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "APE",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "APEUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "APE",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FLUXUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "FLUX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FLUXUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "FLUX",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TRXBTC": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "TRX",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TRXBUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "TRX",
+      "quote_asset": "BUSD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TRXUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "TRX",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TRXUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "TRX",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "COTIUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "COTI",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "COTIUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "COTI",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VOXELUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "VOXEL",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VOXELUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "VOXEL",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RLCUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "RLC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RLCUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "RLC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "USTUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "UST",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "USTUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "UST",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BICOUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "BICO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BICOUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "BICO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "API3USDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "API3",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "API3USD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "API3",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ENSUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "ENS",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BTCUST": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "10.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "BTC",
+      "quote_asset": "UST",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BNTUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BNT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BNTUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "BNT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "IMXUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "IMX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "IMXUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "IMX",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SPELLUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "1.0E-7",
+      "base_asset": "SPELL",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SPELLUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "SPELL",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "JASMYUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "JASMY",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "JASMYUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "JASMY",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FLOWUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "FLOW",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FLOWUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "FLOW",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GTCUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "GTC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GTCUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "GTC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "THETAUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "THETA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "THETAUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "THETA",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TFUELUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "TFUEL",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TFUELUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "TFUEL",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OCEANUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "OCEAN",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OCEANUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "OCEAN",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LAZIOUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "LAZIO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LAZIOUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "LAZIO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SANTOSUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "SANTOS",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SANTOSUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "SANTOS",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ALPINEUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ALPINE",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ALPINEUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ALPINE",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PORTOUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "PORTO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PORTOUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "PORTO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RENUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "REN",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RENUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "REN",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CELRUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "CELR",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CELRUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "CELR",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SKLUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "SKL",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SKLUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "SKL",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VITEUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "VITE",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VITEUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "VITE",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "WAXPUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "WAXP",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "WAXPUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "WAXP",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LTOUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "LTO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LTOUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "LTO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FETUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "FET",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FETUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "FET",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BONDUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BOND",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BONDUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "BOND",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LOKAUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "LOKA",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LOKAUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "LOKA",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ICPUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ICP",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ICPUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "ICP",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "T",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "T",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OPUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "OP",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OPUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "OP",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ROSEUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ROSE",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ROSEUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ROSE",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CELOUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "CELO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CELOUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "CELO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KDAUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "KDA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KDAUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "KDA",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KSMUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "KSM",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KSMUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.1000",
+      "base_asset": "KSM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ACHUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ACH",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ACHUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ACH",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DARUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "DAR",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DARUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "DAR",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RNDRUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "RNDR",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RNDRUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "RNDR",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SYSUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "SYS",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SYSUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "SYS",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RADUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "RAD",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RADUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "RAD",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ILVUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ILV",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ILVUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.1000",
+      "base_asset": "ILV",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LDOUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "LDO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LDOUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "LDO",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RAREUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "RARE",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RAREUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "RARE",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LSKUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "LSK",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LSKUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "LSK",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DGBUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "DGB",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DGBUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "DGB",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "REEFUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "REEF",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "REEFUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "REEF",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SRMUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "SRM",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SRMUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "SRM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ALICEUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ALICE",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ALICEUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "ALICE",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FORTHUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "FORTH",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FORTHUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "FORTH",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ASTRUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ASTR",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ASTRUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "ASTR",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BTRSTUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BTRST",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BTRSTUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "BTRST",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GALUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "GAL",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GALUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "GAL",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SANDUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "SAND",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SANDUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "SAND",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BALUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BAL",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BALUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "BAL",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLYXUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "POLYX",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GLMUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "GLM",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GLMUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "GLM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CLVUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "CLV",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CLVUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "CLV",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TUSDUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "TUSD",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TUSDUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "TUSD",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "QNTUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "QNT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "QNTUSD4": {
+      "min_qty": "0.00100000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "10.0000",
+      "tick_size": "0.1000",
+      "base_asset": "QNT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "STGUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "STG",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "STGUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "STG",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AXLUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "AXL",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AXLUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "AXL",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KAVAUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "KAVA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KAVAUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "KAVA",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "APTUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "APT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "APTUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "APT",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MASKUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "MASK",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MASKUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "MASK",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BOSONUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "BOSON",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BOSONUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "BOSON",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PONDUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "POND",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PONDUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "POND",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SOLUSDC": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "SOL",
+      "quote_asset": "USDC",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ADAUSDC": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ADA",
+      "quote_asset": "USDC",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MXCUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "MXC",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MXCUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "MXC",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "JAMUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "JAM",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "JAMUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "JAM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TRACUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "TRAC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PROMUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "PROM",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PROMUSD4": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0100",
+      "base_asset": "PROM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DIAUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "DIA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DIAUSD4": {
+      "min_qty": "0.10000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0010",
+      "base_asset": "DIA",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BTCDAI": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "BTC",
+      "quote_asset": "DAI",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ETHDAI": {
+      "min_qty": "0.00010000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ETH",
+      "quote_asset": "DAI",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ADAETH": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "0.00500000",
+      "tick_size": "1.0E-7",
+      "base_asset": "ADA",
+      "quote_asset": "ETH",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DOGEBTC": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "DOGE",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LOOMUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "LOOM",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LOOMUSD4": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "10.0000",
+      "tick_size": "0.0001",
+      "base_asset": "LOOM",
+      "quote_asset": "USD4",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "STMXUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "STMX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BTCUSD": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "5.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "BTC",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ETHUSD": {
+      "min_qty": "0.00010000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "5.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ETH",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BCHUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.10000000",
+      "base_asset": "BCH",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LTCUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "LTC",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "USDTUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "15000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "USDT",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BNBUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "5.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "BNB",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ADAUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "5.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ADA",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BATUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "BAT",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ETCUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ETC",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XLMUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "5.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "XLM",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZRXUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ZRX",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LINKUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "LINK",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RVNUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "RVN",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DASHUSD": {
+      "min_qty": "0.00001000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "DASH",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZECUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.10000000",
+      "base_asset": "ZEC",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ALGOUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "922327.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ALGO",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "IOTAUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "IOTA",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BUSDUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "15000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "BUSD",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "WAVESUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "WAVES",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ATOMUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ATOM",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NEOUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "NEO",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "QTUMUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "QTUM",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ICXUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ICX",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ENJUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ENJ",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ONTUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ONT",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZILUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ZIL",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VETUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "VET",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XTZUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "XTZ",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "HBARUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "5.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "HBAR",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OMGUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "OMG",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MATICUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "MATIC",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "EOSUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "EOS",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DOGEUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "DOGE",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KNCUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "KNC",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VTHOUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "VTHO",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "USDCUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "USDC",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "COMPUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "COMP",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MANAUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "MANA",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "HNTUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "HNT",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MKRUSD": {
+      "min_qty": "0.00010000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "1.00000000",
+      "tick_size": "1.00000000",
+      "base_asset": "MKR",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DAIUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "DAI",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ONEUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ONE",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BANDUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BAND",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "STORJUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9222448.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "STORJ",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "UNIUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "UNI",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SOLUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "5.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "SOL",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "EGLDUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "EGLD",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PAXGUSD": {
+      "min_qty": "0.00010000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00010000",
+      "min_notional": "1.00000000",
+      "tick_size": "1.00000000",
+      "base_asset": "PAXG",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OXTUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "922327.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "OXT",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZENUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ZEN",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FILUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "FIL",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AAVEUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "AAVE",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GRTUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "GRT",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SUSHIUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "SUSHI",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ANKRUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ANKR",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CRVUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "CRV",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AXSUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "AXS",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AVAXUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "AVAX",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CTSIUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "CTSI",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DOTUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "DOT",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "YFIUSD": {
+      "min_qty": "0.00001000",
+      "max_qty": "9000.00000000",
+      "step_size": "0.00001000",
+      "min_notional": "1.00000000",
+      "tick_size": "1.00000000",
+      "base_asset": "YFI",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "1INCHUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "1INCH",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FTMUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "FTM",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NEARUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "NEAR",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LRCUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "LRC",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KSHIBUSD": {
+      "min_qty": "1.0000",
+      "max_qty": "46116860.0000",
+      "step_size": "1.0000",
+      "min_notional": "10.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "KSHIB",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LPTUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222440.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "LPT",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NMRUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "NMR",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SLPUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "SLP",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ANTUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ANT",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XNOUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "XNO",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CHZUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "CHZ",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OGNUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "OGN",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GALAUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "GALA",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TLMUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "TLM",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SNXUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "SNX",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AUDIOUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "AUDIO",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "REQUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "REQ",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "APEUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "APE",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FLUXUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "FLUX",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TRXUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "TRX",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "COTIUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "COTI",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VOXELUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "VOXEL",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RLCUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "RLC",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BICOUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BICO",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "API3USD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "API3",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ENSUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ENS",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BNTUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BNT",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "IMXUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "IMX",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SPELLUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "1.0E-7",
+      "base_asset": "SPELL",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "JASMYUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "JASMY",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FLOWUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "FLOW",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GTCUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "GTC",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "THETAUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "THETA",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TFUELUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "TFUEL",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OCEANUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "OCEAN",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LAZIOUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "LAZIO",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SANTOSUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "SANTOS",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ALPINEUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ALPINE",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PORTOUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "PORTO",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RENUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "REN",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CELRUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "CELR",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SKLUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "SKL",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VITEUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "VITE",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "WAXPUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "WAXP",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LTOUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "LTO",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FETUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "FET",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BONDUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BOND",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LOKAUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "LOKA",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ICPUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ICP",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "T",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "OPUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "OP",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ROSEUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ROSE",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CELOUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "CELO",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KDAUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "KDA",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KSMUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "KSM",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ACHUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ACH",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DARUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "DAR",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RNDRUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "RNDR",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SYSUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "SYS",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RADUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "RAD",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ILVUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "ILV",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LDOUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "LDO",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RAREUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "RARE",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LSKUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "LSK",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DGBUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "DGB",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "REEFUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "REEF",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ALICEUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ALICE",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FORTHUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "FORTH",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ASTRUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ASTR",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BTRSTUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BTRST",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GALUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "GAL",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SANDUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "SAND",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BALUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BAL",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLYXUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "POLYX",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GLMUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "GLM",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CLVUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "CLV",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TUSDUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "TUSD",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "QNTUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.10000000",
+      "base_asset": "QNT",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "STGUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "STG",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AXLUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "AXL",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KAVAUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "KAVA",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "APTUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "APT",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MASKUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "MASK",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BOSONUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "BOSON",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PONDUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "POND",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MXCUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "MXC",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "JAMUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "90000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "JAM",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PROMUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "PROM",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DIAUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "922327.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "DIA",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LOOMUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "LOOM",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "STMXUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "STMX",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SHIBUSD": {
+      "min_qty": "1.00",
+      "max_qty": "46116860414.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "SHIB",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TRACUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "TRAC",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLYXUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "POLYX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "IOSTUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "IOST",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "IOSTUSD": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "IOST",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MATICETH": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "0.00500000",
+      "tick_size": "1.0E-7",
+      "base_asset": "MATIC",
+      "quote_asset": "ETH",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SOLETH": {
+      "min_qty": "0.00100000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "0.00500000",
+      "tick_size": "0.00001000",
+      "base_asset": "SOL",
+      "quote_asset": "ETH",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FLOKI8USDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "46116860414.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "FLOKI8",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FLOKI8USD": {
+      "min_qty": "1.00000000",
+      "max_qty": "46116860414.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "FLOKI8",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ARBUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ARB",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ARBUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ARB",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FLOKIUSDT": {
+      "min_qty": "1.00",
+      "max_qty": "46116860414.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "FLOKI",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FLOKIUSD": {
+      "min_qty": "1.00",
+      "max_qty": "46116860414.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "FLOKI",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XECUSDT": {
+      "min_qty": "1.00",
+      "max_qty": "46116860414.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "XEC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XECUSD": {
+      "min_qty": "1.00",
+      "max_qty": "46116860414.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "XEC",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BLURUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BLUR",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BLURUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "BLUR",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ANKRUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ANKR",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DAIUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "DAI",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DASHUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "DASH",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "HBARUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "HBAR",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ICXUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ICX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "IOTAUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "IOTA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RVNUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "RVN",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "WAVESUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "WAVES",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XNOUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "XNO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XTZUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "900000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "XTZ",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ZILUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ZIL",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ORBSUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ORBS",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "CUDOSUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "CUDOS",
+      "quote_asset": "USDT",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ADXUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ADX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FORTUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "FORT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SUIUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "SUI",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ONGUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "900000.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ONG",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "GUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "G",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RENDERUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "RENDER",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BONKUSDT": {
+      "min_qty": "1.00",
+      "max_qty": "36348600000.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "BONK",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MAGICUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "MAGIC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PEPEUSDT": {
+      "min_qty": "1.00",
+      "max_qty": "92233720368.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "PEPE",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "WIFUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "WIF",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "IOTXUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "IOTX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PNUTUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "PNUT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PENGUUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "PENGU",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLBTC": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "0.00010000",
+      "tick_size": "1E-8",
+      "base_asset": "POL",
+      "quote_asset": "BTC",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLETH": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "0.00500000",
+      "tick_size": "1.0E-7",
+      "base_asset": "POL",
+      "quote_asset": "ETH",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "POL",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TRUMPUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "TRUMP",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "NEIROUSDT": {
+      "min_qty": "1.00",
+      "max_qty": "36348600000.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "NEIRO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SUIUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "5.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "SUI",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XRPUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "XRP",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BONKUSD": {
+      "min_qty": "1.00",
+      "max_qty": "36348600000.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "BONK",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "PEPEUSD": {
+      "min_qty": "1.00",
+      "max_qty": "92233720368.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "PEPE",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POLUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "POL",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "RENDERUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "RENDER",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TRUMPUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "TRUMP",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "EIGENUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "EIGEN",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "EIGENUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "EIGEN",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MEUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ME",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MEUSD": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ME",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "5.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "D",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "METISUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "METIS",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "METISUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "9222449.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "METIS",
+      "quote_asset": "USD",
+      "status": "BREAK",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "JUPUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "JUP",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "JUPUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "JUP",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SUSD": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "S",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "S",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "JTOUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "JTO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ORCAUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "ORCA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "DATAUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "9000000.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "DATA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "VIRTUALUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "VIRTUAL",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "AIXBTUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "AIXBT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "KAITOUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "KAITO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TURBOUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "8384883677.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "TURBO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "HYPEUSD": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "HYPE",
+      "quote_asset": "USD",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "HYPEUSDT": {
+      "min_qty": "0.00100000",
+      "max_qty": "90000.00000000",
+      "step_size": "0.00100000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.01000000",
+      "base_asset": "HYPE",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ENAUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ENA",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "LAYERUSDT": {
+      "min_qty": "0.01000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.01000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "LAYER",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "FARTCOINUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "FARTCOIN",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "SPXUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "SPX",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "POPCATUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "POPCAT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "MOODENGUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "MOODENG",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ANIMEUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00001000",
+      "base_asset": "ANIME",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "1000MOGUSDT": {
+      "min_qty": "1.00",
+      "max_qty": "36348600000.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "1000MOG",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "ONDOUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "ONDO",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "1000REKTUSDT": {
+      "min_qty": "1.00",
+      "max_qty": "36348600000.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "1000REKT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "XDCUSDT": {
+      "min_qty": "1.00",
+      "max_qty": "363486000.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "XDC",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "BRETTUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "913205152.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "BRETT",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "WLDUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00100000",
+      "base_asset": "WLD",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "TOSHIUSDT": {
+      "min_qty": "1.00",
+      "max_qty": "36348600000.00",
+      "step_size": "1.00",
+      "min_notional": "1.00000000",
+      "tick_size": "1E-8",
+      "base_asset": "TOSHI",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "USELESSUSDT": {
+      "min_qty": "0.10000000",
+      "max_qty": "92141578.00000000",
+      "step_size": "0.10000000",
+      "min_notional": "1.00000000",
+      "tick_size": "0.00010000",
+      "base_asset": "USELESS",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    },
+    "A2ZUSDT": {
+      "min_qty": "1.00000000",
+      "max_qty": "8384883677.00000000",
+      "step_size": "1.00000000",
+      "min_notional": "5.00000000",
+      "tick_size": "0.00000100",
+      "base_asset": "A2Z",
+      "quote_asset": "USDT",
+      "status": "TRADING",
+      "permissions": [
+        "SPOT"
+      ]
+    }
+  }
+}

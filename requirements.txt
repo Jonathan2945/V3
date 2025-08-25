@@ -1,0 +1,162 @@
+﻿# COMPREHENSIVE TRADING SYSTEM REQUIREMENTS - FIXED
+# ===================================================
+
+# Core Python utilities
+python-dotenv>=1.0.0
+psutil>=5.9.5
+click>=8.1.6
+tqdm>=4.65.0
+rich>=13.4.2
+
+# Scientific Computing & Data Analysis
+numpy>=1.24.0,<2.0.0
+pandas>=2.0.0,<3.0.0
+scipy>=1.10.0
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Machine Learning & AI
+scikit-learn>=1.3.0
+tensorflow>=2.13.0,<2.16.0
+torch>=2.0.0
+xgboost>=1.7.0
+lightgbm>=4.0.0
+joblib>=1.3.0
+
+# Financial & Trading APIs
+python-binance>=1.0.19
+ccxt>=4.0.0
+yfinance>=0.2.21
+pandas-ta>=0.3.14b0
+ta>=0.10.2
+mplfinance>=0.12.9b0
+
+# External Data Sources
+alpha-vantage>=2.3.1
+fredapi>=0.5.1
+newsapi-python>=0.2.6
+tweepy>=4.14.0
+praw>=7.7.1
+asyncpraw>=7.7.1                   # FIXED: Was at bottom, moved here
+
+# Web Framework & APIs - FIXED SECTION
+flask>=2.3.2
+flask-cors>=4.0.0
+flask-limiter>=3.0.0               # CRITICAL: Missing in original - needed for rate limiting
+requests>=2.31.0
+aiohttp>=3.8.5
+urllib3>=1.26.0,<2.0.0
+
+# Security & Authentication - FIXED SECTION  
+cryptography>=41.0.0
+bcrypt>=4.0.0
+PyJWT>=2.8.0                       # CRITICAL: Missing - needed for JWT auth
+passlib>=1.7.4                     # Password hashing utilities
+
+# Real-time & Async
+websocket-client>=1.6.1
+websockets>=11.0.3
+asyncio-mqtt>=0.13.0
+
+# Text Processing & Sentiment
+textblob>=0.17.1
+nltk>=3.8.0
+beautifulsoup4>=4.12.2
+lxml>=4.9.0
+vaderSentiment>=3.3.2
+
+# Database & Storage
+sqlalchemy>=2.0.0
+sqlite-utils                          # Built-in, but explicit for clarity
+
+# Configuration & Serialization
+pyyaml>=6.0.1
+toml>=0.10.2
+
+# Logging & Monitoring
+loguru>=0.7.0
+structlog>=23.1.0
+coloredlogs>=15.0
+
+# Time & Date Utilities
+pytz>=2023.3
+python-dateutil>=2.8.2
+arrow>=1.2.3
+
+# Testing & Development
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+mock>=5.1.0
+
+# Data Validation
+pydantic>=2.0.0
+marshmallow>=3.20.0
+
+# HTTP & Network
+httpx>=0.24.0
+certifi>=2023.7.22
+
+# Numerical & Statistical
+statsmodels>=0.14.0
+plotly>=5.15.0
+
+# Additional utilities for trading
+python-telegram-bot>=20.0.0
+discord.py>=2.3.0
+
+# Memory & Performance
+memory-profiler>=0.61.0
+line-profiler>=4.1.0
+
+# Jupyter (optional for analysis)
+jupyter>=1.0.0
+ipython>=8.0.0
+
+# Additional ML libraries
+catboost>=1.2.0
+optuna>=3.3.0
+hyperopt>=0.2.7
+
+# Time series analysis
+prophet>=1.1.4
+arch>=6.2.0
+
+# Portfolio optimization
+cvxpy>=1.3.0
+pyportfolioopt>=1.5.0
+
+# INTELLIGENT API MANAGEMENT DEPENDENCIES
+# ===============================================
+schedule>=1.2.0
+asyncio-throttle>=1.0.2
+
+# BACKGROUND PROCESSING & MONITORING
+# ===================================
+APScheduler>=3.10.0
+prometheus-client>=0.17.0
+
+# DATA CACHING AND PERSISTENCE
+# =============================
+diskcache>=5.6.0
+
+# ENHANCED ERROR HANDLING AND RETRY
+# ==================================
+tenacity>=8.2.0
+backoff>=2.2.0
+
+# PERFORMANCE AND PROFILING
+# ==========================
+objgraph>=3.6.0
+
+# ENHANCED TESTING AND VALIDATION
+# ================================
+hypothesis>=6.82.0
+factory-boy>=3.3.0
+freezegun>=1.2.2
+
+# FIXED: Removed duplicate asyncpraw entry
+
+# Alternative installations for problematic packages:
+# If TA-Lib fails: pip install --only-binary=TA-Lib TA-Lib
+# If TensorFlow fails: pip install tensorflow-cpu>=2.13.0
+# Minimum Python version: 3.8+, Recommended: 3.11+
