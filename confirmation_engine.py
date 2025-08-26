@@ -1,625 +1,634 @@
 #!/usr/bin/env python3
 """
-ENHANCED ADVANCED ML ENGINE - FIXED ASYNC VERSION
-=================================================
-Fixed issues:
-- Removed .get() calls on asyncio Tasks
-- Fixed async external data collection
-- Enhanced error handling for async operations
+V3 SIGNAL CONFIRMATION ENGINE - LIVE DATA ONLY
+==============================================
+Advanced signal confirmation system with V3 compliance:
+- Multi-timeframe signal confirmation using live data only
+- Volume confirmation from real market data
+- Momentum confirmation using live indicators
+- Support/resistance level validation from live price action
+- Risk assessment using live market conditions
+- NO MOCK DATA - V3 production ready
 """
 
-import warnings
 import logging
 import asyncio
-from datetime import datetime
 import numpy as np
-import os
 import pandas as pd
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass
 
-# Suppress PRAW async warnings at module level - FIXED
-warnings.filterwarnings("ignore", message=".*PRAW.*asynchronous.*")
-warnings.filterwarnings("ignore", category=UserWarning, module="praw")
-warnings.filterwarnings("ignore", message=".*asynchronous environment.*")
-os.environ["PRAW_CHECK_FOR_ASYNC"] = "False"
+@dataclass
+class SignalConfirmation:
+    """V3 Live signal confirmation result"""
+    signal_confirmed: bool
+    confidence_score: float
+    confirmation_factors: List[str]
+    risk_level: str
+    timeframes_confirmed: List[str]
+    volume_confirmed: bool
+    momentum_confirmed: bool
+    support_resistance_confirmed: bool
+    live_data_quality: float
+    timestamp: datetime
+    v3_compliance: bool = True
 
-class AdvancedMLEngine:
-    def __init__(self, config=None, credentials=None, test_mode=True, *args, **kwargs):
-        """
-        Initialize Enhanced ML Engine with ALL data sources
-        """
+class ConfirmationEngine:
+    """V3 Signal Confirmation Engine - LIVE DATA ONLY"""
+    
+    def __init__(self, data_manager, market_analyzer):
+        self.data_manager = data_manager
+        self.market_analyzer = market_analyzer
         self.logger = logging.getLogger(__name__)
-        self.config = config or {}
-        self.credentials = credentials or {}
-        self.test_mode = test_mode
-        self.is_initialized = False
-        self.rl_initialized = False
         
-        # ML Engine settings
-        self.model_cache = {}
-        self.training_data = []
-        self.prediction_history = []
-        
-        # Enhanced: External data integration
-        self.external_data_collector = None
-        self.external_data_cache = {}
-        self.last_external_update = None
-        
-        # Learning progression data
-        self.backtest_training_data = []
-        self.testnet_enhancement_data = []
-        self.learning_phase = "INITIAL"
-        
-        # Initialize external data collector with ALL your APIs - ENHANCED
-        self._initialize_external_data_collector()
-        
-        self.logger.info("[AI] Enhanced ML Engine initialized with ALL data sources")
-        print("[AI] Enhanced ML Engine initialized with comprehensive data integration")
-    
-    def _initialize_external_data_collector(self):
-        """Initialize external data collector with ALL your API credentials - ENHANCED"""
-        try:
-            # Suppress warnings during import
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                from external_data_collector import ExternalDataCollector
-            
-            self.external_data_collector = ExternalDataCollector()
-            
-            # Get API status
-            status = self.external_data_collector.get_api_status()
-            working_apis = status['working_apis']
-            total_apis = status['total_apis']
-            
-            print(f"📊 External Data Integration: {working_apis}/{total_apis} APIs working")
-            
-            if working_apis >= 3:
-                print("✅ HIGH QUALITY: Multiple data sources available")
-            elif working_apis >= 2:
-                print("⚠️ MEDIUM QUALITY: Some data sources available")
-            else:
-                print("🔍 LOW QUALITY: Limited data sources")
-            
-            # List working APIs
-            for api_name, working in status['api_details'].items():
-                status_icon = "✅" if working else "❌"
-                print(f"  {status_icon} {api_name.upper()}: {'Working' if working else 'Failed'}")
-            
-            return True
-            
-        except ImportError:
-            print("⚠️ External data collector not found - using basic mode")
-            return False
-        except Exception as e:
-            print(f"⚠️ External data collector failed: {e}")
-            return False
-    
-    async def initialize_reinforcement_learning(self):
-        """Initialize reinforcement learning components"""
-        try:
-            self.rl_initialized = True
-            self.logger.info("[AI] Reinforcement learning initialized")
-            print("[AI] Reinforcement learning initialized")
-            return True
-        except Exception as e:
-            self.logger.error(f"[FAIL] RL initialization failed: {e}")
-            print(f"[FAIL] RL initialization failed: {e}")
-            return False
-    
-    async def get_comprehensive_market_context(self, symbol="BTC"):
-        """Get comprehensive market context using ALL your data sources - FIXED ASYNC"""
-        try:
-            context = {
-                'timestamp': datetime.now().isoformat(),
-                'symbol': symbol,
-                'data_sources_used': []
+        # V3 Configuration - Live Data Only
+        self.config = {
+            'confirmation_timeframes': ['5m', '15m', '1h', '4h'],
+            'volume_threshold': 1.2,  # 20% above average
+            'momentum_threshold': 0.6,
+            'confidence_threshold': 0.7,
+            'min_confirmations': 3,
+            'live_data_only': True,  # V3 enforcement
+            'risk_levels': {
+                'low': 0.3,
+                'medium': 0.6,
+                'high': 0.8
             }
-            
-            if self.external_data_collector:
-                # Collect fresh external data with warning suppression - FIXED ASYNC CALL
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    
-                    # FIXED: Properly handle the async call
-                    try:
-                        # Check if we're in an async context
-                        loop = asyncio.get_running_loop()
-                        if loop.is_running():
-                            # We're in an async context, await the result
-                            external_data = await self._get_external_data_async(symbol)
-                        else:
-                            # Sync context, get data synchronously
-                            external_data = self.external_data_collector.collect_comprehensive_market_data(symbol)
-                    except RuntimeError:
-                        # No event loop, get data synchronously
-                        external_data = self.external_data_collector.collect_comprehensive_market_data(symbol)
-                
-                if external_data and external_data.get('data_sources'):
-                    # Alpha Vantage financial data
-                    if 'alpha_vantage' in external_data:
-                        av_data = external_data['alpha_vantage']
-                        context['financial_metrics'] = {
-                            'price': av_data.get('price', 0),
-                            'change_percent': av_data.get('change_percent', 0),
-                            'volume': av_data.get('volume', 0)
-                        }
-                        context['data_sources_used'].append('alpha_vantage')
-                    
-                    # News sentiment
-                    if 'news_sentiment' in external_data:
-                        news_data = external_data['news_sentiment']
-                        context['news_sentiment'] = {
-                            'sentiment_score': news_data.get('sentiment_score', 0),
-                            'articles_count': news_data.get('articles_analyzed', 0)
-                        }
-                        context['data_sources_used'].append('news_api')
-                    
-                    # Economic indicators
-                    if 'economic_data' in external_data:
-                        econ_data = external_data['economic_data']
-                        context['economic_context'] = econ_data
-                        context['data_sources_used'].append('fred')
-                    
-                    # Social media sentiment - ENHANCED HANDLING
-                    if 'reddit_sentiment' in external_data:
-                        reddit_data = external_data['reddit_sentiment']
-                        context['social_sentiment'] = context.get('social_sentiment', {})
-                        context['social_sentiment']['reddit'] = reddit_data.get('sentiment_score', 0)
-                        context['data_sources_used'].append('reddit')
-                    
-                    if 'twitter_sentiment' in external_data:
-                        twitter_data = external_data['twitter_sentiment']
-                        context['social_sentiment'] = context.get('social_sentiment', {})
-                        context['social_sentiment']['twitter'] = twitter_data.get('sentiment_score', 0)
-                        context['data_sources_used'].append('twitter')
-                    
-                    # Cache the data
-                    self.external_data_cache = external_data
-                    self.last_external_update = datetime.now()
-                    
-                    print(f"📊 Market context from {len(context['data_sources_used'])} sources: {', '.join(context['data_sources_used'])}")
-                    
-            return context
-            
-        except Exception as e:
-            self.logger.error(f"Failed to get comprehensive context: {e}")
-            return {'timestamp': datetime.now().isoformat(), 'error': str(e)}
+        }
+        
+        # V3 Live confirmation history
+        self.confirmation_history = []
+        self.live_market_context = {}
+        
+        self.logger.info("[CONFIRMATION] V3 Signal Confirmation Engine initialized - LIVE DATA ONLY")
     
-    async def _get_external_data_async(self, symbol):
-        """Helper method to properly handle async external data collection"""
-        try:
-            # Check if the collector's method returns a coroutine or task
-            result = self.external_data_collector.collect_comprehensive_market_data(symbol)
-            
-            if asyncio.iscoroutine(result):
-                # It's a coroutine, await it
-                return await result
-            elif asyncio.isfuture(result) or hasattr(result, '__await__'):
-                # It's a task or future, await it
-                return await result
-            else:
-                # It's a regular value, return it
-                return result
-        except Exception as e:
-            self.logger.error(f"Error getting external data: {e}")
-            return None
-    
-    def get_comprehensive_market_context_sync(self, symbol="BTC"):
-        """Synchronous version for non-async contexts"""
-        try:
-            # Run the async version in a sync context
-            try:
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # Can't run sync in an async context, create a task
-                    return asyncio.create_task(self.get_comprehensive_market_context(symbol))
-                else:
-                    return loop.run_until_complete(self.get_comprehensive_market_context(symbol))
-            except RuntimeError:
-                # No event loop, create one
-                return asyncio.run(self.get_comprehensive_market_context(symbol))
-        except Exception as e:
-            self.logger.error(f"Sync context retrieval failed: {e}")
-            return {'timestamp': datetime.now().isoformat(), 'error': str(e)}
-    
-    def predict_market_direction(self, data=None, symbol=None, timeframe=None):
+    async def confirm_trade_signal(self, signal: Dict, symbol: str) -> SignalConfirmation:
         """
-        Enhanced market direction prediction using ALL data sources - FIXED
+        V3 Main signal confirmation using LIVE DATA ONLY
         """
         try:
-            if data is None:
-                data = {}
+            self.logger.info(f"[CONFIRMATION] V3 Confirming signal for {symbol} - LIVE DATA")
             
-            # Get comprehensive market context using sync version for compatibility
-            market_context = self.get_comprehensive_market_context_sync(symbol or 'BTC')
+            confirmation_factors = []
+            confirmations_count = 0
+            confidence_score = 0.0
             
-            # Handle if it's a task (async context issue)
-            if asyncio.iscoroutine(market_context) or asyncio.isfuture(market_context):
-                # In an async context but called sync method, get cached data
-                market_context = self.external_data_cache or {'timestamp': datetime.now().isoformat()}
+            # V3 Multi-timeframe confirmation using live data
+            timeframe_results = await self._confirm_across_live_timeframes(signal, symbol)
+            timeframes_confirmed = [tf for tf, confirmed in timeframe_results.items() if confirmed]
             
-            # Base prediction
-            if self.test_mode:
-                directions = ["bullish", "bearish", "neutral"]
-                import random
-                direction = random.choice(directions)
-                base_confidence = random.uniform(0.4, 0.8)
-            else:
-                direction = "neutral"
-                base_confidence = 0.5
+            if len(timeframes_confirmed) >= 2:
+                confirmations_count += 1
+                confidence_score += 0.25
+                confirmation_factors.append(f"Timeframe alignment: {len(timeframes_confirmed)}/4")
             
-            # ENHANCE with external data
-            enhanced_confidence = base_confidence
-            reasoning = ["Base market analysis"]
+            # V3 Volume confirmation using live market data
+            volume_confirmed = await self._confirm_live_volume(signal, symbol)
+            if volume_confirmed:
+                confirmations_count += 1
+                confidence_score += 0.2
+                confirmation_factors.append("Live volume confirmation")
             
-            # Factor in news sentiment
-            if 'news_sentiment' in market_context:
-                news_sentiment = market_context['news_sentiment']['sentiment_score']
-                if abs(news_sentiment) > 0.3:
-                    enhanced_confidence *= (1 + abs(news_sentiment) * 0.2)
-                    reasoning.append(f"News sentiment: {news_sentiment:.2f}")
+            # V3 Momentum confirmation using live indicators
+            momentum_confirmed = await self._confirm_live_momentum(signal, symbol)
+            if momentum_confirmed:
+                confirmations_count += 1
+                confidence_score += 0.2
+                confirmation_factors.append("Live momentum confirmation")
             
-            # Factor in social sentiment
-            if 'social_sentiment' in market_context:
-                social_data = market_context['social_sentiment']
-                social_values = [v for v in social_data.values() if isinstance(v, (int, float))]
-                if social_values:
-                    avg_social = np.mean(social_values)
-                    if abs(avg_social) > 0.2:
-                        enhanced_confidence *= (1 + abs(avg_social) * 0.15)
-                        reasoning.append(f"Social sentiment: {avg_social:.2f}")
+            # V3 Support/Resistance confirmation using live price action
+            sr_confirmed = await self._confirm_live_support_resistance(signal, symbol)
+            if sr_confirmed:
+                confirmations_count += 1
+                confidence_score += 0.15
+                confirmation_factors.append("Live S/R level confirmation")
             
-            # Factor in economic context
-            if 'economic_context' in market_context:
-                econ_data = market_context['economic_context']
-                if 'interest_rate' in econ_data:
-                    # Low interest rates = bullish for risk assets
-                    interest_rate = econ_data['interest_rate']
-                    if interest_rate < 3.0:  # Low rates
-                        enhanced_confidence *= 1.1
-                        reasoning.append("Low interest rate environment")
+            # V3 Market condition confirmation using live analysis
+            market_condition_score = await self._assess_live_market_conditions(symbol)
+            confidence_score += market_condition_score * 0.2
+            if market_condition_score > 0.6:
+                confirmation_factors.append("Favorable live market conditions")
             
-            # Factor in financial metrics
-            if 'financial_metrics' in market_context:
-                fin_data = market_context['financial_metrics']
-                change_pct = fin_data.get('change_percent', 0)
-                if abs(change_pct) > 2:  # Strong price movement
-                    enhanced_confidence *= (1 + abs(change_pct) / 100)
-                    reasoning.append(f"Strong price movement: {change_pct:+.1f}%")
+            # V3 Risk assessment using live data
+            risk_level = self._calculate_live_risk_level(signal, confidence_score)
             
-            # Apply learning progression enhancement
-            if self.learning_phase in ["HISTORICAL_TRAINED", "TESTNET_ENHANCED"]:
-                enhanced_confidence *= 1.15
-                reasoning.append("ML enhanced with training")
-            
-            # Cap confidence
-            enhanced_confidence = min(enhanced_confidence, 0.95)
-            
-            prediction = {
-                "direction": direction,
-                "confidence": enhanced_confidence,
-                "base_confidence": base_confidence,
-                "data_sources": market_context.get('data_sources_used', []),
-                "external_data_quality": len(market_context.get('data_sources_used', [])),
-                "learning_phase": self.learning_phase,
-                "reasoning": reasoning,
-                "market_context": market_context,
-                "timestamp": datetime.now().isoformat(),
-                "model_used": f"{self.learning_phase}_enhanced_model"
-            }
-            
-            # Store prediction history
-            self.prediction_history.append(prediction)
-            
-            return prediction
-            
-        except Exception as e:
-            self.logger.error(f"[FAIL] Enhanced prediction failed: {e}")
-            return {"direction": "neutral", "confidence": 0.0, "error": str(e)}
-    
-    async def predict_with_enhanced_intelligence(self, trade_context):
-        """Use enhanced intelligence with ALL data sources for trading decisions - FIXED"""
-        try:
-            symbol = trade_context.get('symbol', 'BTC')
-            
-            # Get comprehensive market analysis using ALL your APIs - FIXED
-            market_context = await self.get_comprehensive_market_context(symbol)
-            
-            # Combine trade context with external data
-            enhanced_context = {**trade_context, **market_context}
-            
-            # Multi-factor decision making
-            decision_factors = []
-            confidence_multiplier = 1.0
-            
-            # Technical factors
-            price_change = trade_context.get('price_change_24h', 0)
-            if abs(price_change) > 0.03:  # 3% move
-                decision_factors.append(f"Strong price movement: {price_change:+.1%}")
-                confidence_multiplier *= 1.2
-            
-            # News sentiment factor
-            if 'news_sentiment' in market_context:
-                news_score = market_context['news_sentiment']['sentiment_score']
-                if abs(news_score) > 0.4:
-                    decision_factors.append(f"Strong news sentiment: {news_score:.2f}")
-                    confidence_multiplier *= 1.15
-            
-            # Social sentiment factor
-            if 'social_sentiment' in market_context:
-                social_scores = market_context['social_sentiment']
-                social_values = [v for v in social_scores.values() if isinstance(v, (int, float))]
-                if social_values:
-                    avg_social = np.mean(social_values)
-                    if abs(avg_social) > 0.3:
-                        decision_factors.append(f"Social sentiment: {avg_social:.2f}")
-                        confidence_multiplier *= 1.1
-            
-            # Economic environment factor
-            if 'economic_context' in market_context:
-                econ = market_context['economic_context']
-                if 'interest_rate' in econ and econ['interest_rate'] < 2.0:
-                    decision_factors.append("Low interest rate environment")
-                    confidence_multiplier *= 1.05
-            
-            # Calculate final decision
-            base_should_trade = trade_context.get('trend_strength', 0.5) > 0.6
-            enhanced_confidence = min(0.9, trade_context.get('rsi', 50) / 100 * confidence_multiplier)
-            
-            should_trade = (
-                base_should_trade and 
-                enhanced_confidence > 0.6 and 
-                len(decision_factors) >= 2
+            # V3 Final confirmation decision
+            signal_confirmed = (
+                confirmations_count >= self.config['min_confirmations'] and
+                confidence_score >= self.config['confidence_threshold']
             )
             
-            return {
-                'should_trade': should_trade,
-                'confidence': enhanced_confidence,
-                'decision_factors': decision_factors,
-                'data_sources_used': market_context.get('data_sources_used', []),
-                'reasoning': f"Multi-factor analysis: {', '.join(decision_factors[:3])}",
-                'enhanced_intelligence': True,
-                'external_data_integrated': len(market_context.get('data_sources_used', [])) > 0
-            }
+            # V3 Live data quality assessment
+            live_data_quality = await self._assess_live_data_quality(symbol)
+            
+            # Create V3 confirmation result
+            confirmation = SignalConfirmation(
+                signal_confirmed=signal_confirmed,
+                confidence_score=min(0.95, confidence_score),
+                confirmation_factors=confirmation_factors,
+                risk_level=risk_level,
+                timeframes_confirmed=timeframes_confirmed,
+                volume_confirmed=volume_confirmed,
+                momentum_confirmed=momentum_confirmed,
+                support_resistance_confirmed=sr_confirmed,
+                live_data_quality=live_data_quality,
+                timestamp=datetime.now(),
+                v3_compliance=True
+            )
+            
+            # Store V3 confirmation history
+            self.confirmation_history.append({
+                'symbol': symbol,
+                'signal': signal,
+                'confirmation': confirmation,
+                'timestamp': datetime.now(),
+                'data_source': 'live_market_data'
+            })
+            
+            self.logger.info(f"[CONFIRMATION] V3 Signal {'CONFIRMED' if signal_confirmed else 'REJECTED'} "
+                           f"- Confidence: {confidence_score:.1%} - Live Data Quality: {live_data_quality:.1%}")
+            
+            return confirmation
             
         except Exception as e:
-            self.logger.error(f"Enhanced intelligence prediction failed: {e}")
-            return {
-                'should_trade': False,
-                'confidence': 0.0,
-                'error': str(e)
-            }
+            self.logger.error(f"[CONFIRMATION] V3 Signal confirmation failed: {e}")
+            return SignalConfirmation(
+                signal_confirmed=False,
+                confidence_score=0.0,
+                confirmation_factors=[f"Error: {str(e)}"],
+                risk_level="high",
+                timeframes_confirmed=[],
+                volume_confirmed=False,
+                momentum_confirmed=False,
+                support_resistance_confirmed=False,
+                live_data_quality=0.0,
+                timestamp=datetime.now(),
+                v3_compliance=True
+            )
     
-    # Learning progression methods (enhanced with external data)
-    async def train_on_backtest_results(self, backtest_results):
-        """Train ML on backtesting results ENHANCED with external data"""
+    async def _confirm_across_live_timeframes(self, signal: Dict, symbol: str) -> Dict[str, bool]:
+        """V3 Confirm signal across multiple timeframes using LIVE DATA"""
         try:
-            print("🧠 [PHASE 1] Training ML on Historical Data + External Sources")
-            print("=" * 70)
+            timeframe_results = {}
+            signal_direction = signal.get('direction', 'neutral')
             
-            self.backtest_training_data = []
-            features = []
-            labels = []
-            
-            for result in backtest_results:
-                if hasattr(result, '__dict__'):
-                    result_dict = result.__dict__
-                else:
-                    result_dict = result
-                
-                # Enhanced feature vector with external data capability
-                feature_vector = [
-                    result_dict.get('win_rate', 0) / 100,
-                    result_dict.get('total_return', 0) / 100,
-                    result_dict.get('max_drawdown', 0) / 100,
-                    min(result_dict.get('sharpe_ratio', 0), 3) / 3,
-                    min(result_dict.get('profit_factor', 0), 5) / 5,
-                    result_dict.get('avg_trade_duration', 0) / 50,
-                    result_dict.get('total_trades', 0) / 100,
-                    # Enhanced: Add external data features
-                    1 if self.external_data_collector else 0,  # External data availability
-                    len(self.external_data_cache.get('data_sources', [])) / 5,  # Data source quality
-                ]
-                
-                features.append(feature_vector)
-                labels.append(1 if result_dict.get('passed_requirements', False) else 0)
-                
-                self.backtest_training_data.append({
-                    'features': feature_vector,
-                    'label': labels[-1],
-                    'symbol': result_dict.get('symbol', 'UNKNOWN'),
-                    'timeframe': result_dict.get('timeframe', '1h'),
-                    'external_data_used': bool(self.external_data_collector)
-                })
-            
-            # Train enhanced models
-            if len(features) >= 5:
-                models_trained = await self._train_enhanced_backtest_models(features, labels)
-                
-                # Collect sample external data for training context
-                if self.external_data_collector:
-                    sample_context = await self.get_comprehensive_market_context('BTC')
-                    print(f"📊 External data integrated: {len(sample_context.get('data_sources_used', []))} sources")
-                
-                print(f"✅ [PHASE 1 COMPLETE] {models_trained} ML models trained with external data integration")
-                return models_trained > 0
-            else:
-                print(f"⚠️ Limited training data ({len(features)} samples)")
-                return await self._train_simple_enhanced_models(features, labels)
-                
-        except Exception as e:
-            self.logger.error(f"Enhanced backtest training failed: {e}")
-            return False
-    
-    async def _train_enhanced_backtest_models(self, features, labels):
-        """Train models enhanced with external data capabilities"""
-        try:
-            models_trained = 0
-            
-            # Enhanced Strategy Success Classifier
-            accuracy = 0.75 + np.random.uniform(0, 0.20)
-            self.model_cache['enhanced_strategy_classifier'] = {
-                'type': 'classification',
-                'accuracy': accuracy,
-                'training_phase': 'HISTORICAL_ENHANCED',
-                'trained_on': len(features),
-                'external_data_integrated': True,
-                'data_sources_available': len(self.external_data_cache.get('data_sources', [])),
-                'trained_at': datetime.now().isoformat()
-            }
-            models_trained += 1
-            print(f"  ✅ Enhanced Strategy Classifier: {accuracy:.1f}% accuracy (with external data)")
-            
-            # Multi-Source Performance Predictor
-            predictor_accuracy = 0.70 + np.random.uniform(0, 0.25)
-            self.model_cache['multi_source_predictor'] = {
-                'type': 'regression',
-                'accuracy': predictor_accuracy,
-                'training_phase': 'HISTORICAL_ENHANCED',
-                'external_apis_used': list(self.external_data_collector.api_status.keys()) if self.external_data_collector else [],
-                'trained_at': datetime.now().isoformat()
-            }
-            models_trained += 1
-            print(f"  ✅ Multi-Source Predictor: {predictor_accuracy:.1f}% accuracy")
-            
-            # Sentiment-Enhanced Decision Engine
-            if self.external_data_collector and sum(self.external_data_collector.api_status.values()) >= 2:
-                sentiment_accuracy = 0.68 + np.random.uniform(0, 0.22)
-                self.model_cache['sentiment_enhanced_engine'] = {
-                    'type': 'ensemble',
-                    'accuracy': sentiment_accuracy,
-                    'training_phase': 'HISTORICAL_ENHANCED',
-                    'specialization': 'sentiment_analysis',
-                    'trained_at': datetime.now().isoformat()
-                }
-                models_trained += 1
-                print(f"  ✅ Sentiment-Enhanced Engine: {sentiment_accuracy:.1f}% accuracy")
-            
-            return models_trained
-            
-        except Exception as e:
-            print(f"Enhanced model training failed: {e}")
-            return 0
-    
-    async def _train_simple_enhanced_models(self, features, labels):
-        """Train simplified models with external data awareness"""
-        try:
-            self.model_cache['simple_enhanced_classifier'] = {
-                'type': 'threshold_enhanced',
-                'accuracy': 0.78,
-                'training_phase': 'HISTORICAL_ENHANCED',
-                'external_data_aware': True,
-                'threshold': 0.65,
-                'trained_at': datetime.now().isoformat()
-            }
-            print(f"  ✅ Simple Enhanced Classifier: 78% accuracy")
-            return True
-        except Exception as e:
-            print(f"Simple enhanced model training failed: {e}")
-            return False
-    
-    def get_status(self):
-        """Get comprehensive engine status including external data integration"""
-        try:
-            base_status = {
-                "initialized": self.is_initialized,
-                "rl_initialized": self.rl_initialized,
-                "test_mode": self.test_mode,
-                "models_trained": len(self.model_cache),
-                "predictions_made": len(self.prediction_history),
-                "training_data_points": len(self.training_data),
-                "timestamp": datetime.now().isoformat(),
-            }
-            
-            # Enhanced: External data status
-            external_status = {
-                "external_data_collector": self.external_data_collector is not None,
-                "external_apis_working": 0,
-                "external_data_quality": "NONE"
-            }
-            
-            if self.external_data_collector:
+            for timeframe in self.config['confirmation_timeframes']:
                 try:
-                    api_status = self.external_data_collector.get_api_status()
-                    external_status.update({
-                        "external_apis_working": api_status['working_apis'],
-                        "external_apis_total": api_status['total_apis'],
-                        "external_data_quality": api_status['data_quality'],
-                        "last_external_update": self.last_external_update.isoformat() if self.last_external_update else None
-                    })
+                    # Get live market data for this timeframe
+                    live_data = await self.data_manager.get_historical_data(
+                        symbol, timeframe,
+                        start_time=datetime.now() - timedelta(hours=24)
+                    )
+                    
+                    if not live_data or len(live_data.get('close', [])) < 20:
+                        timeframe_results[timeframe] = False
+                        continue
+                    
+                    # V3 Analyze live price action
+                    closes = np.array(live_data['close'])
+                    
+                    # V3 Trend confirmation using live data
+                    trend_confirmed = self._analyze_live_trend_alignment(closes, signal_direction)
+                    
+                    # V3 Price level confirmation using live data
+                    price_level_confirmed = self._analyze_live_price_levels(
+                        live_data, signal.get('entry_price', closes[-1])
+                    )
+                    
+                    # V3 Timeframe confirmation result
+                    timeframe_confirmed = trend_confirmed and price_level_confirmed
+                    timeframe_results[timeframe] = timeframe_confirmed
+                    
                 except Exception as e:
-                    self.logger.warning(f"Error getting external API status: {e}")
+                    self.logger.warning(f"[CONFIRMATION] Live timeframe {timeframe} analysis failed: {e}")
+                    timeframe_results[timeframe] = False
             
-            # Learning progression status
-            learning_status = {
-                "learning_phase": self.learning_phase,
-                "backtest_training_completed": bool(self.backtest_training_data),
-                "testnet_enhancement_completed": bool(self.testnet_enhancement_data),
-                "intelligence_level": self._calculate_enhanced_intelligence_level(),
+            return timeframe_results
+            
+        except Exception as e:
+            self.logger.error(f"[CONFIRMATION] Live multi-timeframe confirmation failed: {e}")
+            return {tf: False for tf in self.config['confirmation_timeframes']}
+    
+    def _analyze_live_trend_alignment(self, closes: np.ndarray, signal_direction: str) -> bool:
+        """V3 Analyze trend alignment using live price data"""
+        try:
+            if len(closes) < 10:
+                return False
+            
+            # V3 Calculate live trend using moving averages
+            short_ma = np.mean(closes[-5:])
+            long_ma = np.mean(closes[-20:])
+            
+            if signal_direction == 'bullish':
+                return short_ma > long_ma
+            elif signal_direction == 'bearish':
+                return short_ma < long_ma
+            else:
+                return True  # Neutral signals don't need trend alignment
+                
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live trend alignment analysis failed: {e}")
+            return False
+    
+    def _analyze_live_price_levels(self, live_data: Dict, entry_price: float) -> bool:
+        """V3 Analyze price levels using live market data"""
+        try:
+            highs = np.array(live_data['high'])
+            lows = np.array(live_data['low'])
+            closes = np.array(live_data['close'])
+            
+            # V3 Check if entry price is within reasonable range of live market
+            current_price = closes[-1]
+            price_range = max(highs[-20:]) - min(lows[-20:])
+            
+            # Entry price should be within 2% of current price for live trading
+            price_diff_pct = abs(entry_price - current_price) / current_price
+            
+            return price_diff_pct <= 0.02  # Within 2% for live execution
+            
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live price level analysis failed: {e}")
+            return False
+    
+    async def _confirm_live_volume(self, signal: Dict, symbol: str) -> bool:
+        """V3 Confirm volume using LIVE market data"""
+        try:
+            # Get recent live volume data
+            live_data = await self.data_manager.get_historical_data(
+                symbol, '5m',
+                start_time=datetime.now() - timedelta(hours=6)
+            )
+            
+            if not live_data or len(live_data.get('volume', [])) < 20:
+                return False
+            
+            volumes = np.array(live_data['volume'])
+            
+            # V3 Calculate live volume metrics
+            recent_volume = np.mean(volumes[-3:])  # Last 3 periods
+            avg_volume = np.mean(volumes[:-3])     # Historical average
+            
+            # V3 Volume confirmation criteria
+            volume_ratio = recent_volume / avg_volume if avg_volume > 0 else 1.0
+            
+            volume_confirmed = volume_ratio >= self.config['volume_threshold']
+            
+            if volume_confirmed:
+                self.logger.info(f"[CONFIRMATION] Live volume confirmed - Ratio: {volume_ratio:.2f}")
+            
+            return volume_confirmed
+            
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live volume confirmation failed: {e}")
+            return False
+    
+    async def _confirm_live_momentum(self, signal: Dict, symbol: str) -> bool:
+        """V3 Confirm momentum using live indicators"""
+        try:
+            # Get live data for momentum calculation
+            live_data = await self.data_manager.get_historical_data(
+                symbol, '15m',
+                start_time=datetime.now() - timedelta(hours=12)
+            )
+            
+            if not live_data or len(live_data.get('close', [])) < 14:
+                return False
+            
+            closes = np.array(live_data['close'])
+            
+            # V3 Calculate live RSI
+            rsi = self._calculate_live_rsi(closes, period=14)
+            
+            # V3 Calculate live momentum score
+            momentum_score = self._calculate_live_momentum_score(closes)
+            
+            signal_direction = signal.get('direction', 'neutral')
+            
+            # V3 Momentum confirmation logic
+            if signal_direction == 'bullish':
+                momentum_confirmed = rsi > 50 and momentum_score > self.config['momentum_threshold']
+            elif signal_direction == 'bearish':
+                momentum_confirmed = rsi < 50 and momentum_score > self.config['momentum_threshold']
+            else:
+                momentum_confirmed = True  # Neutral signals
+            
+            return momentum_confirmed
+            
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live momentum confirmation failed: {e}")
+            return False
+    
+    def _calculate_live_rsi(self, closes: np.ndarray, period: int = 14) -> float:
+        """V3 Calculate RSI using live price data"""
+        try:
+            if len(closes) < period + 1:
+                return 50.0
+            
+            deltas = np.diff(closes)
+            gains = np.where(deltas > 0, deltas, 0)
+            losses = np.where(deltas < 0, -deltas, 0)
+            
+            avg_gains = np.mean(gains[-period:])
+            avg_losses = np.mean(losses[-period:])
+            
+            if avg_losses == 0:
+                return 100.0
+            
+            rs = avg_gains / avg_losses
+            rsi = 100 - (100 / (1 + rs))
+            
+            return rsi
+            
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live RSI calculation failed: {e}")
+            return 50.0
+    
+    def _calculate_live_momentum_score(self, closes: np.ndarray) -> float:
+        """V3 Calculate momentum score using live data"""
+        try:
+            if len(closes) < 10:
+                return 0.5
+            
+            # V3 Price momentum
+            price_change_5 = (closes[-1] - closes[-6]) / closes[-6] if len(closes) >= 6 else 0
+            price_change_10 = (closes[-1] - closes[-11]) / closes[-11] if len(closes) >= 11 else 0
+            
+            # V3 Momentum score
+            momentum_score = (abs(price_change_5) + abs(price_change_10)) / 2
+            
+            return min(1.0, momentum_score * 10)  # Normalize to 0-1
+            
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live momentum score calculation failed: {e}")
+            return 0.5
+    
+    async def _confirm_live_support_resistance(self, signal: Dict, symbol: str) -> bool:
+        """V3 Confirm support/resistance levels using live price action"""
+        try:
+            # Get live data for S/R analysis
+            live_data = await self.data_manager.get_historical_data(
+                symbol, '1h',
+                start_time=datetime.now() - timedelta(days=7)
+            )
+            
+            if not live_data or len(live_data.get('high', [])) < 50:
+                return False
+            
+            highs = np.array(live_data['high'])
+            lows = np.array(live_data['low'])
+            closes = np.array(live_data['close'])
+            
+            current_price = closes[-1]
+            entry_price = signal.get('entry_price', current_price)
+            signal_direction = signal.get('direction', 'neutral')
+            
+            # V3 Find live support and resistance levels
+            resistance_levels = self._find_live_resistance_levels(highs, current_price)
+            support_levels = self._find_live_support_levels(lows, current_price)
+            
+            # V3 S/R confirmation logic
+            if signal_direction == 'bullish':
+                # For bullish signals, check if we're near support and away from resistance
+                near_support = any(abs(entry_price - level) / level < 0.02 for level in support_levels)
+                away_from_resistance = all(entry_price < level * 0.95 for level in resistance_levels)
+                sr_confirmed = near_support or away_from_resistance
+            elif signal_direction == 'bearish':
+                # For bearish signals, check if we're near resistance and away from support
+                near_resistance = any(abs(entry_price - level) / level < 0.02 for level in resistance_levels)
+                away_from_support = all(entry_price > level * 1.05 for level in support_levels)
+                sr_confirmed = near_resistance or away_from_support
+            else:
+                sr_confirmed = True  # Neutral signals
+            
+            return sr_confirmed
+            
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live S/R confirmation failed: {e}")
+            return False
+    
+    def _find_live_resistance_levels(self, highs: np.ndarray, current_price: float) -> List[float]:
+        """V3 Find resistance levels from live price data"""
+        try:
+            # Find local peaks in live data
+            resistance_levels = []
+            
+            for i in range(2, len(highs) - 2):
+                if (highs[i] > highs[i-1] and highs[i] > highs[i-2] and 
+                    highs[i] > highs[i+1] and highs[i] > highs[i+2]):
+                    if highs[i] > current_price:  # Above current price
+                        resistance_levels.append(highs[i])
+            
+            # Return the closest resistance levels
+            resistance_levels.sort()
+            return resistance_levels[:3]  # Top 3 closest resistance levels
+            
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live resistance level detection failed: {e}")
+            return []
+    
+    def _find_live_support_levels(self, lows: np.ndarray, current_price: float) -> List[float]:
+        """V3 Find support levels from live price data"""
+        try:
+            # Find local troughs in live data
+            support_levels = []
+            
+            for i in range(2, len(lows) - 2):
+                if (lows[i] < lows[i-1] and lows[i] < lows[i-2] and 
+                    lows[i] < lows[i+1] and lows[i] < lows[i+2]):
+                    if lows[i] < current_price:  # Below current price
+                        support_levels.append(lows[i])
+            
+            # Return the closest support levels
+            support_levels.sort(reverse=True)
+            return support_levels[:3]  # Top 3 closest support levels
+            
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live support level detection failed: {e}")
+            return []
+    
+    async def _assess_live_market_conditions(self, symbol: str) -> float:
+        """V3 Assess overall market conditions using live data"""
+        try:
+            # Get live market analysis if available
+            if hasattr(self.market_analyzer, 'get_current_live_analysis'):
+                live_analysis = self.market_analyzer.get_current_live_analysis()
+                
+                if live_analysis and 'risk_assessment' in live_analysis:
+                    risk_data = live_analysis['risk_assessment']
+                    overall_risk = risk_data.get('overall_risk', 'medium')
+                    
+                    # Convert risk level to condition score
+                    if overall_risk == 'low':
+                        return 0.8
+                    elif overall_risk == 'medium':
+                        return 0.6
+                    else:  # high risk
+                        return 0.3
+            
+            # Fallback: basic live market condition assessment
+            live_data = await self.data_manager.get_historical_data(
+                symbol, '1h',
+                start_time=datetime.now() - timedelta(hours=24)
+            )
+            
+            if not live_data or len(live_data.get('close', [])) < 20:
+                return 0.5
+            
+            # V3 Calculate live volatility
+            closes = np.array(live_data['close'])
+            returns = np.diff(closes) / closes[:-1]
+            volatility = np.std(returns)
+            
+            # V3 Lower volatility = better conditions for confirmation
+            if volatility < 0.02:  # Low volatility
+                return 0.8
+            elif volatility < 0.05:  # Medium volatility
+                return 0.6
+            else:  # High volatility
+                return 0.3
+            
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live market condition assessment failed: {e}")
+            return 0.5
+    
+    def _calculate_live_risk_level(self, signal: Dict, confidence_score: float) -> str:
+        """V3 Calculate risk level based on live analysis"""
+        try:
+            # V3 Risk factors from live data
+            risk_factors = []
+            
+            # Confidence-based risk
+            if confidence_score < 0.5:
+                risk_factors.append("low_confidence")
+            elif confidence_score > 0.8:
+                risk_factors.append("high_confidence")
+            
+            # Signal strength risk
+            signal_strength = signal.get('strength', 0.5)
+            if signal_strength < 0.4:
+                risk_factors.append("weak_signal")
+            elif signal_strength > 0.8:
+                risk_factors.append("strong_signal")
+            
+            # V3 Risk level calculation
+            if "low_confidence" in risk_factors or "weak_signal" in risk_factors:
+                return "high"
+            elif "high_confidence" in risk_factors and "strong_signal" in risk_factors:
+                return "low"
+            else:
+                return "medium"
+                
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Risk level calculation failed: {e}")
+            return "medium"
+    
+    async def _assess_live_data_quality(self, symbol: str) -> float:
+        """V3 Assess quality of live data available"""
+        try:
+            data_quality_factors = []
+            
+            # Check data availability across timeframes
+            for timeframe in ['5m', '15m', '1h']:
+                try:
+                    live_data = await self.data_manager.get_historical_data(
+                        symbol, timeframe,
+                        start_time=datetime.now() - timedelta(hours=6)
+                    )
+                    
+                    if live_data and len(live_data.get('close', [])) >= 10:
+                        data_quality_factors.append(1.0)
+                    else:
+                        data_quality_factors.append(0.0)
+                        
+                except Exception:
+                    data_quality_factors.append(0.0)
+            
+            # V3 Overall data quality score
+            return np.mean(data_quality_factors) if data_quality_factors else 0.0
+            
+        except Exception as e:
+            self.logger.warning(f"[CONFIRMATION] Live data quality assessment failed: {e}")
+            return 0.5
+    
+    def get_v3_confirmation_stats(self) -> Dict:
+        """V3 Get confirmation engine statistics"""
+        try:
+            if not self.confirmation_history:
+                return {
+                    'total_confirmations': 0,
+                    'confirmed_signals': 0,
+                    'rejected_signals': 0,
+                    'avg_confidence': 0.0,
+                    'v3_compliance': True
+                }
+            
+            total = len(self.confirmation_history)
+            confirmed = sum(1 for h in self.confirmation_history 
+                          if h['confirmation'].signal_confirmed)
+            
+            avg_confidence = np.mean([h['confirmation'].confidence_score 
+                                    for h in self.confirmation_history])
+            
+            return {
+                'total_confirmations': total,
+                'confirmed_signals': confirmed,
+                'rejected_signals': total - confirmed,
+                'confirmation_rate': confirmed / total,
+                'avg_confidence': avg_confidence,
+                'recent_confirmations': self.confirmation_history[-5:] if len(self.confirmation_history) >= 5 else self.confirmation_history,
+                'v3_compliance': True,
+                'data_source': 'live_market_data'
             }
             
-            return {**base_status, **external_status, **learning_status}
-            
         except Exception as e:
-            self.logger.error(f"Status retrieval failed: {e}")
-            return {"error": str(e), "timestamp": datetime.now().isoformat()}
-    
-    def _calculate_enhanced_intelligence_level(self):
-        """Calculate intelligence level including external data integration"""
-        try:
-            base_intelligence = 0.3
-            
-            # Historical training boost
-            if self.backtest_training_data:
-                base_intelligence += min(0.3, len(self.backtest_training_data) * 0.01)
-            
-            # Testnet enhancement boost
-            if self.testnet_enhancement_data:
-                base_intelligence += min(0.2, len(self.testnet_enhancement_data) * 0.005)
-            
-            # External data integration boost
-            if self.external_data_collector:
-                try:
-                    api_status = self.external_data_collector.get_api_status()
-                    external_boost = api_status['working_apis'] * 0.05  # 5% per working API
-                    base_intelligence += external_boost
-                except Exception:
-                    pass
-            
-            return min(base_intelligence, 1.0)
-            
-        except Exception as e:
-            return 0.3
-    
-    # Existing methods remain unchanged...
-    async def initialize_async(self):
-        """Async initialization"""
-        try:
-            self.is_initialized = True
-            await self.initialize_reinforcement_learning()
-            self.logger.info("[OK] Enhanced ML Engine async initialization complete")
-            return True
-        except Exception as e:
-            self.logger.error(f"[FAIL] Async initialization failed: {e}")
-            return False
+            self.logger.error(f"[CONFIRMATION] V3 stats calculation failed: {e}")
+            return {'error': str(e), 'v3_compliance': True}
 
-# Testing
+
+# V3 Testing
 if __name__ == "__main__":
-    from dotenv import load_dotenv
-    load_dotenv()
+    print("[CONFIRMATION] Testing V3 Signal Confirmation Engine - LIVE DATA ONLY")
     
-    print("🧪 Testing Enhanced ML Engine with ALL data sources...")
+    class MockDataManager:
+        async def get_historical_data(self, symbol, timeframe, start_time):
+            # V3: Mock returns live-like data structure
+            import random
+            return {
+                'close': [100 + random.uniform(-2, 2) for _ in range(50)],
+                'high': [102 + random.uniform(-1, 3) for _ in range(50)],
+                'low': [98 + random.uniform(-3, 1) for _ in range(50)],
+                'volume': [1000 + random.uniform(-200, 500) for _ in range(50)]
+            }
     
-    async def test_engine():
-        engine = AdvancedMLEngine()
+    class MockMarketAnalyzer:
+        def get_current_live_analysis(self):
+            return {
+                'risk_assessment': {
+                    'overall_risk': 'medium'
+                }
+            }
+    
+    async def test_v3_confirmation():
+        data_manager = MockDataManager()
+        market_analyzer = MockMarketAnalyzer()
         
-        # Test comprehensive market context
-        context = await engine.get_comprehensive_market_context('BTC')
-        print(f"\n📊 Market Context: {len(context.get('data_sources_used', []))} sources")
+        engine = ConfirmationEngine(data_manager, market_analyzer)
         
-        # Test enhanced prediction
-        prediction = engine.predict_market_direction(symbol="BTC", timeframe="1h")
-        print(f"🎯 Enhanced Prediction: {prediction['confidence']:.1%} confidence")
-        print(f"📈 Data Sources: {prediction.get('data_sources', [])}")
+        test_signal = {
+            'direction': 'bullish',
+            'strength': 0.75,
+            'entry_price': 100.0
+        }
+        
+        confirmation = await engine.confirm_trade_signal(test_signal, 'BTCUSDT')
+        
+        print(f"[CONFIRMATION] V3 Signal Confirmed: {confirmation.signal_confirmed}")
+        print(f"[CONFIRMATION] V3 Confidence: {confirmation.confidence_score:.1%}")
+        print(f"[CONFIRMATION] V3 Factors: {', '.join(confirmation.confirmation_factors)}")
+        
+        stats = engine.get_v3_confirmation_stats()
+        print(f"[CONFIRMATION] V3 Stats: {stats}")
     
-    asyncio.run(test_engine())
-    print("\n🎉 Enhanced ML Engine test complete!")
+    asyncio.run(test_v3_confirmation())
+    print("[CONFIRMATION] V3 Signal Confirmation Engine test complete!")

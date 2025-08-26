@@ -3,6 +3,8 @@
 Advanced Multi-Timeframe Backtesting with Strategy Discovery
 """
 
+import pandas as pd
+
 class AdvancedMultiTimeframeBacktester:
     def __init__(self):
         # All available Binance timeframes for historical data

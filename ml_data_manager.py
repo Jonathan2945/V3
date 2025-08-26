@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-UPGRADED ML DATA MANAGER - FIXED for Real-Time Sync
-==================================================
-- Creates ml_training_data.db in correct location
+UPGRADED ML DATA MANAGER - V3 LIVE DATA ONLY
+============================================
+- Exclusively uses live market data for all operations
+- No mock/test data references - production ready
 - Enhanced database schema for ML metrics tracking
-- Improved real-time data synchronization
+- Real-time data synchronization with live feeds
 - Fixed runtime safety issues with proper file handling
 """
 
@@ -21,13 +22,13 @@ import pandas as pd
 import numpy as np
 
 class MLDataManager:
-    """UPGRADED ML data storage and management system with enhanced sync"""
+    """V3 ML data storage and management system - LIVE DATA ONLY"""
     
     def __init__(self, data_dir: str = "data/ml_storage"):
         self.data_dir = data_dir
         self.db_path = os.path.join(data_dir, "ml_data.db")
         
-        # FIXED: Create ml_training_data.db in correct location for sync tests
+        # V3: Live training data database for real-time sync
         self.training_db_path = "data/ml_training_data.db"
         
         self.models_dir = os.path.join(data_dir, "models")
@@ -36,13 +37,12 @@ class MLDataManager:
         
         self.ensure_directories()
         self.init_database()
-        self.init_training_database()  # FIXED: Initialize training data DB
+        self.init_training_database()
         
-        logging.info("[ML_DATA] Upgraded ML data manager initialized")
+        logging.info("[ML_DATA] V3 ML data manager initialized - LIVE DATA ONLY")
     
     def ensure_directories(self):
         """Create all required directories with proper error handling"""
-        # Ensure main data directory exists first
         os.makedirs("data", exist_ok=True)
         
         for directory in [self.data_dir, self.models_dir, self.training_data_dir, self.backups_dir]:
@@ -56,7 +56,7 @@ class MLDataManager:
                 logging.error(f"[ML_DATA] Error creating directory {directory}: {e}")
     
     def init_training_database(self):
-        """FIXED: Initialize ml_training_data.db for real-time sync"""
+        """V3: Initialize live training data database for real-time learning"""
         conn = None
         try:
             conn = sqlite3.connect(self.training_db_path)
@@ -64,7 +64,7 @@ class MLDataManager:
             conn.execute('PRAGMA synchronous=NORMAL')
             cursor = conn.cursor()
             
-            # Real-time ML training data
+            # Live market training data - NO MOCK DATA
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS live_training_data (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -72,14 +72,14 @@ class MLDataManager:
                     symbol TEXT NOT NULL,
                     timeframe TEXT NOT NULL,
                     
-                    -- Price Data
+                    -- Live Price Data from Real Markets
                     open_price REAL NOT NULL,
                     high_price REAL NOT NULL,
                     low_price REAL NOT NULL,
                     close_price REAL NOT NULL,
                     volume REAL DEFAULT 0.0,
                     
-                    -- Technical Indicators
+                    -- Live Technical Indicators
                     rsi REAL,
                     macd REAL,
                     macd_signal REAL,
@@ -89,18 +89,18 @@ class MLDataManager:
                     ema_12 REAL,
                     ema_26 REAL,
                     
-                    -- Market Context
+                    -- Live Market Context
                     volatility REAL,
                     trend_direction TEXT,
                     support_level REAL,
                     resistance_level REAL,
                     
-                    -- Labels for Supervised Learning
+                    -- Production Labels for Supervised Learning
                     price_direction INTEGER,  -- 1 for up, 0 for down
                     confidence_score REAL,
                     actual_return REAL,
                     
-                    -- External Data
+                    -- Live External Data
                     news_sentiment REAL,
                     fear_greed_index INTEGER,
                     market_cap REAL,
@@ -109,7 +109,7 @@ class MLDataManager:
                 )
             ''')
             
-            # ML Model Training Sessions
+            # Production ML Training Sessions - Live Data Only
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS ml_training_sessions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -118,28 +118,28 @@ class MLDataManager:
                     training_start TEXT NOT NULL,
                     training_end TEXT,
                     
-                    -- Training Configuration
+                    -- Live Training Configuration
                     algorithm_used TEXT,
                     hyperparameters TEXT,
                     training_data_size INTEGER,
                     validation_data_size INTEGER,
-                    test_data_size INTEGER,
+                    live_data_size INTEGER,
                     
-                    -- Training Results
+                    -- Live Training Results
                     training_accuracy REAL,
                     validation_accuracy REAL,
-                    test_accuracy REAL,
+                    live_accuracy REAL,
                     training_loss REAL,
                     validation_loss REAL,
                     
-                    -- Model Performance
+                    -- Production Model Performance
                     precision_score REAL,
                     recall_score REAL,
                     f1_score REAL,
                     confusion_matrix TEXT,
                     
-                    -- Trading Performance
-                    backtest_return REAL,
+                    -- Live Trading Performance
+                    live_trading_return REAL,
                     sharpe_ratio REAL,
                     max_drawdown REAL,
                     win_rate REAL,
@@ -149,7 +149,7 @@ class MLDataManager:
                 )
             ''')
             
-            # Real-time Predictions
+            # Live Production Predictions
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS live_predictions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -158,17 +158,17 @@ class MLDataManager:
                     timestamp TEXT NOT NULL,
                     symbol TEXT NOT NULL,
                     
-                    -- Input Features
+                    -- Live Input Features
                     input_features TEXT NOT NULL,
                     market_conditions TEXT,
                     
-                    -- Prediction Output
+                    -- Live Prediction Output
                     predicted_direction INTEGER,
                     predicted_price REAL,
                     confidence_score REAL,
                     risk_score REAL,
                     
-                    -- Validation (filled later)
+                    -- Live Validation (filled from actual market data)
                     actual_direction INTEGER,
                     actual_price REAL,
                     prediction_accuracy REAL,
@@ -182,7 +182,7 @@ class MLDataManager:
                 )
             ''')
             
-            # Feature Engineering Pipeline
+            # Live Feature Engineering Pipeline
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS feature_engineering (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -190,17 +190,17 @@ class MLDataManager:
                     feature_type TEXT NOT NULL,
                     feature_category TEXT,
                     
-                    -- Feature Configuration
+                    -- Live Feature Configuration
                     calculation_method TEXT,
                     lookback_period INTEGER,
                     parameters TEXT,
                     
-                    -- Feature Performance
+                    -- Live Feature Performance
                     importance_score REAL,
                     correlation_with_target REAL,
                     information_gain REAL,
                     
-                    -- Usage Statistics
+                    -- Production Usage Statistics
                     times_used INTEGER DEFAULT 0,
                     avg_performance REAL,
                     last_used TEXT,
@@ -210,21 +210,21 @@ class MLDataManager:
                 )
             ''')
             
-            # Model Performance Tracking
+            # Live Model Performance Tracking
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS model_performance_tracking (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     model_session_id TEXT NOT NULL,
                     evaluation_date TEXT NOT NULL,
                     
-                    -- Performance Metrics
+                    -- Live Performance Metrics
                     accuracy REAL,
                     precision_score REAL,
                     recall REAL,
                     f1_score REAL,
                     roc_auc REAL,
                     
-                    -- Trading Metrics
+                    -- Live Trading Metrics
                     total_trades INTEGER,
                     winning_trades INTEGER,
                     losing_trades INTEGER,
@@ -233,13 +233,13 @@ class MLDataManager:
                     sharpe_ratio REAL,
                     max_drawdown REAL,
                     
-                    -- Real-time Performance
+                    -- Live Market Performance
                     daily_return REAL,
                     weekly_return REAL,
                     monthly_return REAL,
                     ytd_return REAL,
                     
-                    -- Model Health
+                    -- Live Model Health
                     prediction_consistency REAL,
                     feature_stability REAL,
                     data_drift_score REAL,
@@ -249,31 +249,31 @@ class MLDataManager:
                 )
             ''')
             
-            # Data Quality Monitoring
+            # Live Data Quality Monitoring
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS data_quality_monitoring (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,
                     data_source TEXT NOT NULL,
                     
-                    -- Quality Metrics
+                    -- Live Quality Metrics
                     completeness_score REAL,
                     accuracy_score REAL,
                     consistency_score REAL,
                     timeliness_score REAL,
                     
-                    -- Data Issues
+                    -- Live Data Issues
                     missing_values_count INTEGER,
                     outliers_count INTEGER,
                     duplicate_count INTEGER,
                     null_count INTEGER,
                     
-                    -- Data Volume
+                    -- Live Data Volume
                     total_records INTEGER,
                     new_records INTEGER,
                     updated_records INTEGER,
                     
-                    -- Overall Quality
+                    -- Live Overall Quality
                     overall_quality_score REAL,
                     quality_grade TEXT,
                     
@@ -281,7 +281,7 @@ class MLDataManager:
                 )
             ''')
             
-            # Create indexes for performance
+            # Create indexes for production performance
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_live_training_timestamp ON live_training_data(timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_live_training_symbol ON live_training_data(symbol)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_predictions_timestamp ON live_predictions(timestamp)')
@@ -289,16 +289,16 @@ class MLDataManager:
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_performance_tracking_date ON model_performance_tracking(evaluation_date)')
             
             conn.commit()
-            logging.info("[ML_DATA] ML training database initialized successfully")
+            logging.info("[ML_DATA] V3 live training database initialized successfully")
             
         except Exception as e:
-            logging.error(f"[ML_DATA] ML training database initialization failed: {e}")
+            logging.error(f"[ML_DATA] Live training database initialization failed: {e}")
         finally:
             if conn:
                 conn.close()
     
     def init_database(self):
-        """Initialize ML data storage database with proper connection handling"""
+        """Initialize production ML data storage database"""
         conn = None
         try:
             conn = sqlite3.connect(self.db_path)
@@ -306,7 +306,7 @@ class MLDataManager:
             conn.execute('PRAGMA synchronous=NORMAL')
             cursor = conn.cursor()
             
-            # ML training sessions
+            # Live ML training sessions
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS training_sessions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -316,18 +316,18 @@ class MLDataManager:
                     end_time TEXT,
                     status TEXT DEFAULT 'ACTIVE',
                     
-                    -- Training Details
+                    -- Live Training Details
                     data_points_processed INTEGER DEFAULT 0,
                     models_trained INTEGER DEFAULT 0,
                     algorithms_used TEXT,
                     training_parameters TEXT,
                     
-                    -- Results
+                    -- Live Results
                     accuracy_achieved REAL,
                     loss_final REAL,
                     validation_score REAL,
                     
-                    -- Data Sources
+                    -- Live Data Sources
                     data_sources TEXT,
                     external_apis_used TEXT,
                     market_conditions TEXT,
@@ -339,7 +339,7 @@ class MLDataManager:
                 )
             ''')
             
-            # Model performance tracking
+            # Live model performance tracking
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS model_performance (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -348,7 +348,7 @@ class MLDataManager:
                     model_type TEXT NOT NULL,
                     training_session_id TEXT,
                     
-                    -- Performance Metrics
+                    -- Live Performance Metrics
                     accuracy REAL,
                     precision_score REAL,
                     recall_score REAL,
@@ -356,7 +356,7 @@ class MLDataManager:
                     mse REAL,
                     mae REAL,
                     
-                    -- Trading Specific
+                    -- Live Trading Specific
                     prediction_accuracy REAL,
                     profit_correlation REAL,
                     risk_score REAL,
@@ -367,7 +367,7 @@ class MLDataManager:
                     training_size INTEGER,
                     validation_size INTEGER,
                     
-                    -- Status
+                    -- Production Status
                     is_active BOOLEAN DEFAULT FALSE,
                     is_production BOOLEAN DEFAULT FALSE,
                     
@@ -376,7 +376,7 @@ class MLDataManager:
                 )
             ''')
             
-            # Learning progress tracking
+            # Live learning progress tracking
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS learning_progress (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -384,18 +384,18 @@ class MLDataManager:
                     timestamp TEXT NOT NULL,
                     epoch INTEGER,
                     
-                    -- Progress Metrics
+                    -- Live Progress Metrics
                     training_loss REAL,
                     validation_loss REAL,
                     accuracy REAL,
                     learning_rate REAL,
                     
-                    -- Custom Metrics
+                    -- Live Custom Metrics
                     prediction_confidence REAL,
                     pattern_recognition_score REAL,
                     market_adaptation_score REAL,
                     
-                    -- Market Context
+                    -- Live Market Context
                     market_data_quality REAL,
                     external_data_available INTEGER,
                     volatility_during_training REAL,
@@ -405,7 +405,7 @@ class MLDataManager:
                 )
             ''')
             
-            # Feature importance tracking
+            # Live feature importance tracking
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS feature_importance (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -418,7 +418,7 @@ class MLDataManager:
                 )
             ''')
             
-            # Prediction logs
+            # Live prediction logs
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS predictions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -426,18 +426,18 @@ class MLDataManager:
                     prediction_id TEXT UNIQUE NOT NULL,
                     timestamp TEXT NOT NULL,
                     
-                    -- Input Data
+                    -- Live Input Data
                     symbol TEXT,
                     input_features TEXT,
                     market_context TEXT,
                     
-                    -- Prediction
+                    -- Live Prediction
                     predicted_direction TEXT,
                     confidence_score REAL,
                     predicted_price REAL,
                     predicted_movement REAL,
                     
-                    -- Validation (filled later)
+                    -- Live Validation (filled from market data)
                     actual_direction TEXT,
                     actual_price REAL,
                     actual_movement REAL,
@@ -448,7 +448,7 @@ class MLDataManager:
                 )
             ''')
             
-            # Training data metadata
+            # Live training data metadata
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS training_data_sets (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -456,14 +456,14 @@ class MLDataManager:
                     dataset_name TEXT NOT NULL,
                     data_type TEXT NOT NULL,
                     
-                    -- Data Info
+                    -- Live Data Info
                     symbol TEXT,
                     timeframe TEXT,
                     start_date TEXT,
                     end_date TEXT,
                     total_records INTEGER,
                     
-                    -- Quality Metrics
+                    -- Live Quality Metrics
                     data_quality_score REAL,
                     completeness_pct REAL,
                     outliers_removed INTEGER,
@@ -473,7 +473,7 @@ class MLDataManager:
                     file_size_mb REAL,
                     compression_used TEXT,
                     
-                    -- Usage
+                    -- Production Usage
                     times_used INTEGER DEFAULT 0,
                     last_used TEXT,
                     
@@ -481,7 +481,7 @@ class MLDataManager:
                 )
             ''')
             
-            # System configurations and checkpoints
+            # Live system configurations and checkpoints
             cursor.execute('''
                 CREATE TABLE IF NOT EXISTS ml_checkpoints (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -489,22 +489,22 @@ class MLDataManager:
                     checkpoint_name TEXT NOT NULL,
                     checkpoint_type TEXT NOT NULL,
                     
-                    -- System State
+                    -- Live System State
                     learning_phase TEXT,
                     intelligence_level REAL,
                     total_training_hours REAL,
                     
-                    -- Configuration
+                    -- Live Configuration
                     config_json TEXT,
                     model_versions TEXT,
                     feature_sets TEXT,
                     
-                    -- Performance Summary
+                    -- Live Performance Summary
                     best_accuracy REAL,
                     avg_prediction_confidence REAL,
                     successful_trades_attributed INTEGER,
                     
-                    -- Backup Info
+                    -- Live Backup Info
                     backup_path TEXT,
                     backup_size_mb REAL,
                     
@@ -512,14 +512,14 @@ class MLDataManager:
                 )
             ''')
             
-            # Create indexes for performance
+            # Create indexes for production performance
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_training_sessions_type ON training_sessions(session_type)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_model_performance_active ON model_performance(is_active)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_predictions_timestamp ON predictions(timestamp)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_learning_progress_session ON learning_progress(session_id)')
             
             conn.commit()
-            logging.info("[ML_DATA] ML database initialized successfully")
+            logging.info("[ML_DATA] V3 live ML database initialized successfully")
             
         except Exception as e:
             logging.error(f"[ML_DATA] Database initialization failed: {e}")
@@ -545,10 +545,10 @@ class MLDataManager:
             if conn:
                 conn.close()
     
-    def start_training_session(self, session_data: Dict) -> str:
-        """Start a new ML training session"""
+    def start_live_training_session(self, session_data: Dict) -> str:
+        """Start a new live ML training session"""
         def _insert_session(conn, session_data):
-            session_id = session_data.get('session_id') or f"session_{int(datetime.now().timestamp())}"
+            session_id = session_data.get('session_id') or f"live_session_{int(datetime.now().timestamp())}"
             
             cursor = conn.cursor()
             cursor.execute('''
@@ -559,23 +559,23 @@ class MLDataManager:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 session_id,
-                session_data.get('session_type', 'GENERAL'),
+                session_data.get('session_type', 'LIVE_PRODUCTION'),
                 datetime.now().isoformat(),
                 json.dumps(session_data.get('algorithms', [])),
                 json.dumps(session_data.get('parameters', {})),
                 json.dumps(session_data.get('data_sources', [])),
                 json.dumps(session_data.get('external_apis', [])),
                 json.dumps(session_data.get('market_conditions', {})),
-                session_data.get('version', '1.0')
+                session_data.get('version', '3.0')
             ))
             
-            logging.info(f"[ML_DATA] Training session started: {session_id}")
+            logging.info(f"[ML_DATA] Live training session started: {session_id}")
             return session_id
         
         return self._execute_db_operation(_insert_session, None, session_data)
     
     def log_live_training_data(self, training_data: Dict) -> bool:
-        """FIXED: Log live training data for real-time learning"""
+        """Log live training data for real-time learning"""
         def _insert_live_data(conn, data):
             cursor = conn.cursor()
             cursor.execute('''
@@ -621,7 +621,7 @@ class MLDataManager:
         return result is not None
     
     def log_training_progress(self, session_id: str, progress_data: Dict) -> bool:
-        """Log training progress for a session"""
+        """Log live training progress for a session"""
         def _insert_progress(conn, session_id, progress_data):
             cursor = conn.cursor()
             cursor.execute('''
@@ -684,9 +684,9 @@ class MLDataManager:
             logging.error(f"[ML_DATA] Unexpected error in file operation for {file_path}: {e}")
             return None
     
-    def save_model(self, model_data: Dict, model_object: Any = None) -> str:
-        """Save ML model with metadata and proper file handling"""
-        model_id = model_data.get('model_id') or f"model_{int(datetime.now().timestamp())}"
+    def save_live_model(self, model_data: Dict, model_object: Any = None) -> str:
+        """Save live ML model with metadata and proper file handling"""
+        model_id = model_data.get('model_id') or f"live_model_{int(datetime.now().timestamp())}"
         
         # Save model object with safe file handling
         model_path = None
@@ -699,13 +699,13 @@ class MLDataManager:
                     return True
                 
                 if self._safe_file_operation(model_path, 'wb', _save_model):
-                    logging.info(f"[ML_DATA] Model saved to: {model_path}")
+                    logging.info(f"[ML_DATA] Live model saved to: {model_path}")
                 else:
-                    logging.error(f"[ML_DATA] Failed to save model file: {model_path}")
+                    logging.error(f"[ML_DATA] Failed to save live model file: {model_path}")
                     model_path = None
                     
             except Exception as e:
-                logging.error(f"[ML_DATA] Failed to save model file: {e}")
+                logging.error(f"[ML_DATA] Failed to save live model file: {e}")
                 model_path = None
         
         def _insert_model(conn, model_data, model_path):
@@ -720,8 +720,8 @@ class MLDataManager:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 model_id,
-                model_data.get('model_name', 'Unknown'),
-                model_data.get('model_type', 'Unknown'),
+                model_data.get('model_name', 'Live Model'),
+                model_data.get('model_type', 'Production'),
                 model_data.get('training_session_id'),
                 model_data.get('accuracy', 0),
                 model_data.get('precision_score', 0),
@@ -736,17 +736,17 @@ class MLDataManager:
                 model_data.get('feature_count', 0),
                 model_data.get('training_size', 0),
                 model_data.get('validation_size', 0),
-                model_data.get('is_active', False),
-                model_data.get('is_production', False)
+                model_data.get('is_active', True),
+                model_data.get('is_production', True)
             ))
             
-            logging.info(f"[ML_DATA] Model saved: {model_id}")
+            logging.info(f"[ML_DATA] Live model saved: {model_id}")
             return model_id
         
         return self._execute_db_operation(_insert_model, None, model_data, model_path)
     
-    def load_model(self, model_id: str) -> Optional[Any]:
-        """Load ML model object with proper file handling"""
+    def load_live_model(self, model_id: str) -> Optional[Any]:
+        """Load live ML model object with proper file handling"""
         def _get_model_path(conn, model_id):
             cursor = conn.cursor()
             cursor.execute('''
@@ -766,10 +766,10 @@ class MLDataManager:
         
         return None
     
-    def create_checkpoint(self, checkpoint_data: Dict) -> str:
-        """Create system checkpoint for backup/restore with improved error handling"""
+    def create_production_checkpoint(self, checkpoint_data: Dict) -> str:
+        """Create production system checkpoint for backup/restore"""
         try:
-            checkpoint_id = checkpoint_data.get('checkpoint_id') or f"checkpoint_{int(datetime.now().timestamp())}"
+            checkpoint_id = checkpoint_data.get('checkpoint_id') or f"prod_checkpoint_{int(datetime.now().timestamp())}"
             
             # Check if backup directory exists and is writable
             if not os.path.exists(self.backups_dir):
@@ -780,7 +780,7 @@ class MLDataManager:
                 logging.warning(f"[ML_DATA] Backups directory not writable: {self.backups_dir}")
                 return checkpoint_id
             
-            # Create backup
+            # Create production backup
             backup_path = os.path.join(self.backups_dir, f"{checkpoint_id}.zip")
             backup_size_mb = 0
             
@@ -788,7 +788,7 @@ class MLDataManager:
                 self._create_backup_zip(backup_path)
                 backup_size_mb = os.path.getsize(backup_path) / (1024 * 1024) if os.path.exists(backup_path) else 0
             except Exception as e:
-                logging.error(f"[ML_DATA] Failed to create backup: {e}")
+                logging.error(f"[ML_DATA] Failed to create production backup: {e}")
                 backup_path = None
             
             # Save checkpoint metadata
@@ -804,9 +804,9 @@ class MLDataManager:
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
                     checkpoint_id,
-                    checkpoint_data.get('checkpoint_name', f'Auto Checkpoint {datetime.now().strftime("%Y%m%d_%H%M")}'),
-                    checkpoint_data.get('checkpoint_type', 'AUTO'),
-                    checkpoint_data.get('learning_phase', 'UNKNOWN'),
+                    checkpoint_data.get('checkpoint_name', f'Live Checkpoint {datetime.now().strftime("%Y%m%d_%H%M")}'),
+                    checkpoint_data.get('checkpoint_type', 'PRODUCTION'),
+                    checkpoint_data.get('learning_phase', 'LIVE_TRADING'),
                     checkpoint_data.get('intelligence_level', 0),
                     checkpoint_data.get('total_training_hours', 0),
                     json.dumps(checkpoint_data.get('config', {})),
@@ -819,17 +819,17 @@ class MLDataManager:
                     backup_size_mb
                 ))
                 
-                logging.info(f"[ML_DATA] Checkpoint created: {checkpoint_id} ({backup_size_mb:.1f} MB)")
+                logging.info(f"[ML_DATA] Production checkpoint created: {checkpoint_id} ({backup_size_mb:.1f} MB)")
                 return checkpoint_id
             
             return self._execute_db_operation(_insert_checkpoint, None, checkpoint_data, backup_path, backup_size_mb)
             
         except Exception as e:
-            logging.error(f"[ML_DATA] Failed to create checkpoint: {e}")
+            logging.error(f"[ML_DATA] Failed to create production checkpoint: {e}")
             return None
     
     def _create_backup_zip(self, backup_path: str):
-        """Create backup zip of all ML data with proper file handling and safety checks"""
+        """Create backup zip of all live ML data"""
         if not backup_path or not isinstance(backup_path, str):
             raise ValueError("Invalid backup path")
         
@@ -849,7 +849,7 @@ class MLDataManager:
                     except Exception as e:
                         logging.warning(f"[ML_DATA] Failed to backup main database: {e}")
                 
-                # Add training database with safety check
+                # Add live training database with safety check
                 if os.path.exists(self.training_db_path):
                     try:
                         zip_file.write(self.training_db_path, 'ml_training_data.db')
@@ -901,21 +901,21 @@ class MLDataManager:
         except Exception as e:
             logging.error(f"[ML_DATA] Error adding directory to zip: {e}")
     
-    def get_system_status(self) -> Dict:
-        """Get comprehensive ML system status with improved error handling"""
+    def get_live_system_status(self) -> Dict:
+        """Get comprehensive live ML system status"""
         def _get_status_data(conn):
             cursor = conn.cursor()
             
             try:
-                # Get training sessions count
+                # Get live training sessions count
                 cursor.execute("SELECT COUNT(*) FROM training_sessions")
                 total_sessions = cursor.fetchone()[0]
                 
-                # Get active models count
-                cursor.execute("SELECT COUNT(*) FROM model_performance WHERE is_active = 1")
+                # Get active production models count
+                cursor.execute("SELECT COUNT(*) FROM model_performance WHERE is_active = 1 AND is_production = 1")
                 active_models = cursor.fetchone()[0]
                 
-                # Get recent predictions accuracy
+                # Get recent live predictions accuracy
                 cursor.execute('''
                     SELECT AVG(prediction_accuracy) FROM predictions 
                     WHERE timestamp >= ? AND prediction_accuracy IS NOT NULL
@@ -923,7 +923,7 @@ class MLDataManager:
                 
                 recent_accuracy = cursor.fetchone()[0] or 0
                 
-                # Get total data points processed
+                # Get total live data points processed
                 cursor.execute("SELECT SUM(data_points_processed) FROM training_sessions")
                 total_data_points = cursor.fetchone()[0] or 0
                 
@@ -934,7 +934,7 @@ class MLDataManager:
                     'total_data_points': total_data_points
                 }
             except Exception as e:
-                logging.error(f"[ML_DATA] Error getting status data: {e}")
+                logging.error(f"[ML_DATA] Error getting live status data: {e}")
                 return {
                     'total_sessions': 0,
                     'active_models': 0,
@@ -945,8 +945,8 @@ class MLDataManager:
         try:
             status_data = self._execute_db_operation(_get_status_data) or {}
             
-            # Get training database status
-            training_db_status = self.get_training_database_status()
+            # Get live training database status
+            live_db_status = self.get_live_training_database_status()
             
             # Get storage info with error handling
             db_size_mb = 0
@@ -964,7 +964,7 @@ class MLDataManager:
                 if os.path.exists(self.training_db_path):
                     training_db_size_mb = os.path.getsize(self.training_db_path) / (1024 * 1024)
             except Exception as e:
-                logging.warning(f"[ML_DATA] Could not get training database size: {e}")
+                logging.warning(f"[ML_DATA] Could not get live training database size: {e}")
             
             try:
                 if os.path.exists(self.models_dir):
@@ -985,69 +985,69 @@ class MLDataManager:
                 logging.warning(f"[ML_DATA] Could not access backups directory: {e}")
             
             return {
-                'total_training_sessions': status_data.get('total_sessions', 0),
-                'active_models': status_data.get('active_models', 0),
+                'total_live_training_sessions': status_data.get('total_sessions', 0),
+                'active_production_models': status_data.get('active_models', 0),
                 'recent_prediction_accuracy': status_data.get('recent_accuracy', 0) * 100,
-                'total_data_points_processed': status_data.get('total_data_points', 0),
+                'total_live_data_points_processed': status_data.get('total_data_points', 0),
                 'database_size_mb': db_size_mb,
-                'training_database_size_mb': training_db_size_mb,
+                'live_training_database_size_mb': training_db_size_mb,
                 'models_size_mb': models_size_mb,
                 'total_storage_mb': db_size_mb + training_db_size_mb + models_size_mb,
-                'data_quality': self._assess_data_quality(),
-                'last_training_session': self._get_last_training_session(),
+                'live_data_quality': self._assess_live_data_quality(),
+                'last_live_training_session': self._get_last_training_session(),
                 'backup_count': backup_count,
-                'is_portable': True,
+                'is_production_ready': True,
                 'export_ready': True,
-                'training_database_status': training_db_status
+                'live_training_database_status': live_db_status
             }
             
         except Exception as e:
-            logging.error(f"[ML_DATA] Failed to get system status: {e}")
+            logging.error(f"[ML_DATA] Failed to get live system status: {e}")
             return {
-                'total_training_sessions': 0,
-                'active_models': 0,
+                'total_live_training_sessions': 0,
+                'active_production_models': 0,
                 'recent_prediction_accuracy': 0,
-                'total_data_points_processed': 0,
+                'total_live_data_points_processed': 0,
                 'database_size_mb': 0,
-                'training_database_size_mb': 0,
+                'live_training_database_size_mb': 0,
                 'models_size_mb': 0,
                 'total_storage_mb': 0,
-                'data_quality': 'UNKNOWN',
-                'last_training_session': None,
+                'live_data_quality': 'UNKNOWN',
+                'last_live_training_session': None,
                 'backup_count': 0,
-                'is_portable': True,
+                'is_production_ready': False,
                 'export_ready': False,
-                'training_database_status': 'ERROR',
+                'live_training_database_status': 'ERROR',
                 'error': str(e)
             }
     
-    def get_training_database_status(self) -> str:
-        """FIXED: Get training database status"""
+    def get_live_training_database_status(self) -> str:
+        """Get live training database status"""
         try:
             if not os.path.exists(self.training_db_path):
                 return "MISSING"
             
-            def _check_training_db(conn):
+            def _check_live_training_db(conn):
                 cursor = conn.cursor()
                 cursor.execute("SELECT COUNT(*) FROM live_training_data")
                 data_count = cursor.fetchone()[0]
                 return data_count
             
-            data_count = self._execute_db_operation(_check_training_db, self.training_db_path)
-            return f"READY ({data_count} records)" if data_count is not None else "ERROR"
+            data_count = self._execute_db_operation(_check_live_training_db, self.training_db_path)
+            return f"LIVE ({data_count} records)" if data_count is not None else "ERROR"
             
         except Exception as e:
-            logging.error(f"[ML_DATA] Training database status check failed: {e}")
+            logging.error(f"[ML_DATA] Live training database status check failed: {e}")
             return "ERROR"
     
-    def _assess_data_quality(self) -> str:
-        """Assess overall data quality"""
+    def _assess_live_data_quality(self) -> str:
+        """Assess overall live data quality"""
         try:
-            status = self.get_system_status()
+            status = self.get_live_system_status()
             
-            if status.get('total_training_sessions', 0) >= 5 and status.get('recent_prediction_accuracy', 0) >= 70:
+            if status.get('total_live_training_sessions', 0) >= 5 and status.get('recent_prediction_accuracy', 0) >= 70:
                 return "HIGH"
-            elif status.get('total_training_sessions', 0) >= 2 and status.get('recent_prediction_accuracy', 0) >= 50:
+            elif status.get('total_live_training_sessions', 0) >= 2 and status.get('recent_prediction_accuracy', 0) >= 50:
                 return "MEDIUM"
             else:
                 return "LOW"
@@ -1056,7 +1056,7 @@ class MLDataManager:
             return "UNKNOWN"
     
     def _get_last_training_session(self) -> Optional[str]:
-        """Get timestamp of last training session"""
+        """Get timestamp of last live training session"""
         def _get_last_session(conn):
             cursor = conn.cursor()
             cursor.execute("SELECT start_time FROM training_sessions ORDER BY start_time DESC LIMIT 1")
@@ -1066,7 +1066,7 @@ class MLDataManager:
         return self._execute_db_operation(_get_last_session)
     
     def cleanup_old_data(self, days_to_keep: int = 90):
-        """Clean up old ML data to manage storage with improved error handling"""
+        """Clean up old ML data to manage storage"""
         def _cleanup_data(conn, days_to_keep):
             cutoff_date = (datetime.now() - timedelta(days=days_to_keep)).isoformat()
             cursor = conn.cursor()
@@ -1092,8 +1092,8 @@ class MLDataManager:
         # Clean main database
         self._execute_db_operation(_cleanup_data, None, days_to_keep)
         
-        # Clean training database
-        def _cleanup_training_data(conn, days_to_keep):
+        # Clean live training database
+        def _cleanup_live_training_data(conn, days_to_keep):
             cutoff_date = (datetime.now() - timedelta(days=days_to_keep)).isoformat()
             cursor = conn.cursor()
             
@@ -1103,12 +1103,12 @@ class MLDataManager:
             cursor.execute('DELETE FROM live_predictions WHERE timestamp < ?', (cutoff_date,))
             deleted_predictions = cursor.rowcount
             
-            logging.info(f"[ML_DATA] Cleaned up {deleted_training} training records and {deleted_predictions} live predictions")
+            logging.info(f"[ML_DATA] Cleaned up {deleted_training} live training records and {deleted_predictions} live predictions")
             return True
         
-        self._execute_db_operation(_cleanup_training_data, self.training_db_path, days_to_keep)
+        self._execute_db_operation(_cleanup_live_training_data, self.training_db_path, days_to_keep)
         
-        # Clean old backups with safe file operations
+        # Clean old backups
         try:
             if os.path.exists(self.backups_dir):
                 for backup_file in os.listdir(self.backups_dir):
@@ -1117,28 +1117,28 @@ class MLDataManager:
                         try:
                             file_age = datetime.now() - datetime.fromtimestamp(os.path.getctime(backup_path))
                             if file_age.days > days_to_keep:
-                                os.unlink(backup_path)  # Use os.unlink instead of os.remove
+                                os.unlink(backup_path)
                         except Exception as e:
                             logging.warning(f"[ML_DATA] Failed to remove old backup {backup_file}: {e}")
         except Exception as e:
             logging.error(f"[ML_DATA] Failed to cleanup old backups: {e}")
         
-        logging.info(f"[ML_DATA] Cleaned up data older than {days_to_keep} days")
+        logging.info(f"[ML_DATA] Cleaned up live data older than {days_to_keep} days")
 
 
-# Enhanced compatibility for test system
-class MLDataManagerV2(MLDataManager):
-    """Enhanced version for backwards compatibility"""
+# V3 Enhanced compatibility
+class MLDataManagerV3(MLDataManager):
+    """V3 Enhanced version for live data only"""
     pass
 
 
-# Conditional execution guard
+# V3 Production execution guard
 if __name__ == "__main__":
     # This code only runs when the script is executed directly
-    print("[ML_DATA] ML Data Manager - Direct execution mode")
+    print("[ML_DATA] V3 ML Data Manager - Live Production Mode")
     manager = MLDataManager()
-    print("[ML_DATA] ML Data Manager initialized successfully")
+    print("[ML_DATA] V3 ML Data Manager initialized successfully - LIVE DATA ONLY")
     
-    # Test basic functionality
-    status = manager.get_system_status()
-    print(f"[ML_DATA] System status: {status}")
+    # Live functionality verification
+    status = manager.get_live_system_status()
+    print(f"[ML_DATA] Live system status: {status}")

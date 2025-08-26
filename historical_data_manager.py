@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
-# FIXED HISTORICAL DATA MANAGER
-# Fixed version that handles HTTP 451 errors and provides fallback options.
+"""
+V3 HISTORICAL DATA MANAGER - LIVE DATA ONLY
+===========================================
+V3 Fixes Applied:
+- Removed all mock_data references - V3 uses live data only
+- Enhanced API connectivity with multiple endpoints
+- Production-ready error handling for live data sources
+- No fallback to mock data - live market data only
+"""
 
 import os
 import asyncio
 import aiohttp
-from unittest.mock import Mock  # For test compatibility
 import pandas as pd
 import numpy as np
 import logging
@@ -17,17 +23,21 @@ import time
 import random
 
 class HistoricalDataManager:
+    """V3 Historical Data Manager - LIVE DATA ONLY"""
+    
     def __init__(self):
         self.db_path = 'data/historical_data.db'
         self.config = {
             'years_of_data': 2,
             'enable_backtesting': True,
             'cache_expiry_hours': 6,
-            'cleanup_days': 30
+            'cleanup_days': 30,
+            'v3_compliance': True,
+            'live_data_only': True
         }
         
-        # Multiple data sources for resilience
-        self.api_endpoints = [
+        # V3 Multiple live data sources for resilience
+        self.live_api_endpoints = [
             'https://api.binance.com/api/v3/klines',
             'https://api.binance.us/api/v3/klines',
             'https://testnet.binance.vision/api/v3/klines',
@@ -35,25 +45,28 @@ class HistoricalDataManager:
         
         self.symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 'SOLUSDT']
         self.timeframes = {'1h': '1h', '4h': '4h', '1d': '1d'}
-        self.data_cache = {}
+        self.live_data_cache = {}  # V3: Live data cache
         self.last_update_times = {}
         
-        logging.info("[DATA] Fixed Historical Data Manager initialized")
+        logging.info("[DATA_MANAGER] V3 Historical Data Manager initialized - LIVE DATA ONLY")
     
     async def initialize(self):
+        """V3 Initialize with live data sources only"""
         try:
             os.makedirs('data', exist_ok=True)
             await self.init_database()
-            await self.test_api_connectivity()
-            logging.info("[OK] Historical Data Manager initialization complete")
+            await self.test_live_api_connectivity()
+            logging.info("[DATA_MANAGER] V3 Historical Data Manager initialization complete - LIVE MODE")
         except Exception as e:
-            logging.error(f"Data Manager initialization failed: {e}")
-            await self.create_mock_data()
+            logging.error(f"[DATA_MANAGER] V3 Data Manager initialization failed: {e}")
+            # V3: No fallback to mock data - raise error for production awareness
+            raise RuntimeError(f"V3 Live data initialization failed: {e}")
     
     async def init_database(self):
+        """Initialize V3 database for live historical data"""
         try:
-            historical_sql = """
-            CREATE TABLE IF NOT EXISTS historical_data (
+            live_historical_sql = """
+            CREATE TABLE IF NOT EXISTS live_historical_data (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 symbol TEXT NOT NULL,
                 timeframe TEXT NOT NULL,
@@ -63,40 +76,54 @@ class HistoricalDataManager:
                 low_price REAL NOT NULL,
                 close_price REAL NOT NULL,
                 volume REAL NOT NULL,
+                data_source TEXT DEFAULT 'live_api',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                v3_compliance BOOLEAN DEFAULT TRUE,
                 UNIQUE(symbol, timeframe, timestamp)
             )
             """
             
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute(historical_sql)
+                conn.execute(live_historical_sql)
                 conn.commit()
+                logging.info("[DATA_MANAGER] V3 Live historical data database initialized")
         except Exception as e:
-            logging.warning(f"Database initialization warning: {e}")
+            logging.error(f"[DATA_MANAGER] V3 Database initialization failed: {e}")
             return None
     
-    async def test_api_connectivity(self):
-        for endpoint in self.api_endpoints:
+    async def test_live_api_connectivity(self):
+        """V3 Test live API connectivity - no fallbacks"""
+        working_endpoints = []
+        
+        for endpoint in self.live_api_endpoints:
             try:
                 async with aiohttp.ClientSession() as session:
                     params = {'symbol': 'BTCUSDT', 'interval': '1h', 'limit': 10}
                     async with session.get(endpoint, params=params, timeout=10) as response:
                         if response.status == 200:
-                            logging.info(f"[OK] API endpoint working: {endpoint}")
-                            self.api_endpoints.remove(endpoint)
-                            self.api_endpoints.insert(0, endpoint)
-                            return
+                            data = await response.json()
+                            if data and len(data) > 0:
+                                working_endpoints.append(endpoint)
+                                logging.info(f"[DATA_MANAGER] V3 Live API endpoint working: {endpoint}")
+                            else:
+                                logging.warning(f"[DATA_MANAGER] V3 API endpoint {endpoint} returned empty data")
                         else:
-                            logging.warning(f"API endpoint {endpoint} returned {response.status}")
+                            logging.warning(f"[DATA_MANAGER] V3 API endpoint {endpoint} returned {response.status}")
             except Exception as e:
-                logging.warning(f"API endpoint {endpoint} failed: {e}")
+                logging.warning(f"[DATA_MANAGER] V3 API endpoint {endpoint} failed: {e}")
                 continue
         
-        logging.warning("[WARN] All API endpoints failed - will use mock data")
+        if working_endpoints:
+            # Prioritize working endpoints
+            self.live_api_endpoints = working_endpoints + [ep for ep in self.live_api_endpoints if ep not in working_endpoints]
+            logging.info(f"[DATA_MANAGER] V3 Found {len(working_endpoints)} working live API endpoints")
+        else:
+            # V3: No fallback - raise error for production awareness
+            raise RuntimeError("V3 CRITICAL: No live API endpoints available - cannot proceed without live data")
     
-    async def download_historical_data(self, symbol: str, timeframe: str, limit: int = 100):
-        """Download data with proper session management"""
-        for endpoint in self.api_endpoints:
+    async def download_live_historical_data(self, symbol: str, timeframe: str, limit: int = 100):
+        """V3 Download live data with proper session management - NO MOCK FALLBACK"""
+        for endpoint in self.live_api_endpoints:
             connector = None
             session = None
             try:
@@ -111,7 +138,8 @@ class HistoricalDataManager:
                 
                 session = aiohttp.ClientSession(
                     connector=connector,
-                    timeout=timeout
+                    timeout=timeout,
+                    headers={'User-Agent': 'V3-Trading-System/3.0'}
                 )
                 
                 params = {'symbol': symbol, 'interval': timeframe, 'limit': limit}
@@ -133,7 +161,7 @@ class HistoricalDataManager:
                             df['timestamp'] = pd.to_numeric(df['timestamp'])
                             df = df.dropna()
                             
-                            logging.info(f"[EMOJI] Downloaded {len(df)} candles for {symbol} {timeframe}")
+                            logging.info(f"[DATA_MANAGER] V3 Downloaded {len(df)} live candles for {symbol} {timeframe}")
                             
                             # Cleanup before returning
                             if session and not session.closed:
@@ -142,17 +170,21 @@ class HistoricalDataManager:
                             
                             return df
                     elif response.status == 451:
-                        logging.warning(f"HTTP 451 (Unavailable For Legal Reasons) from {endpoint}")
+                        logging.warning(f"[DATA_MANAGER] V3 HTTP 451 (Unavailable For Legal Reasons) from {endpoint}")
+                        continue
+                    elif response.status == 429:
+                        logging.warning(f"[DATA_MANAGER] V3 Rate limited by {endpoint}")
+                        await asyncio.sleep(2)  # Wait before trying next endpoint
                         continue
                     else:
-                        logging.warning(f"HTTP {response.status} from {endpoint}")
+                        logging.warning(f"[DATA_MANAGER] V3 HTTP {response.status} from {endpoint}")
                         continue
                         
             except asyncio.TimeoutError:
-                logging.warning(f"Timeout for endpoint {endpoint}")
+                logging.warning(f"[DATA_MANAGER] V3 Timeout for endpoint {endpoint}")
                 continue
             except Exception as e:
-                logging.warning(f"Error with endpoint {endpoint}: {e}")
+                logging.warning(f"[DATA_MANAGER] V3 Error with endpoint {endpoint}: {e}")
                 continue
             finally:
                 # Ensure cleanup happens
@@ -168,87 +200,22 @@ class HistoricalDataManager:
                 except:
                     pass
         
-        # If all APIs fail, return mock data
-        logging.info(f"[DATA] Creating mock data for {symbol} {timeframe}")
-        return await self.create_mock_historical_data(symbol, timeframe, limit)
-    async def create_mock_historical_data(self, symbol: str, timeframe: str, limit: int):
-        try:
-            base_prices = {
-                'BTCUSDT': 45000, 'ETHUSDT': 3000, 'BNBUSDT': 300,
-                'XRPUSDT': 0.6, 'ADAUSDT': 0.4, 'SOLUSDT': 100
-            }
-            
-            base_price = base_prices.get(symbol, 1000)
-            
-            timestamps = []
-            opens = []
-            highs = []
-            lows = []
-            closes = []
-            volumes = []
-            
-            intervals = {'1h': 3600000, '4h': 14400000, '1d': 86400000}
-            interval_ms = intervals.get(timeframe, 3600000)
-            
-            current_time = int(time.time() * 1000)
-            current_price = base_price
-            
-            for i in range(limit):
-                timestamp = current_time - (limit - i) * interval_ms
-                
-                price_change = random.uniform(-0.03, 0.03)
-                current_price *= (1 + price_change)
-                
-                open_price = current_price
-                high_price = open_price * random.uniform(1.0, 1.02)
-                low_price = open_price * random.uniform(0.98, 1.0)
-                close_price = random.uniform(low_price, high_price)
-                volume = random.uniform(100, 10000)
-                
-                timestamps.append(timestamp)
-                opens.append(open_price)
-                highs.append(high_price)
-                lows.append(low_price)
-                closes.append(close_price)
-                volumes.append(volume)
-                
-                current_price = close_price
-            
-            df = pd.DataFrame({
-                'timestamp': timestamps, 'open': opens, 'high': highs,
-                'low': lows, 'close': closes, 'volume': volumes
-            })
-            
-            return df
-            
-        except Exception as e:
-            logging.error(f"Error creating mock data: {e}")
-            return None
+        # V3: If all APIs fail, raise error - no mock fallback
+        logging.error(f"[DATA_MANAGER] V3 CRITICAL: All live API endpoints failed for {symbol} {timeframe}")
+        raise RuntimeError(f"V3 CRITICAL: Cannot obtain live data for {symbol} {timeframe} - all endpoints failed")
     
-    async def create_mock_data(self):
-        try:
-            for symbol in self.symbols[:3]:
-                for timeframe in ['1h', '4h']:
-                    df = await self.create_mock_historical_data(symbol, timeframe, 100)
-                    if df is not None:
-                        await self.store_historical_data(symbol, timeframe, df)
-            
-            logging.info("[OK] Mock data created successfully")
-        except Exception as e:
-            logging.error(f"Error creating mock data: {e}")
-    
-    async def store_historical_data(self, symbol: str, timeframe: str, df: pd.DataFrame):
+    async def store_live_historical_data(self, symbol: str, timeframe: str, df: pd.DataFrame):
+        """V3 Store live historical data in database"""
         try:
             store_sql = """
-            INSERT OR REPLACE INTO historical_data 
+            INSERT OR REPLACE INTO live_historical_data 
             (symbol, timeframe, timestamp, open_price, high_price, 
-             low_price, close_price, volume)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             low_price, close_price, volume, data_source, v3_compliance)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """
             
             with sqlite3.connect(self.db_path) as conn:
                 for _, row in df.iterrows():
-                    # Ensure all values are proper types, not Mock objects
                     try:
                         params = (
                             str(symbol), 
@@ -258,51 +225,83 @@ class HistoricalDataManager:
                             float(row['high']), 
                             float(row['low']),
                             float(row['close']), 
-                            float(row['volume'])
+                            float(row['volume']),
+                            'live_api',
+                            True  # V3 compliance flag
                         )
                         conn.execute(store_sql, params)
                     except (TypeError, ValueError) as e:
-                        logging.warning(f"Skipping row due to type error: {e}")
+                        logging.warning(f"[DATA_MANAGER] V3 Skipping row due to type error: {e}")
                         continue
                 conn.commit()
+                logging.info(f"[DATA_MANAGER] V3 Stored {len(df)} live data points for {symbol} {timeframe}")
         except Exception as e:
-            logging.error(f"Error storing data: {e}")
+            logging.error(f"[DATA_MANAGER] V3 Error storing live data: {e}")
     
     async def get_historical_data(self, symbol: str, timeframe: str, 
                                  start_time: Optional[datetime] = None, 
                                  end_time: Optional[datetime] = None):
+        """V3 Get historical data - LIVE DATA ONLY"""
         try:
+            # V3 Query for live data only
             query_sql = """
             SELECT timestamp, open_price, high_price, low_price, close_price, volume
-            FROM historical_data 
-            WHERE symbol = ? AND timeframe = ?
+            FROM live_historical_data 
+            WHERE symbol = ? AND timeframe = ? AND v3_compliance = TRUE
             ORDER BY timestamp ASC
             """
             
-            # Convert Mock objects to strings if needed
-            if hasattr(symbol, '__class__') and 'Mock' in str(symbol.__class__):
-                symbol = 'BTCUSDT'
-            if hasattr(timeframe, '__class__') and 'Mock' in str(timeframe.__class__):
-                timeframe = '1h'
+            # Convert any mock objects to strings if needed (legacy compatibility)
+            symbol_str = str(symbol) if hasattr(symbol, '__str__') else 'BTCUSDT'
+            timeframe_str = str(timeframe) if hasattr(timeframe, '__str__') else '1h'
                 
             with sqlite3.connect(self.db_path) as conn:
-                cursor = conn.execute(query_sql, (str(symbol), str(timeframe)))
+                cursor = conn.execute(query_sql, (symbol_str, timeframe_str))
                 rows = cursor.fetchall()
                 
                 if rows:
-                    data = {
-                        'timestamp': [row[0] for row in rows],
-                        'open': [row[1] for row in rows],
-                        'high': [row[2] for row in rows],
-                        'low': [row[3] for row in rows],
-                        'close': [row[4] for row in rows],
-                        'volume': [row[5] for row in rows]
-                    }
-                    return data
-                else:
-                    df = await self.download_historical_data(symbol, timeframe, 100)
-                    if df is not None:
-                        await self.store_historical_data(symbol, timeframe, df)
+                    # Filter by time range if specified
+                    if start_time or end_time:
+                        filtered_rows = []
+                        for row in rows:
+                            row_time = datetime.fromtimestamp(row[0] / 1000)
+                            if start_time and row_time < start_time:
+                                continue
+                            if end_time and row_time > end_time:
+                                continue
+                            filtered_rows.append(row)
+                        rows = filtered_rows
+                    
+                    if rows:
+                        data = {
+                            'timestamp': [row[0] for row in rows],
+                            'open': [row[1] for row in rows],
+                            'high': [row[2] for row in rows],
+                            'low': [row[3] for row in rows],
+                            'close': [row[4] for row in rows],
+                            'volume': [row[5] for row in rows]
+                        }
+                        logging.info(f"[DATA_MANAGER] V3 Retrieved {len(rows)} live data points for {symbol_str} {timeframe_str}")
+                        return data
+                    else:
+                        logging.info(f"[DATA_MANAGER] V3 No data in time range for {symbol_str} {timeframe_str}")
+                
+                # V3 If no cached data, download live data
+                logging.info(f"[DATA_MANAGER] V3 No cached data - downloading live data for {symbol_str} {timeframe_str}")
+                df = await self.download_live_historical_data(symbol_str, timeframe_str, 100)
+                if df is not None and len(df) > 0:
+                    await self.store_live_historical_data(symbol_str, timeframe_str, df)
+                    
+                    # Filter by time range if specified
+                    if start_time or end_time:
+                        if start_time:
+                            start_ts = int(start_time.timestamp() * 1000)
+                            df = df[df['timestamp'] >= start_ts]
+                        if end_time:
+                            end_ts = int(end_time.timestamp() * 1000)
+                            df = df[df['timestamp'] <= end_ts]
+                    
+                    if len(df) > 0:
                         data = {
                             'timestamp': df['timestamp'].tolist(),
                             'open': df['open'].tolist(),
@@ -311,25 +310,29 @@ class HistoricalDataManager:
                             'close': df['close'].tolist(),
                             'volume': df['volume'].tolist()
                         }
+                        logging.info(f"[DATA_MANAGER] V3 Returning {len(df)} live data points for {symbol_str} {timeframe_str}")
                         return data
+                    else:
+                        logging.warning(f"[DATA_MANAGER] V3 No data in specified time range for {symbol_str} {timeframe_str}")
                 
                 return None
+                
         except Exception as e:
-            logging.error(f"Error getting historical data: {e}")
+            logging.error(f"[DATA_MANAGER] V3 Error getting live historical data: {e}")
+            # V3: No fallback - return None and let caller handle
             return None
     
-    
     async def get_latest_data(self, symbol: str, timeframe: str = '1h') -> Optional[Dict]:
-        """Get latest market data for a symbol"""
+        """V3 Get latest live market data for a symbol"""
         try:
-            # Get recent historical data (last few periods)
+            # Get recent live historical data (last few periods)
             end_time = datetime.now()
             start_time = end_time - timedelta(hours=24)  # Last 24 hours
             
             data = await self.get_historical_data(symbol, timeframe, start_time, end_time)
             
             if data and len(data.get('close', [])) > 0:
-                # Return the latest data point
+                # Return the latest live data point
                 latest_data = {
                     'symbol': symbol,
                     'timeframe': timeframe,
@@ -339,7 +342,9 @@ class HistoricalDataManager:
                     'low': data['low'][-1] if data.get('low') else 0,
                     'close': data['close'][-1] if data.get('close') else 0,
                     'volume': data['volume'][-1] if data.get('volume') else 0,
-                    'last_updated': datetime.now().isoformat()
+                    'last_updated': datetime.now().isoformat(),
+                    'data_source': 'live_api',
+                    'v3_compliance': True
                 }
                 
                 return latest_data
@@ -347,11 +352,11 @@ class HistoricalDataManager:
             return None
             
         except Exception as e:
-            logging.error(f"Error getting latest data for {symbol}: {e}")
+            logging.error(f"[DATA_MANAGER] V3 Error getting latest live data for {symbol}: {e}")
             return None
     
     def get_latest_data_sync(self, symbol: str, timeframe: str = '1h') -> Optional[Dict]:
-        """Synchronous version of get_latest_data for compatibility"""
+        """V3 Synchronous version of get_latest_data for compatibility"""
         try:
             import asyncio
             
@@ -363,33 +368,150 @@ class HistoricalDataManager:
                     import concurrent.futures
                     with concurrent.futures.ThreadPoolExecutor() as executor:
                         future = executor.submit(asyncio.run, self.get_latest_data(symbol, timeframe))
-                        return future.result(timeout=10)
+                        return future.result(timeout=15)
                 else:
                     return asyncio.run(self.get_latest_data(symbol, timeframe))
             except RuntimeError:
                 return asyncio.run(self.get_latest_data(symbol, timeframe))
                 
         except Exception as e:
-            logging.error(f"Error in sync get_latest_data for {symbol}: {e}")
-            # Return mock data as fallback
+            logging.error(f"[DATA_MANAGER] V3 Error in sync get_latest_data for {symbol}: {e}")
+            # V3: Return None instead of fallback data - let caller handle
+            return None
+
+    async def cleanup_old_data(self, days_to_keep: int = 30):
+        """V3 Cleanup old live data to manage storage"""
+        try:
+            cutoff_timestamp = int((datetime.now() - timedelta(days=days_to_keep)).timestamp() * 1000)
+            
+            cleanup_sql = """
+            DELETE FROM live_historical_data 
+            WHERE timestamp < ? AND v3_compliance = TRUE
+            """
+            
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.execute(cleanup_sql, (cutoff_timestamp,))
+                deleted_count = cursor.rowcount
+                conn.commit()
+                
+                logging.info(f"[DATA_MANAGER] V3 Cleaned up {deleted_count} old live data records")
+                return deleted_count
+                
+        except Exception as e:
+            logging.error(f"[DATA_MANAGER] V3 Error cleaning up old data: {e}")
+            return 0
+
+    def get_v3_metrics(self):
+        """V3 Get data manager metrics"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Count live data points
+                cursor = conn.execute("SELECT COUNT(*) FROM live_historical_data WHERE v3_compliance = TRUE")
+                total_live_data_points = cursor.fetchone()[0]
+                
+                # Count unique symbols
+                cursor = conn.execute("SELECT COUNT(DISTINCT symbol) FROM live_historical_data WHERE v3_compliance = TRUE")
+                unique_symbols = cursor.fetchone()[0]
+                
+                # Count unique timeframes
+                cursor = conn.execute("SELECT COUNT(DISTINCT timeframe) FROM live_historical_data WHERE v3_compliance = TRUE")
+                unique_timeframes = cursor.fetchone()[0]
+                
+                return {
+                    'total_live_data_points': total_live_data_points,
+                    'unique_symbols': unique_symbols,
+                    'unique_timeframes': unique_timeframes,
+                    'live_data_sources_active': len(self.live_api_endpoints),
+                    'v3_compliance': True,
+                    'data_mode': 'LIVE_PRODUCTION'
+                }
+        except Exception as e:
+            logging.error(f"[DATA_MANAGER] V3 Error getting metrics: {e}")
             return {
-                'symbol': symbol,
-                'timeframe': timeframe,
-                'timestamp': int(datetime.now().timestamp() * 1000),
-                'open': 50000.0,
-                'high': 50100.0,
-                'low': 49900.0,
-                'close': 50000.0,
-                'volume': 1000.0,
-                'last_updated': datetime.now().isoformat(),
-                'source': 'fallback'
+                'total_live_data_points': 0,
+                'unique_symbols': 0,
+                'unique_timeframes': 0,
+                'live_data_sources_active': 0,
+                'v3_compliance': True,
+                'data_mode': 'ERROR',
+                'error': str(e)
+            }
+
+    def get_metrics(self):
+        """Legacy compatibility method - returns V3 metrics"""
+        return self.get_v3_metrics()
+
+    async def validate_v3_compliance(self) -> Dict[str, Any]:
+        """V3 Validate that all data is from live sources"""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                # Check for any non-V3 compliant data
+                cursor = conn.execute("SELECT COUNT(*) FROM live_historical_data WHERE v3_compliance != TRUE")
+                non_compliant_count = cursor.fetchone()[0]
+                
+                # Check data sources
+                cursor = conn.execute("SELECT DISTINCT data_source FROM live_historical_data")
+                data_sources = [row[0] for row in cursor.fetchall()]
+                
+                # Check for any mock data sources
+                has_live_data_only = all('live' in source or 'api' in source for source in data_sources)
+                
+                validation_result = {
+                    'v3_compliant': non_compliant_count == 0 and has_live_data_only,
+                    'non_compliant_records': non_compliant_count,
+                    'data_sources': data_sources,
+                    'live_data_only': has_live_data_only,
+                    'validation_timestamp': datetime.now().isoformat()
+                }
+                
+                if validation_result['v3_compliant']:
+                    logging.info("[DATA_MANAGER] V3 Compliance validation PASSED")
+                else:
+                    logging.warning(f"[DATA_MANAGER] V3 Compliance validation FAILED: {validation_result}")
+                
+                return validation_result
+                
+        except Exception as e:
+            logging.error(f"[DATA_MANAGER] V3 Compliance validation error: {e}")
+            return {
+                'v3_compliant': False,
+                'error': str(e),
+                'validation_timestamp': datetime.now().isoformat()
             }
 
 
-    def get_metrics(self):
-        return {
-            'total_data_points': 1000,
-            'unique_symbols': len(self.symbols),
-            'unique_timeframes': len(self.timeframes),
-            'data_sources_active': 1
-        }
+# V3 Testing
+if __name__ == "__main__":
+    print("[DATA_MANAGER] Testing V3 Historical Data Manager - LIVE DATA ONLY")
+    
+    async def test_v3_data_manager():
+        manager = HistoricalDataManager()
+        
+        try:
+            await manager.initialize()
+            
+            # Test live data retrieval
+            data = await manager.get_historical_data('BTCUSDT', '1h')
+            if data:
+                print(f"[DATA_MANAGER] V3 Retrieved {len(data['close'])} live data points")
+            else:
+                print("[DATA_MANAGER] V3 No live data retrieved")
+            
+            # Test latest data
+            latest = await manager.get_latest_data('BTCUSDT')
+            if latest:
+                print(f"[DATA_MANAGER] V3 Latest BTC price: ${latest['close']:.2f}")
+            
+            # Validate V3 compliance
+            validation = await manager.validate_v3_compliance()
+            print(f"[DATA_MANAGER] V3 Compliance: {validation['v3_compliant']}")
+            
+            # Get metrics
+            metrics = manager.get_v3_metrics()
+            print(f"[DATA_MANAGER] V3 Metrics: {metrics}")
+            
+        except Exception as e:
+            print(f"[DATA_MANAGER] V3 Test failed: {e}")
+    
+    asyncio.run(test_v3_data_manager())
+    print("[DATA_MANAGER] V3 Historical Data Manager test complete - LIVE DATA ONLY!")
