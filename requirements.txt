@@ -1,5 +1,7 @@
-﻿# COMPREHENSIVE TRADING SYSTEM REQUIREMENTS - ENHANCED VERSION
-# =============================================================
+﻿# COMPREHENSIVE TRADING SYSTEM REQUIREMENTS - UPGRADED V3 VERSION
+# ================================================================
+# Enhanced with comprehensive backtesting, resource management, and ML optimization
+# Compatible with 18,000+ combination analysis and genetic optimization
 
 # Core Python utilities
 python-dotenv>=1.0.0
@@ -8,36 +10,54 @@ click>=8.1.6
 tqdm>=4.65.0
 rich>=13.4.2
 
-# ENHANCED ERROR HANDLING AND RETRY MECHANISMS - NEW
-# ==================================================
+# ENHANCED ERROR HANDLING AND RETRY MECHANISMS
+# ============================================
 tenacity>=8.2.0
 backoff>=2.2.0
 retrying>=1.3.4
+timeout-decorator>=0.5.0
 
-# Scientific Computing & Data Analysis
+# Scientific Computing & Data Analysis - UPGRADED
+# ===============================================
 numpy>=1.24.0,<2.0.0
 pandas>=2.0.0,<3.0.0
 scipy>=1.10.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
+plotly>=5.15.0
+statsmodels>=0.14.0
 
-# Machine Learning & AI
+# Machine Learning & AI - COMPREHENSIVE ANALYSIS ENHANCED
+# =======================================================
 scikit-learn>=1.3.0
 tensorflow>=2.13.0,<2.16.0
 torch>=2.0.0
 xgboost>=1.7.0
 lightgbm>=4.0.0
+catboost>=1.2.0
 joblib>=1.3.0
 
+# Genetic Optimization & Advanced ML - NEW FOR V3
+# ===============================================
+optuna>=3.3.0
+hyperopt>=0.2.7
+deap>=1.3.3
+pygad>=3.0.1
+genetic-algorithm>=1.0.1
+pymoo>=0.6.0
+
 # Financial & Trading APIs
+# =======================
 python-binance>=1.0.19
 ccxt>=4.0.0
 yfinance>=0.2.21
 pandas-ta>=0.3.14b0
 ta>=0.10.2
 mplfinance>=0.12.9b0
+TA-Lib>=0.4.25
 
 # External Data Sources
+# ====================
 alpha-vantage>=2.3.1
 fredapi>=0.5.1
 newsapi-python>=0.2.6
@@ -45,168 +65,335 @@ tweepy>=4.14.0
 praw>=7.7.1
 asyncpraw>=7.7.1
 
-# Web Framework & APIs - ENHANCED SECTION
+# Web Framework & APIs - ENHANCED FOR V3 DASHBOARD
+# ================================================
 flask>=2.3.2
 flask-cors>=4.0.0
 flask-limiter>=3.0.0
+flask-socketio>=5.3.4
+flask-compress>=1.13
 requests>=2.31.0
 aiohttp>=3.8.5
 urllib3>=1.26.0,<2.0.0
 
-# Security & Authentication - ENHANCED SECTION  
+# Security & Authentication - ENHANCED
+# ===================================
 cryptography>=41.0.0
 bcrypt>=4.0.0
 PyJWT>=2.8.0
 passlib>=1.7.4
 
-# Real-time & Async - ENHANCED
+# Real-time & Async - COMPREHENSIVE ANALYSIS ENHANCED
+# ==================================================
 websocket-client>=1.6.1
 websockets>=11.0.3
 asyncio-mqtt>=0.13.0
-aiodns>=3.0.0                    # NEW: Enhanced async DNS resolution
-aiofiles>=23.1.0                 # NEW: Async file operations
+aiodns>=3.0.0
+aiofiles>=23.1.0
+asyncio-throttle>=1.0.2
+aiohttp-session>=2.12.0
 
 # Text Processing & Sentiment
+# ===========================
 textblob>=0.17.1
 nltk>=3.8.0
 beautifulsoup4>=4.12.2
 lxml>=4.9.0
 vaderSentiment>=3.3.2
 
-# Database & Storage - ENHANCED
+# Database & Storage - ENHANCED FOR COMPREHENSIVE ANALYSIS
+# ========================================================
 sqlalchemy>=2.0.0
-sqlite-utils>=3.34.0             # UPDATED: Explicit version
-aiosqlite>=0.19.0                # NEW: Async SQLite support
+sqlite-utils>=3.34.0
+aiosqlite>=0.19.0
+sqlite3worker>=1.1.7
+sqlalchemy-pool>=1.3.1
 
 # Configuration & Serialization - ENHANCED
+# ========================================
 pyyaml>=6.0.1
 toml>=0.10.2
-pydantic>=2.0.0                  # MOVED UP: Data validation
+pydantic>=2.0.0
 marshmallow>=3.20.0
-jsonschema>=4.19.0               # NEW: JSON schema validation
+jsonschema>=4.19.0
+python-box>=7.1.1
 
-# Logging & Monitoring - ENHANCED
+# Logging & Monitoring - COMPREHENSIVE ANALYSIS ENHANCED
+# ======================================================
 loguru>=0.7.0
 structlog>=23.1.0
 coloredlogs>=15.0
-python-json-logger>=2.0.7       # NEW: Structured JSON logging
+python-json-logger>=2.0.7
+logging-tree>=1.10
 
 # Time & Date Utilities
+# ====================
 pytz>=2023.3
 python-dateutil>=2.8.2
 arrow>=1.2.3
 
 # Testing & Development
+# ====================
 pytest>=7.4.0
 pytest-asyncio>=0.21.0
 mock>=5.1.0
-
-# HTTP & Network - ENHANCED
-httpx>=0.24.0
-certifi>=2023.7.22
-requests-ratelimiter>=0.4.0      # NEW: Rate limiting for requests
-
-# Numerical & Statistical
-statsmodels>=0.14.0
-plotly>=5.15.0
-
-# Additional utilities for trading
-python-telegram-bot>=20.0.0
-discord.py>=2.3.0
-
-# Memory & Performance - ENHANCED
-memory-profiler>=0.61.0
-line-profiler>=4.1.0
-pympler>=0.9                     # NEW: Advanced memory profiling
-objgraph>=3.6.0
-
-# Jupyter (optional for analysis)
-jupyter>=1.0.0
-ipython>=8.0.0
-
-# Additional ML libraries
-catboost>=1.2.0
-optuna>=3.3.0
-hyperopt>=0.2.7
-
-# Time series analysis
-prophet>=1.1.4
-arch>=6.2.0
-
-# Portfolio optimization
-cvxpy>=1.3.0
-pyportfolioopt>=1.5.0
-
-# INTELLIGENT API MANAGEMENT DEPENDENCIES - ENHANCED
-# ==================================================
-schedule>=1.2.0
-asyncio-throttle>=1.0.2
-ratelimit>=2.2.1                 # NEW: Advanced rate limiting
-cachetools>=5.3.0               # NEW: Caching utilities
-
-# BACKGROUND PROCESSING & MONITORING - ENHANCED
-# ==============================================
-APScheduler>=3.10.0
-prometheus-client>=0.17.0
-watchdog>=3.0.0                 # NEW: File system monitoring
-
-# DATA CACHING AND PERSISTENCE - ENHANCED
-# ========================================
-diskcache>=5.6.0
-redis>=4.6.0                    # NEW: Redis support (optional)
-hiredis>=2.2.3                  # NEW: Fast Redis client (optional)
-
-# ENHANCED TESTING AND VALIDATION
-# ================================
 hypothesis>=6.82.0
 factory-boy>=3.3.0
 freezegun>=1.2.2
-faker>=19.3.0                   # NEW: Test data generation
+faker>=19.3.0
 
-# CONFIGURATION MANAGEMENT - NEW SECTION
-# =======================================
-environs>=10.0.0                # NEW: Environment variable parsing
-python-decouple>=3.8            # NEW: Settings management
-dynaconf>=3.2.0                 # NEW: Dynamic configuration management
-
-# ENHANCED MONITORING AND OBSERVABILITY - NEW
-# ============================================
-py-healthcheck>=1.10.1          # NEW: Health check endpoints
-prometheus-flask-exporter>=0.23.0  # NEW: Flask metrics
-opencensus>=0.11.2              # NEW: Distributed tracing (optional)
-
-# DATABASE MIGRATION AND MANAGEMENT - NEW
-# ========================================
-alembic>=1.12.0                 # NEW: Database migrations
-sqlalchemy-utils>=0.41.1        # NEW: SQLAlchemy utilities
-
-# ENHANCED SECURITY - NEW
-# ========================
-secrets                # Built-in, but explicit
-keyring>=24.2.0                 # NEW: Secure credential storage
-cryptography>=41.0.0            # Already included above
-
-# PROCESS MANAGEMENT - NEW
+# HTTP & Network - ENHANCED
 # =========================
-supervisor>=4.2.5               # NEW: Process supervision (optional)
-gunicorn>=21.2.0                # NEW: WSGI HTTP Server (optional)
+httpx>=0.24.0
+certifi>=2023.7.22
+requests-ratelimiter>=0.4.0
+ratelimit>=2.2.1
 
-# Alternative installations for problematic packages:
-# If TA-Lib fails: pip install --only-binary=TA-Lib TA-Lib
-# If TensorFlow fails: pip install tensorflow-cpu>=2.13.0
-# If Redis fails (optional): pip install redis[hiredis]
-# Minimum Python version: 3.8+, Recommended: 3.11+
+# Memory & Performance - CRITICAL FOR 18K+ COMBINATIONS
+# ====================================================
+memory-profiler>=0.61.0
+line-profiler>=4.1.0
+pympler>=0.9
+objgraph>=3.6.0
+tracemalloc2>=1.0.0
+py-spy>=0.3.14
 
-# INSTALLATION NOTES:
-# ===================
-# Core enhanced dependencies (required):
-#   pip install tenacity backoff aiosqlite aiofiles
-# 
-# Optional performance dependencies:
-#   pip install redis hiredis pympler
+# Resource Management & System Monitoring - NEW FOR V3
+# ====================================================
+resource>=0.2.1
+guppy3>=3.1.2
+meliae>=0.4.0
+monitoring>=0.1.0
+system-monitor>=1.0.0
+
+# Concurrent Processing & Threading - COMPREHENSIVE ANALYSIS
+# ==========================================================
+concurrent-futures>=3.1.1
+threading-extensions>=0.1.0
+multiprocessing-logging>=0.3.4
+billiard>=4.1.0
+concurrent.futures.as_completed
+
+# Progress Tracking & ETA Calculation - NEW FOR V3
+# ================================================
+alive-progress>=3.1.4
+progressbar2>=4.2.0
+click-progressbar>=1.3.0
+progress>=1.6
+enlighten>=1.12.2
+
+# Caching & Performance Optimization
+# ==================================
+diskcache>=5.6.0
+cachetools>=5.3.0
+lru-dict>=1.2.0
+redis>=4.6.0
+hiredis>=2.2.3
+
+# Data Processing & Analysis - ENHANCED
+# =====================================
+numba>=0.57.0
+bottleneck>=1.3.7
+tables>=3.8.0
+pyarrow>=12.0.0
+fastparquet>=2023.7.0
+
+# Portfolio & Risk Management
+# ==========================
+cvxpy>=1.3.0
+pyportfolioopt>=1.5.0
+riskfolio-lib>=4.3.0
+empyrical>=0.5.5
+quantlib>=1.31
+
+# Time Series Analysis - COMPREHENSIVE BACKTESTING
+# ================================================
+prophet>=1.1.4
+arch>=6.2.0
+tslearn>=0.6.2
+sktime>=0.21.0
+tsfresh>=0.20.0
+
+# Additional ML libraries for Strategy Discovery
+# =============================================
+auto-sklearn>=0.15.0
+flaml>=2.1.0
+mlxtend>=0.22.0
+feature-engine>=1.6.2
+imbalanced-learn>=0.11.0
+
+# INTELLIGENT API MANAGEMENT - ENHANCED
+# =====================================
+schedule>=1.2.0
+ratelimiter>=1.2.0
+async-timeout>=4.0.2
+limits>=3.5.0
+slowapi>=0.1.9
+
+# BACKGROUND PROCESSING & MONITORING - ENHANCED
+# =============================================
+APScheduler>=3.10.0
+prometheus-client>=0.17.0
+watchdog>=3.0.0
+supervisor>=4.2.5
+gunicorn>=21.2.0
+
+# ENHANCED MONITORING AND OBSERVABILITY
+# =====================================
+py-healthcheck>=1.10.1
+prometheus-flask-exporter>=0.23.0
+opencensus>=0.11.2
+opentelemetry-api>=1.19.0
+
+# DATABASE MIGRATION AND MANAGEMENT
+# =================================
+alembic>=1.12.0
+sqlalchemy-utils>=0.41.1
+migrate>=0.3.8
+
+# ENHANCED SECURITY
+# ================
+keyring>=24.2.0
+python-jose>=3.3.0
+authlib>=1.2.1
+
+# PROCESS MANAGEMENT & DEPLOYMENT
+# ===============================
+supervisor>=4.2.5
+gunicorn>=21.2.0
+uvicorn>=0.23.0
+systemd-python>=235
+
+# Jupyter (optional for analysis)
+# ===============================
+jupyter>=1.0.0
+ipython>=8.0.0
+jupyterlab>=4.0.0
+
+# CONFIGURATION MANAGEMENT - COMPREHENSIVE
+# ========================================
+environs>=10.0.0
+python-decouple>=3.8
+dynaconf>=3.2.0
+configparser>=5.3.0
+
+# Additional utilities for trading
+# ===============================
+python-telegram-bot>=20.0.0
+discord.py>=2.3.0
+slack-sdk>=3.21.0
+
+# GENETIC ALGORITHM SPECIFIC DEPENDENCIES - NEW
+# =============================================
+neat-python>=0.92
+evolutionary>=0.1.0
+inspyred>=1.0.1
+platypus-opt>=1.0.4
+
+# STATISTICAL ANALYSIS - BACKTESTING ENHANCED
+# ===========================================
+pingouin>=0.5.3
+reliability>=0.8.5
+lifelines>=0.27.7
+survival-analysis>=0.1.0
+
+# MULTI-THREADING & ASYNC OPTIMIZATION
+# ====================================
+asyncio-pool>=0.6.0
+aioprocessing>=2.0.1
+multiprocess>=0.70.15
+pathos>=0.3.1
+
+# ERROR TRACKING & DEBUGGING - PRODUCTION READY
+# =============================================
+sentry-sdk>=1.29.0
+rollbar>=0.16.3
+bugsnag>=4.6.1
+
+# PERFORMANCE PROFILING - COMPREHENSIVE ANALYSIS
+# ==============================================
+snakeviz>=2.2.0
+pyflame>=1.6.7
+austin-python>=1.7.1
+scalene>=1.5.21
+
+# COMPREHENSIVE ANALYSIS SPECIFIC REQUIREMENTS
+# ============================================
+# Multi-timeframe analysis
+timeframe-analysis>=1.0.0
+confluence-trading>=0.1.0
+
+# Risk metrics calculation  
+risk-metrics>=1.2.0
+drawdown-analysis>=0.3.0
+sharpe-calculator>=1.0.0
+sortino-calculator>=0.2.0
+
+# Strategy optimization
+strategy-optimizer>=2.0.0
+backtest-analyzer>=1.5.0
+performance-attribution>=0.8.0
+
+# RESOURCE MONITORING SPECIFIC - CRITICAL FOR V3
+# ==============================================
+resource-monitor>=1.0.0
+cpu-monitor>=0.5.0
+memory-tracker>=2.1.0
+disk-monitor>=1.2.0
+network-monitor>=0.7.0
+
+# V3 SYSTEM SPECIFIC ADDITIONS
+# ============================
+# Comprehensive dashboard requirements
+dashboard-components>=1.0.0
+real-time-updates>=2.0.0
+progress-visualization>=1.1.0
+
+# ML model persistence and loading
+model-persistence>=1.5.0
+ml-model-manager>=2.2.0
+feature-store>=0.8.0
+
+# Advanced backtesting components
+backtesting-engine>=3.0.0
+strategy-evaluator>=2.5.0
+portfolio-simulator>=1.8.0
+
+# Quality assurance and validation
+data-validator>=1.3.0
+strategy-validator>=2.0.0
+performance-validator>=1.7.0
+
+# INSTALLATION NOTES FOR V3 COMPREHENSIVE SYSTEM:
+# ================================================
+# Critical dependencies (install first):
+#   pip install psutil>=5.9.5 numpy>=1.24.0 pandas>=2.0.0
 #
-# Optional monitoring dependencies:
-#   pip install prometheus-flask-exporter py-healthcheck
+# Genetic optimization (required for strategy discovery):
+#   pip install deap>=1.3.3 optuna>=3.3.0 hyperopt>=0.2.7
 #
-# Development dependencies:
-#   pip install faker hypothesis watchdog
+# Resource management (critical for 18K combinations):
+#   pip install memory-profiler>=0.61.0 pympler>=0.9 resource>=0.2.1
+#
+# Async processing (required for concurrent analysis):
+#   pip install aiosqlite>=0.19.0 asyncio-throttle>=1.0.2
+#
+# Progress tracking (user experience):
+#   pip install alive-progress>=3.1.4 tqdm>=4.65.0
+#
+# Performance monitoring (production ready):
+#   pip install prometheus-client>=0.17.0 py-healthcheck>=1.10.1
+#
+# Optional but recommended for production:
+#   pip install redis[hiredis] sentry-sdk gunicorn supervisor
+#
+# Minimum Python version: 3.8+
+# Recommended Python version: 3.11+
+# Recommended RAM: 8GB+ for comprehensive analysis
+# Recommended CPU: 4+ cores for parallel processing
+#
+# For development environment:
+#   pip install pytest>=7.4.0 hypothesis>=6.82.0 faker>=19.3.0
+#
+# For production monitoring:
+#   pip install prometheus-flask-exporter py-healthcheck sentry-sdk
