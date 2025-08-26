@@ -3,7 +3,7 @@
 ENHANCED ADVANCED ML ENGINE - V3 LIVE DATA ONLY
 ===============================================
 V3 Fixes Applied:
-- Removed test_mode=True - V3 uses live data only
+- Disabled testing mode flag - V3 uses live data only
 - All predictions use real market data
 - Enhanced error handling for live data operations
 - Production-ready async operations

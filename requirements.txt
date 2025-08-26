@@ -1,5 +1,5 @@
-﻿# COMPREHENSIVE TRADING SYSTEM REQUIREMENTS - FIXED
-# ===================================================
+﻿# COMPREHENSIVE TRADING SYSTEM REQUIREMENTS - ENHANCED VERSION
+# =============================================================
 
 # Core Python utilities
 python-dotenv>=1.0.0
@@ -7,6 +7,12 @@ psutil>=5.9.5
 click>=8.1.6
 tqdm>=4.65.0
 rich>=13.4.2
+
+# ENHANCED ERROR HANDLING AND RETRY MECHANISMS - NEW
+# ==================================================
+tenacity>=8.2.0
+backoff>=2.2.0
+retrying>=1.3.4
 
 # Scientific Computing & Data Analysis
 numpy>=1.24.0,<2.0.0
@@ -37,26 +43,28 @@ fredapi>=0.5.1
 newsapi-python>=0.2.6
 tweepy>=4.14.0
 praw>=7.7.1
-asyncpraw>=7.7.1                   # FIXED: Was at bottom, moved here
+asyncpraw>=7.7.1
 
-# Web Framework & APIs - FIXED SECTION
+# Web Framework & APIs - ENHANCED SECTION
 flask>=2.3.2
 flask-cors>=4.0.0
-flask-limiter>=3.0.0               # CRITICAL: Missing in original - needed for rate limiting
+flask-limiter>=3.0.0
 requests>=2.31.0
 aiohttp>=3.8.5
 urllib3>=1.26.0,<2.0.0
 
-# Security & Authentication - FIXED SECTION  
+# Security & Authentication - ENHANCED SECTION  
 cryptography>=41.0.0
 bcrypt>=4.0.0
-PyJWT>=2.8.0                       # CRITICAL: Missing - needed for JWT auth
-passlib>=1.7.4                     # Password hashing utilities
+PyJWT>=2.8.0
+passlib>=1.7.4
 
-# Real-time & Async
+# Real-time & Async - ENHANCED
 websocket-client>=1.6.1
 websockets>=11.0.3
 asyncio-mqtt>=0.13.0
+aiodns>=3.0.0                    # NEW: Enhanced async DNS resolution
+aiofiles>=23.1.0                 # NEW: Async file operations
 
 # Text Processing & Sentiment
 textblob>=0.17.1
@@ -65,18 +73,23 @@ beautifulsoup4>=4.12.2
 lxml>=4.9.0
 vaderSentiment>=3.3.2
 
-# Database & Storage
+# Database & Storage - ENHANCED
 sqlalchemy>=2.0.0
-sqlite-utils                          # Built-in, but explicit for clarity
+sqlite-utils>=3.34.0             # UPDATED: Explicit version
+aiosqlite>=0.19.0                # NEW: Async SQLite support
 
-# Configuration & Serialization
+# Configuration & Serialization - ENHANCED
 pyyaml>=6.0.1
 toml>=0.10.2
+pydantic>=2.0.0                  # MOVED UP: Data validation
+marshmallow>=3.20.0
+jsonschema>=4.19.0               # NEW: JSON schema validation
 
-# Logging & Monitoring
+# Logging & Monitoring - ENHANCED
 loguru>=0.7.0
 structlog>=23.1.0
 coloredlogs>=15.0
+python-json-logger>=2.0.7       # NEW: Structured JSON logging
 
 # Time & Date Utilities
 pytz>=2023.3
@@ -88,13 +101,10 @@ pytest>=7.4.0
 pytest-asyncio>=0.21.0
 mock>=5.1.0
 
-# Data Validation
-pydantic>=2.0.0
-marshmallow>=3.20.0
-
-# HTTP & Network
+# HTTP & Network - ENHANCED
 httpx>=0.24.0
 certifi>=2023.7.22
+requests-ratelimiter>=0.4.0      # NEW: Rate limiting for requests
 
 # Numerical & Statistical
 statsmodels>=0.14.0
@@ -104,9 +114,11 @@ plotly>=5.15.0
 python-telegram-bot>=20.0.0
 discord.py>=2.3.0
 
-# Memory & Performance
+# Memory & Performance - ENHANCED
 memory-profiler>=0.61.0
 line-profiler>=4.1.0
+pympler>=0.9                     # NEW: Advanced memory profiling
+objgraph>=3.6.0
 
 # Jupyter (optional for analysis)
 jupyter>=1.0.0
@@ -125,38 +137,76 @@ arch>=6.2.0
 cvxpy>=1.3.0
 pyportfolioopt>=1.5.0
 
-# INTELLIGENT API MANAGEMENT DEPENDENCIES
-# ===============================================
+# INTELLIGENT API MANAGEMENT DEPENDENCIES - ENHANCED
+# ==================================================
 schedule>=1.2.0
 asyncio-throttle>=1.0.2
+ratelimit>=2.2.1                 # NEW: Advanced rate limiting
+cachetools>=5.3.0               # NEW: Caching utilities
 
-# BACKGROUND PROCESSING & MONITORING
-# ===================================
+# BACKGROUND PROCESSING & MONITORING - ENHANCED
+# ==============================================
 APScheduler>=3.10.0
 prometheus-client>=0.17.0
+watchdog>=3.0.0                 # NEW: File system monitoring
 
-# DATA CACHING AND PERSISTENCE
-# =============================
+# DATA CACHING AND PERSISTENCE - ENHANCED
+# ========================================
 diskcache>=5.6.0
-
-# ENHANCED ERROR HANDLING AND RETRY
-# ==================================
-tenacity>=8.2.0
-backoff>=2.2.0
-
-# PERFORMANCE AND PROFILING
-# ==========================
-objgraph>=3.6.0
+redis>=4.6.0                    # NEW: Redis support (optional)
+hiredis>=2.2.3                  # NEW: Fast Redis client (optional)
 
 # ENHANCED TESTING AND VALIDATION
 # ================================
 hypothesis>=6.82.0
 factory-boy>=3.3.0
 freezegun>=1.2.2
+faker>=19.3.0                   # NEW: Test data generation
 
-# FIXED: Removed duplicate asyncpraw entry
+# CONFIGURATION MANAGEMENT - NEW SECTION
+# =======================================
+environs>=10.0.0                # NEW: Environment variable parsing
+python-decouple>=3.8            # NEW: Settings management
+dynaconf>=3.2.0                 # NEW: Dynamic configuration management
+
+# ENHANCED MONITORING AND OBSERVABILITY - NEW
+# ============================================
+py-healthcheck>=1.10.1          # NEW: Health check endpoints
+prometheus-flask-exporter>=0.23.0  # NEW: Flask metrics
+opencensus>=0.11.2              # NEW: Distributed tracing (optional)
+
+# DATABASE MIGRATION AND MANAGEMENT - NEW
+# ========================================
+alembic>=1.12.0                 # NEW: Database migrations
+sqlalchemy-utils>=0.41.1        # NEW: SQLAlchemy utilities
+
+# ENHANCED SECURITY - NEW
+# ========================
+secrets                # Built-in, but explicit
+keyring>=24.2.0                 # NEW: Secure credential storage
+cryptography>=41.0.0            # Already included above
+
+# PROCESS MANAGEMENT - NEW
+# =========================
+supervisor>=4.2.5               # NEW: Process supervision (optional)
+gunicorn>=21.2.0                # NEW: WSGI HTTP Server (optional)
 
 # Alternative installations for problematic packages:
 # If TA-Lib fails: pip install --only-binary=TA-Lib TA-Lib
 # If TensorFlow fails: pip install tensorflow-cpu>=2.13.0
+# If Redis fails (optional): pip install redis[hiredis]
 # Minimum Python version: 3.8+, Recommended: 3.11+
+
+# INSTALLATION NOTES:
+# ===================
+# Core enhanced dependencies (required):
+#   pip install tenacity backoff aiosqlite aiofiles
+# 
+# Optional performance dependencies:
+#   pip install redis hiredis pympler
+#
+# Optional monitoring dependencies:
+#   pip install prometheus-flask-exporter py-healthcheck
+#
+# Development dependencies:
+#   pip install faker hypothesis watchdog
