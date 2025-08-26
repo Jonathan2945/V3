@@ -23,6 +23,28 @@ from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 from collections import defaultdict
 
+# V3 External API configuration validation
+ALPHA_VANTAGE_API_KEY_1 = os.getenv('ALPHA_VANTAGE_API_KEY_1')
+ALPHA_VANTAGE_API_KEY_2 = os.getenv('ALPHA_VANTAGE_API_KEY_2')
+ALPHA_VANTAGE_API_KEY_3 = os.getenv('ALPHA_VANTAGE_API_KEY_3')
+
+NEWS_API_KEY_1 = os.getenv('NEWS_API_KEY_1')
+NEWS_API_KEY_2 = os.getenv('NEWS_API_KEY_2')
+NEWS_API_KEY_3 = os.getenv('NEWS_API_KEY_3')
+
+FRED_API_KEY_1 = os.getenv('FRED_API_KEY_1')
+FRED_API_KEY_2 = os.getenv('FRED_API_KEY_2')
+FRED_API_KEY_3 = os.getenv('FRED_API_KEY_3')
+
+TWITTER_BEARER_TOKEN_1 = os.getenv('TWITTER_BEARER_TOKEN_1')
+TWITTER_BEARER_TOKEN_2 = os.getenv('TWITTER_BEARER_TOKEN_2')
+TWITTER_BEARER_TOKEN_3 = os.getenv('TWITTER_BEARER_TOKEN_3')
+
+REDDIT_CLIENT_ID_1 = os.getenv('REDDIT_CLIENT_ID_1')
+REDDIT_CLIENT_SECRET_1 = os.getenv('REDDIT_CLIENT_SECRET_1')
+REDDIT_CLIENT_ID_2 = os.getenv('REDDIT_CLIENT_ID_2')
+REDDIT_CLIENT_SECRET_2 = os.getenv('REDDIT_CLIENT_SECRET_2')
+
 # V3: Suppress remaining warnings for production
 warnings.filterwarnings("ignore", category=UserWarning, module="praw")
 warnings.filterwarnings("ignore", message=".*asynchronous environment.*")
@@ -273,14 +295,14 @@ class ExternalDataCollector:
         # Initialize V3 intelligent API manager
         self.api_manager = IntelligentAPIManager()
         
-        # V3 Load live API credentials
-        self.alpha_vantage_key = os.getenv('ALPHA_VANTAGE_API_KEY')
-        self.news_api_key = os.getenv('NEWS_API_KEY')
-        self.fred_api_key = os.getenv('FRED_API_KEY')
-        self.reddit_client_id = os.getenv('REDDIT_CLIENT_ID')
-        self.reddit_client_secret = os.getenv('REDDIT_CLIENT_SECRET')
+        # V3 Load live API credentials (with rotation support)
+        self.alpha_vantage_key = ALPHA_VANTAGE_API_KEY_1 or os.getenv('ALPHA_VANTAGE_API_KEY')
+        self.news_api_key = NEWS_API_KEY_1 or os.getenv('NEWS_API_KEY')
+        self.fred_api_key = FRED_API_KEY_1 or os.getenv('FRED_API_KEY')
+        self.reddit_client_id = REDDIT_CLIENT_ID_1 or os.getenv('REDDIT_CLIENT_ID')
+        self.reddit_client_secret = REDDIT_CLIENT_SECRET_1 or os.getenv('REDDIT_CLIENT_SECRET')
         self.reddit_user_agent = os.getenv('REDDIT_USER_AGENT', 'V3 Trading Bot v3.0')
-        self.twitter_bearer = os.getenv('TWITTER_BEARER_TOKEN')
+        self.twitter_bearer = TWITTER_BEARER_TOKEN_1 or os.getenv('TWITTER_BEARER_TOKEN')
         
         # V3 Session management
         self.session = None

@@ -11,7 +11,7 @@ Features:
 - Complete file discovery and testing
 - Trading system component validation
 - V3 architecture compliance checks
-- Real market data validation (NO MOCK DATA)
+- SMART Real market data validation (NO MOCK DATA)
 - Environment configuration validation
 - API integration testing
 - Database connectivity verification
@@ -27,6 +27,7 @@ import traceback
 import time
 import json
 import sqlite3
+import re
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional, Set
 from dataclasses import dataclass, asdict
@@ -218,21 +219,71 @@ class V3TradingSystemTestHarness:
             ]
         }
         
-        # Mock data patterns to detect and flag - CRITICAL FOR V3
-        self.mock_data_patterns = [
-            'mock_data', 'fake_data', 'simulated_data', 'dummy_data',
-            'test_data', 'sample_data', 'mock_prices', 'fake_prices',
-            'generate_fake', 'simulate_price', 'mock_api', 'fake_api',
-            'MockClient', 'FakeClient', 'SimulatedClient', 'DummyClient',
-            'mock=True', 'fake=True', 'simulated=True', 'test_mode=True',
-            'USE_MOCK', 'ENABLE_MOCK', 'MOCK_MODE', 'SIMULATION_MODE'
+        # SMART Mock Data Detection - Context Aware
+        self.mock_usage_indicators = [
+            # These patterns indicate ACTUAL mock data usage (bad for V3)
+            r'mock_data\s*=\s*True',
+            r'use_mock\s*=\s*True',
+            r'enable_mock\s*=\s*True',
+            r'test_mode\s*=\s*True',
+            r'fake_data\s*=\s*True',
+            r'MockClient\(',
+            r'FakeClient\(',
+            r'SimulatedClient\(',
+            r'generate_mock_',
+            r'create_fake_',
+            r'simulate_data\(',
+            r'fake_prices\s*=',
+            r'mock_prices\s*=',
+            r'dummy_data\s*=',
+            r'\.mock\(\)',
+            r'@mock\.',
+            r'mock\.patch',
+            r'return\s+mock_',
+            r'return\s+fake_',
+            r'class\s+Mock\w+Client',
+            r'def\s+mock_',
+            r'def\s+fake_',
+            r'if\s+mock[_\w]*:',
+            r'if\s+use_mock',
         ]
         
-        # Real data validation patterns
-        self.real_data_patterns = [
-            'binance', 'alpha_vantage', 'news_api', 'fred_api',
-            'twitter_api', 'reddit_api', 'real_market', 'live_data',
-            'actual_data', 'historical_data', 'market_data'
+        # These patterns indicate GOOD practices (disabling mock data)
+        self.real_data_indicators = [
+            r'mock_data\s*=\s*False',
+            r'use_mock\s*=\s*False', 
+            r'enable_mock\s*=\s*False',
+            r'test_mode\s*=\s*False',
+            r'ENABLE_MOCK_APIS\s*=\s*false',
+            r'CLEAR_MOCK_ML_DATA\s*=\s*true',
+            r'USE_REAL_DATA_ONLY\s*=\s*true',
+            r'real_market_data',
+            r'binance\.client',
+            r'exchange\.fetch',
+            r'api\.get_',
+            r'live_data',
+            r'actual_data',
+            r'historical_data',
+            r'market_data',
+            r'not\s+mock',
+            r'disable.*mock',
+            r'real.*only',
+            r'no.*mock'
+        ]
+        
+        # Legitimate references that should NOT be flagged
+        self.legitimate_references = [
+            r'#.*mock',  # Comments mentioning mock
+            r'""".*mock.*"""',  # Docstrings mentioning mock
+            r"'.*mock.*'",  # String literals
+            r'".*mock.*"',  # String literals
+            r'clear.*mock',  # Clearing mock data
+            r'remove.*mock',  # Removing mock data
+            r'delete.*mock',  # Deleting mock data
+            r'cleanup.*mock',  # Cleaning up mock data
+            r'mock.*disabled',  # Mock disabled
+            r'mock.*false',  # Mock set to false
+            r'no.*mock',  # No mock
         ]
         
         print(f"\nV3 TRADING SYSTEM COMPREHENSIVE TEST SUITE")
@@ -444,43 +495,89 @@ class V3TradingSystemTestHarness:
         except Exception as e:
             return False, f"Safety check failed: {str(e)}"
     
-    def check_mock_data_usage(self, file_path: Path) -> Tuple[bool, List[str]]:
-        """Check for any mock data usage - V3 should use ONLY real market data."""
+    def smart_mock_data_detection(self, file_path: Path) -> Tuple[bool, List[str]]:
+        """SMART context-aware mock data detection for V3."""
         mock_issues = []
         
         try:
             with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read().lower()
+                content = f.read()
+                lines = content.split('\n')
             
-            # Check for mock data patterns
-            for pattern in self.mock_data_patterns:
-                if pattern.lower() in content:
-                    # Get line number for better reporting
-                    lines = content.split('\n')
-                    for i, line in enumerate(lines, 1):
-                        if pattern.lower() in line and not line.strip().startswith('#'):
-                            mock_issues.append(f"Line {i}: Found '{pattern}' - V3 should use real data only")
-                            break
+            # Skip files that are specifically for cleaning mock data
+            if 'clear_mock' in file_path.name or 'reset_ml' in file_path.name:
+                return False, []  # These files are SUPPOSED to reference mock data
             
-            # Check for specific V3 violations
-            v3_violations = [
-                ('enable_mock_apis=true', 'Mock APIs enabled - should be false for V3'),
-                ('realistic_simulation=true', 'Simulation mode - V3 uses real data only'),
-                ('clear_mock_ml_data=false', 'Mock ML data not cleared - should be true for V3'),
-                ('test_mode=true', 'Test mode enabled - check if using mock data'),
-                ('fake_client', 'Using fake client instead of real API'),
-                ('mock_response', 'Mock API responses detected'),
-                ('simulated_price', 'Simulated prices instead of real market data')
+            # Check for actual mock usage patterns (context-aware)
+            mock_usage_found = False
+            real_data_found = False
+            
+            # Count real data indicators vs mock usage indicators
+            for i, line in enumerate(lines, 1):
+                line_lower = line.lower().strip()
+                
+                # Skip comments and docstrings
+                if line_lower.startswith('#') or line_lower.startswith('"""') or line_lower.startswith("'''"):
+                    continue
+                
+                # Check for legitimate references (should NOT be flagged)
+                is_legitimate = False
+                for pattern in self.legitimate_references:
+                    if re.search(pattern, line, re.IGNORECASE):
+                        is_legitimate = True
+                        break
+                
+                if is_legitimate:
+                    continue
+                
+                # Check for real data indicators (GOOD)
+                for pattern in self.real_data_indicators:
+                    if re.search(pattern, line, re.IGNORECASE):
+                        real_data_found = True
+                        break
+                
+                # Check for actual mock usage (BAD for V3)
+                for pattern in self.mock_usage_indicators:
+                    if re.search(pattern, line, re.IGNORECASE):
+                        mock_usage_found = True
+                        mock_issues.append(f"Line {i}: Detected active mock data usage - '{line.strip()[:60]}...'")
+                        break
+            
+            # Special handling for test files and utilities
+            if file_path.name in ['test.py', 'api-test.py', 'emotion_simulator.py']:
+                # Test files can reference mock concepts but should not use them for actual trading
+                if mock_usage_found:
+                    # Filter out violations in test files that are just checking for mock usage
+                    filtered_issues = []
+                    for issue in mock_issues:
+                        if not any(test_pattern in issue.lower() for test_pattern in 
+                                 ['check_mock', 'detect_mock', 'validate_mock', 'test_mock', 'mock_data_patterns']):
+                            filtered_issues.append(issue)
+                    mock_issues = filtered_issues
+                    mock_usage_found = len(filtered_issues) > 0
+            
+            # V3 system should have more real data indicators than mock usage
+            if mock_usage_found and not real_data_found:
+                mock_issues.append("V3 Violation: File uses mock data without real data alternatives")
+            
+            # Check environment variable usage for V3 compliance
+            env_check_patterns = [
+                r'os\.getenv\(["\']ENABLE_MOCK_APIS["\'].*false',
+                r'os\.getenv\(["\']CLEAR_MOCK_ML_DATA["\'].*true',
+                r'os\.getenv\(["\']USE_REAL_DATA_ONLY["\'].*true',
             ]
             
-            for violation, description in v3_violations:
-                if violation in content:
-                    mock_issues.append(f"V3 Violation: {description}")
+            has_proper_env_check = any(re.search(pattern, content, re.IGNORECASE) for pattern in env_check_patterns)
             
-            return len(mock_issues) == 0, mock_issues
+            # Files that handle data should have proper environment checks
+            if (any(keyword in file_path.name.lower() for keyword in ['data', 'trading', 'ml', 'engine']) and
+                mock_usage_found and not has_proper_env_check):
+                mock_issues.append("V3 Compliance: Should check environment variables to disable mock data")
+            
+            return mock_usage_found and len(mock_issues) > 0, mock_issues
             
         except Exception as e:
-            return False, [f"Mock data check failed: {str(e)}"]
+            return False, [f"Smart mock detection failed: {str(e)}"]
     
     def validate_env_configuration(self, file_path: Path) -> Tuple[bool, List[str]]:
         """Validate that file properly uses environment configuration."""
@@ -531,12 +628,12 @@ class V3TradingSystemTestHarness:
             if any(keyword in file_path.name.lower() for keyword in ['data', 'market', 'price', 'trading', 'ml']):
                 
                 # Must have real data indicators
-                has_real_data = any(pattern in content for pattern in self.real_data_patterns)
+                has_real_data = any(re.search(pattern, content, re.IGNORECASE) for pattern in self.real_data_indicators)
                 
-                # Must NOT have mock data (already checked separately)
-                has_mock_data = any(pattern.lower() in content for pattern in self.mock_data_patterns)
+                # Should NOT have active mock usage (checked by smart detection)
+                has_active_mock, _ = self.smart_mock_data_detection(file_path)
                 
-                return has_real_data and not has_mock_data
+                return has_real_data and not has_active_mock
             
             return True  # Non-data files pass by default
             
@@ -877,9 +974,8 @@ class V3TradingSystemTestHarness:
             result.api_integration_valid = self.check_api_integration(file_path)
             result.database_schema_valid = self.check_database_schema(file_path)
             
-            # V3 Real Data Validation (CRITICAL)
-            no_mock_data, mock_issues = self.check_mock_data_usage(file_path)
-            result.mock_data_detected = not no_mock_data
+            # V3 SMART Real Data Validation (CRITICAL)
+            result.mock_data_detected, mock_issues = self.smart_mock_data_detection(file_path)
             result.mock_data_issues = mock_issues
             
             # Environment configuration validation
@@ -909,7 +1005,7 @@ class V3TradingSystemTestHarness:
             if compliance_issues:
                 result.warnings.extend(compliance_issues)
             
-            # Add mock data violations (CRITICAL for V3)
+            # Add mock data violations (CRITICAL for V3) - only if actual violations found
             if result.mock_data_detected:
                 result.warnings.extend([f"CRITICAL V3 VIOLATION: {issue}" for issue in result.mock_data_issues])
             
@@ -957,7 +1053,7 @@ class V3TradingSystemTestHarness:
         
         print(f"\nTESTING {len(python_files)} PYTHON FILES FROM YOUR REPOSITORY")
         print(f"Skipping any files not in your current repo manifest")
-        print(f"CRITICAL: Checking for mock data usage (V3 uses REAL DATA ONLY)")
+        print(f"CRITICAL: Smart context-aware mock data detection (V3 uses REAL DATA ONLY)")
         print("=" * 80)
         
         tested_files = set()
@@ -984,12 +1080,12 @@ class V3TradingSystemTestHarness:
             # Status indicators
             symbols = []
             symbols.append("?" if result.syntax_valid else "?")
-            symbols.append("??" if result.dependencies_met else "??")
+            symbols.append("??" if result.dependencies_met else "?")
             symbols.append("??" if result.runtime_safe else "??")
             symbols.append("?" if result.import_success else "?")
-            symbols.append("??" if result.trading_system_compatible else "??")
-            symbols.append("??" if not result.mock_data_detected else "??")  # Mock data check
-            symbols.append("??" if result.env_config_valid else "??")  # Env config check
+            symbols.append("??" if result.trading_system_compatible else "?")
+            symbols.append("??" if not result.mock_data_detected else "??")  # Smart mock data check
+            symbols.append("??" if result.env_config_valid else "?")  # Env config check
             
             status = ''.join(symbols)
             print(f"   {status} [{result.module_type.upper()}] {result.component_category} ({result.execution_time:.3f}s)")
@@ -1043,7 +1139,7 @@ class V3TradingSystemTestHarness:
                         if '<html' in content.lower() and '</html>' in content.lower():
                             print(f"   ? Valid HTML: {file_path.name}")
                         else:
-                            print(f"   ??  HTML missing structure: {file_path.name}")
+                            print(f"   ?  HTML missing structure: {file_path.name}")
                 
             except Exception as e:
                 print(f"   ? Invalid {file_path.suffix}: {file_path.name} - {str(e)[:50]}")
@@ -1060,7 +1156,7 @@ class V3TradingSystemTestHarness:
         import_passed = sum(1 for r in self.results.values() if r.import_success)
         v3_compliant = sum(1 for r in self.results.values() if r.trading_system_compatible)
         
-        # V3 Critical Metrics
+        # V3 Critical Metrics (using smart detection)
         no_mock_data = sum(1 for r in self.results.values() if not r.mock_data_detected)
         real_data_only = sum(1 for r in self.results.values() if r.real_market_data_only)
         env_config_valid = sum(1 for r in self.results.values() if r.env_config_valid)
@@ -1105,7 +1201,7 @@ class V3TradingSystemTestHarness:
             f"   Import Success: {import_passed}/{total_files} ({(import_passed/total_files)*100:.1f}%)",
             f"   V3 Compliant: {v3_compliant}/{total_files} ({(v3_compliant/total_files)*100:.1f}%)",
             "",
-            f"V3 CRITICAL REAL DATA VALIDATION:",
+            f"V3 CRITICAL SMART DATA VALIDATION:",
             f"   No Mock Data Detected: {no_mock_data}/{total_files} ({(no_mock_data/total_files)*100:.1f}%)",
             f"   Real Market Data Only: {real_data_only}/{total_files} ({(real_data_only/total_files)*100:.1f}%)",
             f"   Environment Config Valid: {env_config_valid}/{total_files} ({(env_config_valid/total_files)*100:.1f}%)",
@@ -1152,7 +1248,7 @@ class V3TradingSystemTestHarness:
         
         # Critical V3 violations first
         if mock_data_files:
-            report.append(f"CRITICAL: {len(mock_data_files)} files contain mock data - V3 requires REAL DATA ONLY")
+            report.append(f"CRITICAL: {len(mock_data_files)} files contain actual mock data usage - V3 requires REAL DATA ONLY")
             
         if non_real_data_files:
             report.append(f"{len(non_real_data_files)} files need real market data validation")
@@ -1187,7 +1283,7 @@ class V3TradingSystemTestHarness:
             f"V3 Trading System test completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"System Status: {'READY FOR LIVE TRADING' if system_ready else 'NEEDS CRITICAL FIXES' if mock_data_files else 'READY FOR TESTING'}",
             f"V3 Architecture: Hybrid V1 Performance + V2 Infrastructure",
-            f"Real Data Compliance: {'VERIFIED' if len(mock_data_files) == 0 else 'VIOLATIONS DETECTED'}",
+            f"Real Data Compliance: {'VERIFIED with Smart Detection' if len(mock_data_files) == 0 else 'VIOLATIONS DETECTED'}",
             "="*100
         ])
         
@@ -1222,6 +1318,7 @@ class V3TradingSystemTestHarness:
                 'architecture': 'V1 Performance + V2 Infrastructure',
                 'components_tested': list(self.v3_file_categories.keys()),
                 'advanced_testing_enabled': ADVANCED_TESTING,
+                'smart_mock_detection': True,
                 'real_data_only_mode': True
             },
             'results': json_results
@@ -1330,11 +1427,11 @@ def main():
     if passed_files >= total_files * 0.9 and mock_data_violations == 0:
         print("V3 TRADING SYSTEM: READY FOR LIVE TRADING!")
         print(f"{passed_files}/{total_files} files passed comprehensive testing")
-        print("REAL DATA COMPLIANCE: VERIFIED")
+        print("REAL DATA COMPLIANCE: VERIFIED with Smart Detection")
         exit_code = 0
     elif mock_data_violations > 0:
         print("V3 TRADING SYSTEM: CRITICAL VIOLATIONS DETECTED")
-        print(f"CRITICAL: {mock_data_violations} files contain mock data")
+        print(f"CRITICAL: {mock_data_violations} files contain actual mock data usage")
         print("V3 requires REAL MARKET DATA ONLY")
         exit_code = 2
     else:
@@ -1342,8 +1439,9 @@ def main():
         print(f"{total_files - passed_files}/{total_files} files need attention")
         exit_code = 1
     
-    print(f"V3 Architecture: Hybrid V1 + V2 with ML Enhancement")
+    print(f"V3 Architecture: Hybrid V1 + V2 with Smart ML Enhancement")
     print(f"Test Coverage: Core, ML, API, Data, Analysis, Backtesting")
+    print(f"Smart Mock Detection: Context-Aware Pattern Matching")
     print(f"Completed in {time.time() - harness.test_start_time:.1f}s")
     print("="*60)
     

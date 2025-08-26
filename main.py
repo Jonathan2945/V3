@@ -8,7 +8,7 @@ V3 System: Best of V1 + V2
 - V1's proven trading performance and self-progression
 - V2's multi-pair scanning and API rotation infrastructure
 - No mock data - only real market interactions
-- Live trading capabilities with testnet→live progression
+- Live trading capabilities with testnet?live progression
 
 Architecture:
 1. V1 Price Action Core (PROVEN Signal Generator)
@@ -33,6 +33,12 @@ sys.path.insert(0, str(Path(__file__).parent))
 # Load environment variables first
 from dotenv import load_dotenv
 load_dotenv()
+
+# V3 Critical environment variables
+TESTNET = os.getenv('TESTNET', 'true').lower() == 'true'
+MIN_CONFIDENCE = float(os.getenv('MIN_CONFIDENCE', '70.0'))
+MAX_TOTAL_POSITIONS = int(os.getenv('MAX_TOTAL_POSITIONS', '3'))
+TRADE_AMOUNT_USDT = float(os.getenv('TRADE_AMOUNT_USDT', '100.0'))
 
 # Global shutdown handler
 shutdown_event = asyncio.Event()
@@ -94,10 +100,10 @@ def signal_handler(signum, frame):
 
 def check_environment():
     """Check if the V3 environment is properly set up"""
-    print("🔍 Checking V3 environment setup...")
+    print("?? Checking V3 environment setup...")
     
     if not Path('.env').exists():
-        print("❌ ERROR: .env file not found!")
+        print("? ERROR: .env file not found!")
         print("Please copy .env.template to .env and configure your API keys:")
         print("   cp .env.template .env")
         print("   # Then edit .env with your actual API keys")
@@ -108,7 +114,13 @@ def check_environment():
     for dir_name in required_dirs:
         Path(dir_name).mkdir(exist_ok=True)
     
-    print("✅ V3 environment check passed")
+    # Validate critical V3 environment variables
+    print(f"? TESTNET mode: {TESTNET}")
+    print(f"? Min confidence: {MIN_CONFIDENCE}%")
+    print(f"? Max positions: {MAX_TOTAL_POSITIONS}")
+    print(f"? Trade amount: ${TRADE_AMOUNT_USDT}")
+    
+    print("? V3 environment check passed")
     return True
 
 def setup_logging():
@@ -137,32 +149,32 @@ def print_v3_startup_banner():
     ================================================================
     |                   V3 TRADING SYSTEM                          |
     |                                                              |
-    |  🔥 V1 Proven Performance + V2 Advanced Infrastructure       |
+    |  ?? V1 Proven Performance + V2 Advanced Infrastructure       |
     |  Version 3.0 - Best of Both Worlds                          |
     ================================================================
     
     V3 HYBRID ARCHITECTURE:
     
-    🎯 V1 PROVEN COMPONENTS (BATTLE-TESTED):
-    ✅ Trading Execution Logic (PROFITABLE)
-    ✅ Self-Progression ML System (WORKING)
-    ✅ Signal Generation (PROVEN)
-    ✅ Position Management (TESTED)
-    ✅ P&L Persistence (RELIABLE)
+    ?? V1 PROVEN COMPONENTS (BATTLE-TESTED):
+    ? Trading Execution Logic (PROFITABLE)
+    ? Self-Progression ML System (WORKING)
+    ? Signal Generation (PROVEN)
+    ? Position Management (TESTED)
+    ? P&L Persistence (RELIABLE)
     
-    🚀 V2 ADVANCED INFRASTRUCTURE:
-    ✅ Multi-Pair Scanning (50+ pairs)
-    ✅ API Rotation Management (3x keys per service)
-    ✅ Advanced Risk Management
-    ✅ Multi-Timeframe Analysis
-    ✅ Enhanced Dashboard
+    ?? V2 ADVANCED INFRASTRUCTURE:
+    ? Multi-Pair Scanning (50+ pairs)
+    ? API Rotation Management (3x keys per service)
+    ? Advanced Risk Management
+    ? Multi-Timeframe Analysis
+    ? Enhanced Dashboard
     
-    🎉 V3 UNIQUE FEATURES:
-    ✅ No Mock Data (Real trading only)
-    ✅ Testnet → Live Progression
-    ✅ Multi-Pair with V1 Performance
-    ✅ V2 Dashboard with V1 Metrics
-    ✅ Hybrid Execution Engine
+    ?? V3 UNIQUE FEATURES:
+    ? No Mock Data (Real trading only)
+    ? Testnet ? Live Progression
+    ? Multi-Pair with V1 Performance
+    ? V2 Dashboard with V1 Metrics
+    ? Hybrid Execution Engine
     """
     print(banner)
 
@@ -186,7 +198,7 @@ async def main():
         # Import V3 controller
         from main_controller import V3TradingController
         
-        print("🚀 Initializing V3 Trading System...")
+        print("?? Initializing V3 Trading System...")
         print("=" * 70)
         
         # Create V3 controller
@@ -199,27 +211,27 @@ async def main():
         
         # Get dashboard port
         dashboard_port = int(os.getenv('MAIN_SYSTEM_PORT', os.getenv('FLASK_PORT', 8102)))
-        print(f"🌐 V3 Dashboard starting at: http://localhost:{dashboard_port}")
-        print("📊 V2 Enhanced Dashboard with V1 Performance Metrics")
+        print(f"?? V3 Dashboard starting at: http://localhost:{dashboard_port}")
+        print("?? V2 Enhanced Dashboard with V1 Performance Metrics")
         print("=" * 70)
         
         # Initialize V3 system
-        print("⚡ Initializing V3 hybrid components...")
+        print("? Initializing V3 hybrid components...")
         await controller.initialize_system()
         
         print("=" * 70)
-        print("🎉 V3 TRADING SYSTEM READY!")
-        print("✅ V1 Trading Logic: ACTIVE")
-        print("✅ V2 Infrastructure: ACTIVE")
-        print("✅ Multi-Pair Scanning: ACTIVE")
-        print("✅ API Rotation: ACTIVE")
-        print("✅ Real Market Data: ACTIVE")
-        print("✅ No Mock Data: CONFIRMED")
-        print(f"🌐 Dashboard: http://localhost:{dashboard_port}")
+        print("?? V3 TRADING SYSTEM READY!")
+        print("? V1 Trading Logic: ACTIVE")
+        print("? V2 Infrastructure: ACTIVE")
+        print("? Multi-Pair Scanning: ACTIVE")
+        print("? API Rotation: ACTIVE")
+        print("? Real Market Data: ACTIVE")
+        print("? No Mock Data: CONFIRMED")
+        print(f"?? Dashboard: http://localhost:{dashboard_port}")
         print("=" * 70)
         
         # Start in monitor mode by default
-        print("\n🔍 V3 System starting in MONITOR MODE")
+        print("\n?? V3 System starting in MONITOR MODE")
         print("Use the dashboard to start/stop trading")
         print(f"Dashboard URL: http://localhost:{dashboard_port}")
         print("Click 'START TRADING' button when ready to begin")
@@ -228,33 +240,33 @@ async def main():
         auto_start = os.getenv('AUTO_START_TRADING', 'false').lower() == 'true'
         
         if auto_start:
-            print("\n🚀 AUTO_START_TRADING=true detected - Starting V3 trading automatically...")
+            print("\n?? AUTO_START_TRADING=true detected - Starting V3 trading automatically...")
             await controller.start_trading()
-            print("💰 V3 Trading system is now LIVE!")
-            print("🔥 V1 Performance + V2 Multi-Pair Power")
+            print("?? V3 Trading system is now LIVE!")
+            print("?? V1 Performance + V2 Multi-Pair Power")
         else:
-            print("\n⏳ Monitor mode - V3 system running without trading")
+            print("\n? Monitor mode - V3 system running without trading")
             print("You can start trading via the dashboard")
         
         # Keep the system running
-        print("\n💻 V3 System is running... Press Ctrl+C to shutdown gracefully")
+        print("\n?? V3 System is running... Press Ctrl+C to shutdown gracefully")
         
         try:
             while True:
                 await asyncio.sleep(1)
                 
         except KeyboardInterrupt:
-            print("\n\n🛑 V3 Shutdown signal received...")
+            print("\n\n?? V3 Shutdown signal received...")
             if controller.is_running:
-                print("📊 Closing open positions and stopping trading...")
+                print("?? Closing open positions and stopping trading...")
                 await controller.stop_trading()
             
-            print("💾 Saving data and cleaning up...")
-            print("👋 V3 Trading System shut down gracefully")
+            print("?? Saving data and cleaning up...")
+            print("?? V3 Trading System shut down gracefully")
             
     except Exception as e:
         logging.error(f"Critical error in V3 main: {e}")
-        print(f"\n❌ CRITICAL V3 ERROR: {e}")
+        print(f"\n? CRITICAL V3 ERROR: {e}")
         print("Check logs/v3_trading_system.log for detailed error information")
         sys.exit(1)
 
@@ -265,22 +277,22 @@ def sync_main():
         asyncio.run(main())
         
     except KeyboardInterrupt:
-        print("\n👋 V3 system interrupted by user")
+        print("\n?? V3 system interrupted by user")
         
     except Exception as e:
-        print(f"\n❌ V3 system error: {e}")
+        print(f"\n? V3 system error: {e}")
         logging.error(f"V3 system error in sync_main: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
     # Check Python version
     if sys.version_info < (3, 8):
-        print("❌ Python 3.8+ required")
+        print("? Python 3.8+ required")
         print(f"Current version: {sys.version}")
         sys.exit(1)
     
-    print("🚀 Starting V3 Trading System...")
-    print("🔥 V1 Proven Performance + V2 Advanced Infrastructure")
+    print("?? Starting V3 Trading System...")
+    print("?? V1 Proven Performance + V2 Advanced Infrastructure")
     
     # Run the V3 system
     sync_main()

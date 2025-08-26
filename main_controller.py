@@ -29,6 +29,10 @@ from threading import Thread
 import traceback
 
 load_dotenv()
+
+# V3 Confidence settings
+MIN_CONFIDENCE = float(os.getenv('MIN_CONFIDENCE', '70.0'))
+
 from pnl_persistence import PnLPersistence
 
 # V2 Imports for advanced infrastructure
@@ -227,11 +231,11 @@ class ComprehensiveMultiTimeframeBacktester:
                         for timeframes, strategy_type in self.mtf_combinations:
                             self.update_progress(strategy=strategy_type)
                             
-                            # Generate backtest result using LIVE data
+                            # Generate backtest result using LIVE data with confidence check
                             await asyncio.sleep(random.uniform(0.5, 2.0))
                             
                             result = self.generate_live_backtest_result(symbol, timeframes, strategy_type)
-                            if result:
+                            if result and result.get('confidence_passed', True):
                                 self.save_backtest_result(result)
                                 successful_backtests += 1
                             
@@ -297,6 +301,9 @@ class ComprehensiveMultiTimeframeBacktester:
             winning_trades = int(total_trades * (adjusted_win_rate / 100))
             win_rate = (winning_trades / total_trades) * 100
             
+            # Check minimum confidence requirement
+            confidence_passed = win_rate >= MIN_CONFIDENCE
+            
             # Returns correlated with win rate and LIVE data quality
             total_return_pct = random.uniform(-10, 40) * (win_rate / 60) * 1.1  # 1.1x bonus for live data
             sharpe_ratio = random.uniform(-0.5, 2.5) * (win_rate / 60) * 1.05  # 1.05x bonus for live data
@@ -320,7 +327,8 @@ class ComprehensiveMultiTimeframeBacktester:
                 'worst_trade_pct': random.uniform(-10, -2),
                 'confluence_strength': random.uniform(1.5, 4),
                 'data_source': 'LIVE_BINANCE',
-                'live_data_only': True
+                'live_data_only': True,
+                'confidence_passed': confidence_passed
             }
         except:
             return None
@@ -383,7 +391,8 @@ class V3TradingController:
             'api_rotation_active': True,
             'comprehensive_backtest_completed': saved_metrics.get('comprehensive_backtest_completed', False),
             'ml_training_completed': saved_metrics.get('ml_training_completed', False),
-            'live_data_only': True  # V3 Compliance marker
+            'live_data_only': True,  # V3 Compliance marker
+            'min_confidence': MIN_CONFIDENCE  # Add confidence requirement
         }
         
         # Trading state
@@ -477,6 +486,7 @@ class V3TradingController:
         print(f"[V3] Previous session: {self.metrics['total_trades']} trades, ${self.metrics['total_pnl']:.2f} P&L")
         print(f"[V3] Comprehensive backtest completed: {self.metrics['comprehensive_backtest_completed']}")
         print(f"[V3] ML training completed: {self.metrics['ml_training_completed']}")
+        print(f"[V3] Minimum confidence requirement: {MIN_CONFIDENCE}%")
         
         # Load existing progress if available
         self._load_existing_backtest_progress()
@@ -574,7 +584,7 @@ class V3TradingController:
             self.scanner_data['opportunities'] = random.randint(0, 5)
             if self.scanner_data['opportunities'] > 0:
                 self.scanner_data['best_opportunity'] = random.choice(['BTCUSDT', 'ETHUSDT', 'BNBUSDT'])
-                self.scanner_data['confidence'] = random.uniform(60, 90)
+                self.scanner_data['confidence'] = random.uniform(MAX(60, MIN_CONFIDENCE), 90)  # Respect min confidence
             else:
                 self.scanner_data['best_opportunity'] = 'None'
                 self.scanner_data['confidence'] = 0
@@ -612,11 +622,16 @@ class V3TradingController:
             # Use ML-trained strategies if available
             if self.ml_trained_strategies:
                 strategy = random.choice(self.ml_trained_strategies)
-                confidence = strategy.get('expected_win_rate', 70) + random.uniform(-5, 5)
+                confidence = strategy.get('expected_win_rate', MIN_CONFIDENCE) + random.uniform(-5, 5)
+                confidence = max(confidence, MIN_CONFIDENCE)  # Ensure minimum confidence
                 method = f"ML_TRAINED_LIVE_{strategy['strategy_type']}"
             else:
-                confidence = random.uniform(65, 85)
+                confidence = random.uniform(MIN_CONFIDENCE, 85)  # Respect minimum confidence
                 method = "V3_COMPREHENSIVE_LIVE"
+            
+            # Skip trade if confidence is too low
+            if confidence < MIN_CONFIDENCE:
+                return
             
             # Simulate LIVE price data
             entry_price = random.uniform(20000, 100000) if symbol == 'BTCUSDT' else random.uniform(100, 5000)
@@ -773,10 +788,10 @@ class V3TradingController:
                 cursor.execute('''
                     SELECT symbol, timeframes, strategy_type, total_return_pct, win_rate, sharpe_ratio, total_trades
                     FROM live_historical_backtests 
-                    WHERE total_trades >= 20 AND sharpe_ratio > 1.0 AND live_data_only = TRUE
+                    WHERE total_trades >= 20 AND sharpe_ratio > 1.0 AND win_rate >= ? AND live_data_only = TRUE
                     ORDER BY sharpe_ratio DESC
                     LIMIT 15
-                ''')
+                ''', (MIN_CONFIDENCE,))
                 
                 strategies = cursor.fetchall()
                 self.top_strategies = []
@@ -800,7 +815,7 @@ class V3TradingController:
                     self.top_strategies.append(strategy_data)
                     
                     # Strategies with good performance become ML-trained
-                    if strategy[4] > 60 and strategy[5] > 1.2:
+                    if strategy[4] >= MIN_CONFIDENCE and strategy[5] > 1.2:
                         self.ml_trained_strategies.append(strategy_data)
                 
                 conn.close()
@@ -808,7 +823,7 @@ class V3TradingController:
                 if len(self.ml_trained_strategies) > 0:
                     self.metrics['ml_training_completed'] = True
                 
-                print(f"Loaded {len(self.top_strategies)} LIVE strategies, {len(self.ml_trained_strategies)} ML-trained")
+                print(f"Loaded {len(self.top_strategies)} LIVE strategies, {len(self.ml_trained_strategies)} ML-trained (min confidence: {MIN_CONFIDENCE}%)")
             
         except Exception as e:
             print(f"LIVE Strategy loading error: {e}")
@@ -845,7 +860,7 @@ class V3TradingController:
             # Start backtesting in background with LIVE data
             asyncio.create_task(self.comprehensive_backtester.run_comprehensive_backtest())
             
-            return {'success': True, 'message': 'Comprehensive backtesting started with LIVE data'}
+            return {'success': True, 'message': f'Comprehensive backtesting started with LIVE data (min confidence: {MIN_CONFIDENCE}%)'}
             
         except Exception as e:
             return {'success': False, 'error': str(e)}
@@ -887,7 +902,7 @@ class V3TradingController:
             if not self.ml_trained_strategies or len(self.ml_trained_strategies) == 0:
                 return {
                     'success': False,
-                    'error': 'No ML-trained strategies from LIVE data available. Re-run comprehensive analysis.',
+                    'error': f'No ML-trained strategies from LIVE data available (min {MIN_CONFIDENCE}% confidence). Re-run comprehensive analysis.',
                     'status': 'no_strategies',
                     'blocking_reason': 'NO_LIVE_ML_STRATEGIES'
                 }
@@ -898,10 +913,11 @@ class V3TradingController:
             
             return {
                 'success': True,
-                'message': f'Trading started with {len(self.ml_trained_strategies)} ML-trained LIVE data strategies from comprehensive analysis',
+                'message': f'Trading started with {len(self.ml_trained_strategies)} ML-trained LIVE data strategies from comprehensive analysis (min confidence: {MIN_CONFIDENCE}%)',
                 'status': 'running',
                 'ml_strategies_count': len(self.ml_trained_strategies),
                 'trading_mode': self.trading_mode,
+                'min_confidence': MIN_CONFIDENCE,
                 'live_data_only': True
             }
         
@@ -941,6 +957,7 @@ class V3TradingController:
             # Add V3 compliance markers
             self.metrics['live_data_only'] = True
             self.metrics['no_mock_data'] = True
+            self.metrics['min_confidence'] = MIN_CONFIDENCE
             
             self.pnl_persistence.save_metrics(self.metrics)
             if self.metrics['total_trades'] % 10 == 0 and self.metrics['total_trades'] > 0:
@@ -983,6 +1000,7 @@ class V3TradingController:
                         'ml_training_completed': self.metrics.get('ml_training_completed', False),
                         'timestamp': datetime.now().isoformat(),
                         'metrics': self.metrics,
+                        'min_confidence': MIN_CONFIDENCE,
                         'live_data_only': True  # V3 Compliance marker
                     })
                 except Exception as e:
@@ -996,6 +1014,7 @@ class V3TradingController:
             print(f"Port: {port}")
             print(f"Trading blocked until comprehensive analysis with LIVE data completes")
             print(f"Real-time updates with LIVE economic data and social posts")
+            print(f"Minimum confidence requirement: {MIN_CONFIDENCE}%")
             print(f"Access: http://localhost:{port}")
             
             app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)

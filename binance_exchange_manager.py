@@ -28,6 +28,10 @@ from api_rotation_manager import get_api_key, report_api_result
 # Load environment variables
 load_dotenv()
 
+# V3 Binance API configuration
+BINANCE_API_KEY = os.getenv('BINANCE_API_KEY_1')
+BINANCE_API_SECRET = os.getenv('BINANCE_API_SECRET_1')
+
 @dataclass
 class TradingRule:
     """Trading rule for a specific symbol"""
@@ -137,6 +141,20 @@ class BinanceExchangeManager:
     def _initialize_client(self):
         """Initialize Binance client with rotation support"""
         try:
+            # V3: Try direct credentials first
+            if BINANCE_API_KEY and BINANCE_API_SECRET:
+                try:
+                    if self.is_testnet:
+                        self.client = Client(BINANCE_API_KEY, BINANCE_API_SECRET, testnet=True)
+                        self.logger.info("[EXCHANGE] Connected to Binance testnet using V3 credentials")
+                    else:
+                        self.client = Client(BINANCE_API_KEY, BINANCE_API_SECRET, testnet=False, tld='us')
+                        self.logger.info("[EXCHANGE] Connected to Binance.US live using V3 credentials")
+                    return
+                except Exception as e:
+                    self.logger.warning(f"[EXCHANGE] V3 direct credentials failed: {e}, falling back to rotation manager")
+            
+            # Fallback to rotation manager
             if self.is_testnet:
                 # Get testnet credentials from rotation manager
                 binance_creds = get_api_key('binance')
@@ -306,6 +324,7 @@ class BinanceExchangeManager:
                 'timestamp': self.exchange_info.last_updated.isoformat(),
                 'server_time': self.exchange_info.server_time.isoformat(),
                 'symbols_count': len(self.exchange_info.symbols),
+                'v3_api_used': bool(BINANCE_API_KEY and BINANCE_API_SECRET),
                 'trading_rules': {
                     symbol: {
                         'min_qty': str(rule.min_qty),
@@ -371,7 +390,9 @@ class BinanceExchangeManager:
                 last_updated=cached_time
             )
             
-            self.logger.info(f"[EXCHANGE] Loaded {len(trading_rules)} symbols from cache")
+            v3_used = cache_data.get('v3_api_used', False)
+            api_source = "V3 credentials" if v3_used else "rotation manager"
+            self.logger.info(f"[EXCHANGE] Loaded {len(trading_rules)} symbols from cache ({api_source})")
         
         except Exception as e:
             self.logger.warning(f"[EXCHANGE] Failed to load cached exchange info: {e}")
@@ -510,7 +531,9 @@ class BinanceExchangeManager:
             'is_testnet': self.is_testnet,
             'update_interval': self.update_interval,
             'cache_enabled': self.cache_enabled,
-            'auto_update_enabled': self.auto_update_rules
+            'auto_update_enabled': self.auto_update_rules,
+            'v3_credentials_available': bool(BINANCE_API_KEY and BINANCE_API_SECRET),
+            'v3_api_key_prefix': BINANCE_API_KEY[:8] + '...' if BINANCE_API_KEY else None
         }
         
         if self.exchange_info:
@@ -563,6 +586,8 @@ if __name__ == "__main__":
     async def test_exchange_manager():
         print("Testing Binance Exchange Manager")
         print("=" * 40)
+        print(f"V3 API Key available: {bool(BINANCE_API_KEY)}")
+        print(f"V3 API Secret available: {bool(BINANCE_API_SECRET)}")
         
         # Initialize manager
         success = await exchange_manager.initialize()

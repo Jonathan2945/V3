@@ -23,6 +23,12 @@ from api_rotation_manager import get_api_key, report_api_result
 from binance_exchange_manager import calculate_position_size, validate_order
 from multi_pair_scanner import get_top_opportunities
 
+# V3 Trading configuration from environment
+TRADE_AMOUNT_USDT = float(os.getenv('TRADE_AMOUNT_USDT', '100.0'))
+MIN_CONFIDENCE = float(os.getenv('MIN_CONFIDENCE', '70.0'))
+MAX_TOTAL_POSITIONS = int(os.getenv('MAX_TOTAL_POSITIONS', '3'))
+MAX_RISK_PERCENT = float(os.getenv('MAX_RISK_PERCENT', '1.0'))
+
 class IntelligentTradingEngine:
     """V3 Trading Engine: V1 Performance + V2 Infrastructure - LIVE DATA ONLY"""
     
@@ -51,10 +57,11 @@ class IntelligentTradingEngine:
         
         logging.info(f"[V3_ENGINE] Loaded V1 performance: {self.total_trades} trades, ${self.total_pnl:.2f} P&L")
         
-        # V1 Risk management (PROVEN)
-        self.max_positions = int(os.getenv('MAX_TOTAL_POSITIONS', '3'))
-        self.max_risk_percent = float(os.getenv('MAX_RISK_PERCENT', '1.0'))
-        self.min_confidence = float(os.getenv('MIN_CONFIDENCE', '70.0'))
+        # V1 Risk management (PROVEN) - Now using environment variables
+        self.max_positions = MAX_TOTAL_POSITIONS
+        self.max_risk_percent = MAX_RISK_PERCENT
+        self.min_confidence = MIN_CONFIDENCE
+        self.trade_amount_usdt = TRADE_AMOUNT_USDT
         
         # V2 Multi-pair capabilities
         self.enable_multi_pair = os.getenv('ENABLE_ALL_PAIRS', 'true').lower() == 'true'
@@ -71,7 +78,8 @@ class IntelligentTradingEngine:
         self.client = None
         self._initialize_v3_binance_client()
         
-        logging.info("[V3_ENGINE] Intelligent Trading Engine - LIVE BINANCE DATA ONLY")
+        logging.info(f"[V3_ENGINE] Intelligent Trading Engine - LIVE BINANCE DATA ONLY")
+        logging.info(f"[V3_ENGINE] Trade Amount: ${self.trade_amount_usdt}, Min Confidence: {self.min_confidence}%")
     
     def _initialize_v3_binance_client(self):
         """Initialize V3 Binance client with V2 API rotation - LIVE ONLY"""
@@ -107,7 +115,7 @@ class IntelligentTradingEngine:
             ticker = self.client.get_symbol_ticker(symbol="BTCUSDT")
             current_btc = float(ticker['price'])
             
-            print(f"[V3_ENGINE] ✅ LIVE connection verified - BTC: ${current_btc:,.2f}")
+            print(f"[V3_ENGINE] Connected - BTC: ${current_btc:,.2f}")
             
             return True
             
@@ -204,7 +212,9 @@ class IntelligentTradingEngine:
                     return None
                 
                 current_price = float(self.client.get_symbol_ticker(symbol=symbol)['price'])
-                risk_amount = min(usdt_balance * 0.1, 50)
+                
+                # Use configured trade amount
+                risk_amount = min(usdt_balance * (self.max_risk_percent / 100), self.trade_amount_usdt)
                 quantity = round(risk_amount / current_price, 6)
             
             # Execute REAL order on LIVE testnet/exchange
@@ -247,7 +257,7 @@ class IntelligentTradingEngine:
                 'source': 'LIVE_BINANCE_API'
             })
             
-            logging.info(f"[V3_TRADE] ✅ LIVE {side} {execution_qty:.6f} {symbol} @ ${execution_price:.2f}")
+            logging.info(f"[V3_TRADE] LIVE {side} {execution_qty:.6f} {symbol} @ ${execution_price:.2f}")
             
             return {
                 'trade_id': self.total_trades,
@@ -270,7 +280,7 @@ class IntelligentTradingEngine:
         """Run V3 testnet session using LIVE data only: V1 method + V2 opportunities"""
         try:
             print(f"[V3_TESTNET] Starting {duration_days} day LIVE session")
-            print("🔥 V1 Proven Trading + V2 Multi-Pair + LIVE DATA ONLY")
+            print("V1 Proven Trading + V2 Multi-Pair + LIVE DATA ONLY")
             print("=" * 70)
             
             if ml_model:
@@ -331,17 +341,17 @@ class IntelligentTradingEngine:
                 if self.enable_multi_pair:
                     opportunities = get_top_opportunities(5, 'BUY')
                     if opportunities:
-                        print(f"   🎯 V2 found {len(opportunities)} live multi-pair opportunities")
+                        print(f"   V2 found {len(opportunities)} live multi-pair opportunities")
             except Exception as e:
-                print(f"   ⚠️ V2 opportunities failed: {e}")
+                print(f"   V2 opportunities failed: {e}")
             
             # Determine symbols to trade
             if opportunities:
                 symbols_to_trade = [opp.symbol for opp in opportunities[:3]]
-                print(f"   📊 Trading V2 LIVE opportunities: {symbols_to_trade}")
+                print(f"   Trading V2 LIVE opportunities: {symbols_to_trade}")
             else:
                 symbols_to_trade = ['BTCUSDT', 'ETHUSDT']  # V1 fallback
-                print(f"   📊 Trading V1 fallback with LIVE data: {symbols_to_trade}")
+                print(f"   Trading V1 fallback with LIVE data: {symbols_to_trade}")
             
             # Generate trades for the day using LIVE data (V1 proven frequency)
             trades_today = np.random.randint(5, 8)  # V1's proven range
@@ -499,8 +509,8 @@ class IntelligentTradingEngine:
             confidence = signal.get('confidence', 50)
             real_price = live_market_data['price']
             
-            # V1 proven position sizing
-            position_size = 1000 * (confidence / 100)
+            # V1 proven position sizing using configured amount
+            position_size = self.trade_amount_usdt * (confidence / 100)
             
             # V1 proven outcome calculation with V2 enhancement using LIVE data
             volatility = abs(live_market_data.get('change_24h', 0)) / 100
@@ -595,7 +605,7 @@ class IntelligentTradingEngine:
                 self.ml_engine = ml_model
                 print("[V3_ENGINE] LIVE trading ready with V1 proven + V2 enhanced ML + LIVE DATA")
             
-            print("[V3_ENGINE] 🚀 LIVE TRADING READY - V1 Performance + V2 Capabilities + LIVE DATA ONLY")
+            print("[V3_ENGINE] LIVE TRADING READY - V1 Performance + V2 Capabilities + LIVE DATA ONLY")
             return True
         except Exception as e:
             logging.error(f"Failed to set live trading ready: {e}")
@@ -623,7 +633,9 @@ class IntelligentTradingEngine:
             'multi_pair_enabled': self.enable_multi_pair,
             'api_rotation_enabled': True,
             'live_data_only': True,  # V3 Compliance marker
-            'no_mock_data': True    # V3 Compliance marker
+            'no_mock_data': True,   # V3 Compliance marker
+            'trade_amount_usdt': self.trade_amount_usdt,
+            'min_confidence': self.min_confidence
         }
     
     def save_trade_to_history(self, trade_data):
@@ -672,7 +684,9 @@ class IntelligentTradingEngine:
                 'trading_method': 'V3_LIVE_HYBRID',
                 'version': 'V3_V1_PERFORMANCE_V2_INFRASTRUCTURE_LIVE_DATA',
                 'live_data_only': True,
-                'no_mock_data': True
+                'no_mock_data': True,
+                'trade_amount_usdt': self.trade_amount_usdt,
+                'min_confidence': self.min_confidence
             }
             
             self.pnl_persistence.save_metrics(current_metrics)
@@ -696,5 +710,7 @@ class IntelligentTradingEngine:
             'live_data_only': True,  # V3 Compliance marker
             'no_mock_data': True,   # V3 Compliance marker
             'last_trade_time': self.last_trade_time.isoformat() if self.last_trade_time else None,
-            'metrics': self.get_metrics()
+            'metrics': self.get_metrics(),
+            'trade_amount_usdt': self.trade_amount_usdt,
+            'min_confidence': self.min_confidence
         }
