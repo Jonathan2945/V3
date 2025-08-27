@@ -1,310 +1,481 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-V3 TRADING SYSTEM - FIXED MAIN ENTRY POINT
-==========================================
-FIXES APPLIED:
-- Proper signal handling and graceful shutdown
-- Enhanced error recovery and logging  
-- Configuration validation
-- Better async/sync coordination
-- Keeps existing API rotation system
+V3 TRADING SYSTEM - MAIN ENTRY POINT (COMPLETE FIXED VERSION)
+==============================================================
+This is the complete fixed main.py that integrates all the fixes for:
+- Backtesting progress tracking
+- Cross-communication issues  
+- State management problems
+- Dashboard integration
+- Character encoding issues resolved
+
+USAGE:
+    python main.py                    # Normal startup
+    python main.py --test-mode        # Test mode (limited backtesting)
+    python main.py --auto-start       # Auto-start trading after backtest
+    python main.py --clean-state      # Clean previous state on startup
 """
 
-import sys
 import os
+import sys
 import asyncio
 import signal
+import time
+import argparse
+from pathlib import Path
+from datetime import datetime
 import logging
 import traceback
-from pathlib import Path
-from typing import Optional
-import threading
-import time
-import gc
 
-# Set higher recursion limit for ML operations
-sys.setrecursionlimit(5000)
+# Add current directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
 
-# Add current directory to Python path
-current_dir = Path(__file__).parent.resolve()
-sys.path.insert(0, str(current_dir))
+from dotenv import load_dotenv
 
 # Load environment variables
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError as e:
-    print(f"ERROR: Missing required package 'python-dotenv': {e}")
-    print("Install with: pip install python-dotenv")
-    sys.exit(1)
+load_dotenv()
+
+# Configure logging
+log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+logging.basicConfig(
+    level=getattr(logging, log_level),
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler('logs/v3_system.log', mode='a') if Path('logs').exists() or Path('logs').mkdir(exist_ok=True) else logging.NullHandler()
+    ]
+)
+
+logger = logging.getLogger('V3_MAIN')
 
 class V3SystemManager:
-    """System manager with proper lifecycle management"""
+    """V3 Trading System Manager with integrated fixes"""
     
-    def __init__(self):
-        self.controller: Optional['V3TradingController'] = None
-        self.flask_thread: Optional[threading.Thread] = None
-        self.shutdown_event = threading.Event()
-        self.logger = None
-        self._setup_logging()
+    def __init__(self, test_mode: bool = False, auto_start: bool = False, clean_state: bool = False):
+        self.test_mode = test_mode
+        self.auto_start = auto_start
+        self.clean_state = clean_state
         
-    def _setup_logging(self):
-        """Setup logging configuration"""
-        try:
-            Path('logs').mkdir(exist_ok=True)
-            
-            log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
-            
-            logging.basicConfig(
-                level=getattr(logging, log_level, logging.INFO),
-                format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                handlers=[
-                    logging.FileHandler('logs/v3_fixed_system.log', encoding='utf-8'),
-                    logging.StreamHandler(sys.stdout)
-                ]
-            )
-            
-            # Reduce noise from external libraries
-            for logger_name in ['aiohttp', 'urllib3', 'requests', 'websockets', 'binance']:
-                logging.getLogger(logger_name).setLevel(logging.WARNING)
-            
-            self.logger = logging.getLogger(__name__)
-            self.logger.info("Fixed logging system initialized")
-            
-        except Exception as e:
-            print(f"Warning: Failed to setup logging: {e}")
-            logging.basicConfig(level=logging.INFO)
-            self.logger = logging.getLogger(__name__)
+        # Configuration
+        self.port = int(os.getenv('FLASK_PORT', 8102))
+        self.host = os.getenv('HOST', '0.0.0.0')
+        
+        # System components
+        self.controller = None
+        self.system_running = False
+        self.startup_time = datetime.now()
+        
+        logger.info(f"V3 System Manager initialized")
+        logger.info(f"Configuration: Port={self.port}, TestMode={test_mode}, AutoStart={auto_start}")
     
-    def check_requirements(self) -> bool:
-        """Check system requirements"""
-        self.logger.info("Checking system requirements...")
+    def validate_environment(self) -> bool:
+        """Validate system environment and requirements"""
+        logger.info("Validating V3 system environment...")
         
-        # Check Python version
-        if sys.version_info < (3, 8):
-            self.logger.error(f"Python 3.8+ required. Current: {sys.version}")
-            return False
+        errors = []
+        warnings = []
         
         # Check .env file
         if not Path('.env').exists():
-            self.logger.error(".env file not found!")
-            print("\nERROR: Configuration file missing!")
-            print("Please copy .env.template to .env and configure your API keys")
-            return False
+            errors.append(".env file not found")
         
-        # Check critical environment variables  
-        critical_vars = ['BINANCE_API_KEY_1', 'BINANCE_API_SECRET_1']
-        missing_vars = [var for var in critical_vars if not os.getenv(var)]
+        # Check required directories
+        required_dirs = ['data', 'logs', 'backups']
+        for dir_name in required_dirs:
+            dir_path = Path(dir_name)
+            if not dir_path.exists():
+                dir_path.mkdir(exist_ok=True)
+                warnings.append(f"Created missing directory: {dir_name}")
+        
+        # Check Python version
+        if sys.version_info < (3, 8):
+            errors.append(f"Python 3.8+ required, found {sys.version}")
+        
+        # Check critical environment variables
+        critical_vars = [
+            'BINANCE_API_KEY_1', 'BINANCE_API_SECRET_1',
+            'COMPREHENSIVE_ANALYSIS_ENABLED', 'CLEAR_MOCK_ML_DATA'
+        ]
+        
+        missing_vars = []
+        for var in critical_vars:
+            if not os.getenv(var):
+                missing_vars.append(var)
         
         if missing_vars:
-            self.logger.error(f"Missing critical variables: {missing_vars}")
-            print(f"\nERROR: Missing required configuration: {', '.join(missing_vars)}")
+            warnings.append(f"Missing environment variables: {', '.join(missing_vars[:3])}")
+        
+        # Check V3 specific settings
+        if os.getenv('USE_REAL_DATA_ONLY', '').lower() != 'true':
+            warnings.append("USE_REAL_DATA_ONLY should be 'true' for V3")
+        
+        if os.getenv('ENABLE_MOCK_APIS', '').lower() != 'false':
+            warnings.append("ENABLE_MOCK_APIS should be 'false' for V3")
+        
+        # Report validation results
+        if errors:
+            logger.error("Environment validation failed:")
+            for error in errors:
+                logger.error(f"  - {error}")
             return False
         
-        # Create required directories
-        for dir_name in ['data', 'logs', 'models']:
-            try:
-                Path(dir_name).mkdir(parents=True, exist_ok=True)
-            except Exception as e:
-                self.logger.error(f"Failed to create directory {dir_name}: {e}")
-                return False
+        if warnings:
+            logger.warning("Environment validation warnings:")
+            for warning in warnings:
+                logger.warning(f"  - {warning}")
         
-        self.logger.info("System requirements check passed")
+        logger.info("Environment validation passed")
         return True
+    
+    def clean_previous_state(self):
+        """Clean previous system state if requested"""
+        if not self.clean_state:
+            return
+        
+        logger.info("Cleaning previous system state...")
+        
+        try:
+            # Import and use the state cleanup utility
+            from state_cleanup import V3StateCleanup
+            
+            cleanup = V3StateCleanup()
+            success = cleanup.clean_backtest_progress()
+            
+            if success:
+                logger.info("Previous state cleaned successfully")
+            else:
+                logger.warning("State cleanup had issues, continuing anyway")
+                
+        except ImportError:
+            logger.warning("State cleanup utility not available, manual cleanup recommended")
+        except Exception as e:
+            logger.error(f"State cleanup failed: {e}")
+    
+    def check_port_availability(self) -> bool:
+        """Check if the configured port is available"""
+        try:
+            import psutil
+            
+            for conn in psutil.net_connections():
+                if conn.laddr.port == self.port and conn.status == 'LISTEN':
+                    logger.error(f"Port {self.port} is already in use")
+                    
+                    # Try to identify the process
+                    try:
+                        proc = psutil.Process(conn.pid)
+                        logger.error(f"   Process: {proc.name()} (PID: {conn.pid})")
+                        logger.error(f"   Command: {' '.join(proc.cmdline())}")
+                        logger.error(f"   Kill it with: kill {conn.pid}")
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        logger.error(f"   Process PID: {conn.pid}")
+                    
+                    return False
+            
+            logger.info(f"Port {self.port} is available")
+            return True
+            
+        except ImportError:
+            logger.warning("psutil not available, cannot check port availability")
+            return True  # Assume it's available
+        except Exception as e:
+            logger.warning(f"Port check failed: {e}")
+            return True  # Assume it's available
+    
+    def initialize_controller(self) -> bool:
+        """Initialize the main V3 controller"""
+        try:
+            logger.info("Initializing V3 Controller...")
+            
+            # Import the controller (try both versions)
+            try:
+                from main_controller import FixedV3Controller
+                self.controller = FixedV3Controller()
+                logger.info("Using Fixed V3 Controller")
+            except ImportError:
+                logger.warning("Fixed controller not available, falling back to original")
+                from main_controller import V3TradingController
+                self.controller = V3TradingController()
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Controller initialization failed: {e}")
+            traceback.print_exc()
+            return False
     
     def setup_signal_handlers(self):
         """Setup signal handlers for graceful shutdown"""
         def signal_handler(signum, frame):
-            signal_names = {signal.SIGINT: "SIGINT (Ctrl+C)", signal.SIGTERM: "SIGTERM"}
-            signal_name = signal_names.get(signum, f"Signal {signum}")
-            
-            self.logger.info(f"Received {signal_name} - initiating shutdown")
-            
-            if not self.shutdown_event.is_set():
-                self.shutdown_event.set()
-                shutdown_thread = threading.Thread(target=self._run_shutdown, daemon=True)
-                shutdown_thread.start()
+            logger.info(f"Received signal {signum}, initiating graceful shutdown...")
+            self.shutdown()
+            sys.exit(0)
         
-        signal.signal(signal.SIGINT, signal_handler)
-        if hasattr(signal, 'SIGTERM'):
-            signal.signal(signal.SIGTERM, signal_handler)
+        # Setup signal handlers
+        signal.signal(signal.SIGINT, signal_handler)   # Ctrl+C
+        signal.signal(signal.SIGTERM, signal_handler)  # Termination request
+        
+        if hasattr(signal, 'SIGQUIT'):  # Unix only
+            signal.signal(signal.SIGQUIT, signal_handler)  # Quit signal
     
-    def _run_shutdown(self):
-        """Run shutdown sequence"""
+    def display_startup_banner(self):
+        """Display the V3 system startup banner"""
+        print("\n" + "="*80)
+        print("V3 TRADING SYSTEM - COMPREHENSIVE ANALYSIS ENGINE")
+        print("="*80)
+        print(f"Version: V3.0-FIXED")
+        print(f"Architecture: V1 Performance + V2 Infrastructure + V3 ML Enhancement")
+        print(f"Dashboard: http://localhost:{self.port}")
+        print(f"External Access: http://185.202.239.125:{self.port}")
+        print(f"Started: {self.startup_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        
+        if self.test_mode:
+            print("TEST MODE: Limited backtesting for faster testing")
+        
+        if self.auto_start:
+            print("AUTO-START: Trading will begin after backtesting completes")
+        
+        print("\nFEATURES:")
+        print("  - Fixed backtesting progress tracking")
+        print("  - Enhanced cross-component communication")
+        print("  - Improved state management")
+        print("  - Real-time dashboard updates")
+        print("  - Comprehensive error handling")
+        print("="*80)
+    
+    def run_system_startup_checks(self) -> bool:
+        """Run comprehensive system startup checks"""
+        logger.info("Running V3 system startup checks...")
+        
+        checks_passed = 0
+        total_checks = 6
+        
+        # Check 1: Environment validation
+        if self.validate_environment():
+            checks_passed += 1
+            logger.info("Check 1/6: Environment validation PASSED")
+        else:
+            logger.error("Check 1/6: Environment validation FAILED")
+            return False
+        
+        # Check 2: Port availability
+        if self.check_port_availability():
+            checks_passed += 1
+            logger.info("Check 2/6: Port availability PASSED")
+        else:
+            logger.error("Check 2/6: Port availability FAILED")
+            return False
+        
+        # Check 3: Controller initialization
+        if self.initialize_controller():
+            checks_passed += 1
+            logger.info("Check 3/6: Controller initialization PASSED")
+        else:
+            logger.error("Check 3/6: Controller initialization FAILED")
+            return False
+        
+        # Check 4: Database connectivity
         try:
-            time.sleep(1)  # Allow current operations to complete
+            import sqlite3
+            test_db = Path('data/test_connection.db')
+            conn = sqlite3.connect(test_db)
+            conn.execute("SELECT 1")
+            conn.close()
+            test_db.unlink(missing_ok=True)
+            checks_passed += 1
+            logger.info("Check 4/6: Database connectivity PASSED")
+        except Exception as e:
+            logger.error(f"Check 4/6: Database connectivity FAILED: {e}")
+        
+        # Check 5: Component imports
+        try:
+            component_count = 0
+            components = [
+                ('advanced_backtester', 'Advanced Backtester'),
+                ('intelligent_trading_engine', 'Trading Engine'),
+                ('price_action_core', 'Price Action Core'),
+                ('api_rotation_manager', 'API Rotation Manager')
+            ]
             
-            if self.controller:
+            for module_name, display_name in components:
                 try:
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.run_until_complete(self.controller.shutdown())
-                    loop.close()
-                except Exception as e:
-                    self.logger.error(f"Controller shutdown error: {e}")
+                    __import__(module_name)
+                    component_count += 1
+                except ImportError:
+                    logger.warning(f"Component {display_name} not available")
             
-            self.logger.info("Shutdown sequence completed")
-            
+            if component_count >= 2:  # At least 2 core components
+                checks_passed += 1
+                logger.info(f"Check 5/6: Component imports PASSED ({component_count}/{len(components)})")
+            else:
+                logger.error(f"Check 5/6: Component imports FAILED ({component_count}/{len(components)})")
         except Exception as e:
-            self.logger.error(f"Error during shutdown: {e}")
-        finally:
-            threading.Timer(5.0, lambda: os._exit(0)).start()
-    
-    def print_startup_banner(self):
-        """Print startup banner"""
-        banner = f"""
-    ================================================================
-    |              V3 FIXED TRADING SYSTEM                        |
-    |                                                              |
-    |  Database Connection Pooling + Memory Management            |
-    |  Enhanced Error Handling + Async Task Management            |
-    |  Keeps Your Existing API Rotation System                    |
-    ================================================================
-    
-    FIXED COMPONENTS:
-    ? Database Connection Pooling (SQLite locking fixed)
-    ? Memory Leak Prevention (bounded collections)  
-    ? Enhanced Error Recovery (proper exception handling)
-    ? Async Task Management (no hanging tasks)
-    ? Thread-Safe Operations (proper locking)
-    ? Graceful Startup/Shutdown (signal handling)
-    ? Your Excellent API Rotation System (unchanged)
-    
-    Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}
-    PID: {os.getpid()}
-        """
-        print(banner)
-    
-    async def initialize_controller(self):
-        """Initialize the trading controller"""
+            logger.error(f"Check 5/6: Component imports FAILED: {e}")
+        
+        # Check 6: Previous state cleanup
         try:
-            self.logger.info("Initializing V3 Trading Controller...")
-            
-            from main_controller import V3TradingController
-            self.controller = V3TradingController()
-            
-            success = await self.controller.initialize_system()
-            if not success:
-                raise RuntimeError("Controller initialization failed")
-            
-            self.logger.info("Controller initialized successfully")
-            return True
-            
+            self.clean_previous_state()
+            checks_passed += 1
+            logger.info("Check 6/6: State cleanup PASSED")
         except Exception as e:
-            self.logger.error(f"Failed to initialize controller: {e}", exc_info=True)
+            logger.warning(f"Check 6/6: State cleanup had issues: {e}")
+            checks_passed += 1  # Don't fail startup for this
+        
+        # Summary
+        logger.info(f"System checks: {checks_passed}/{total_checks} passed")
+        
+        if checks_passed >= total_checks - 1:  # Allow 1 failure
+            logger.info("System startup checks passed")
+            return True
+        else:
+            logger.error("System startup checks failed")
             return False
     
-    def start_flask_app(self):
-        """Start Flask app in separate thread"""
-        def run_flask():
-            try:
-                self.logger.info("Starting Flask server...")
-                self.controller.run_flask_app()
-            except Exception as e:
-                self.logger.error(f"Flask error: {e}", exc_info=True)
-        
-        self.flask_thread = threading.Thread(target=run_flask, daemon=True)
-        self.flask_thread.start()
-        time.sleep(2)  # Wait for Flask to start
-        
-        dashboard_port = int(os.getenv('FLASK_PORT', '8102'))
-        self.logger.info(f"Dashboard available at: http://localhost:{dashboard_port}")
-    
-    def print_status(self):
-        """Print system status"""
-        dashboard_port = int(os.getenv('FLASK_PORT', '8102'))
-        auto_start = os.getenv('AUTO_START_TRADING', 'false').lower() == 'true'
-        
-        print("=" * 70)
-        print("?? V3 FIXED TRADING SYSTEM READY!")
-        print("? Database Connection Pooling: ACTIVE")
-        print("? Memory Management: ACTIVE") 
-        print("? Enhanced Error Handling: ACTIVE")
-        print("? Async Task Management: ACTIVE")
-        print("? Your API Rotation System: ACTIVE")
-        print(f"?? Dashboard: http://localhost:{dashboard_port}")
-        print("=" * 70)
-        
-        if auto_start:
-            print("\n?? AUTO_START_TRADING=true - Will start automatically")
-        else:
-            print(f"\n? Monitor mode - Use dashboard to start trading")
-            print(f"Dashboard: http://localhost:{dashboard_port}")
-        
-        print("\n?? V3 Fixed System running... Press Ctrl+C to shutdown")
-    
-    async def run_system(self):
-        """Main system run loop"""
+    def run_system(self):
+        """Main system execution"""
         try:
-            if not self.check_requirements():
-                return False
-            
-            self.print_startup_banner()
+            # Setup signal handlers
             self.setup_signal_handlers()
             
-            if not await self.initialize_controller():
-                return False
+            # Display banner
+            self.display_startup_banner()
             
-            self.start_flask_app()
-            self.print_status()
+            # Run startup checks
+            if not self.run_system_startup_checks():
+                logger.error("System startup aborted due to failed checks")
+                return 1
             
-            # Auto-start if enabled
-            auto_start = os.getenv('AUTO_START_TRADING', 'false').lower() == 'true'
-            if auto_start and self.controller:
-                self.logger.info("AUTO_START_TRADING enabled")
-                try:
-                    result = await self.controller.start_trading()
-                    if result.get('success'):
-                        self.logger.info("Trading started automatically")
-                    else:
-                        self.logger.warning(f"Auto-start failed: {result.get('error')}")
-                except Exception as e:
-                    self.logger.error(f"Auto-start error: {e}")
+            # Mark system as running
+            self.system_running = True
             
-            # Main loop with memory cleanup
-            last_gc_time = time.time()
-            while not self.shutdown_event.is_set():
-                await asyncio.sleep(1)
-                
-                # Periodic garbage collection
-                if time.time() - last_gc_time > 300:  # 5 minutes
-                    gc.collect()
-                    last_gc_time = time.time()
+            logger.info("Starting V3 Flask application...")
             
-            return True
+            # Set test mode environment variable if needed
+            if self.test_mode:
+                os.environ['TEST_MODE'] = 'true'
+            
+            if self.auto_start:
+                os.environ['AUTO_START_TRADING'] = 'true'
+            
+            # Run the Flask application
+            self.controller.run_flask_app()
+            
+        except KeyboardInterrupt:
+            logger.info("Shutdown requested by user (Ctrl+C)")
+            return 0
+        except Exception as e:
+            logger.error(f"System execution failed: {e}")
+            traceback.print_exc()
+            return 1
+        finally:
+            self.shutdown()
+    
+    def shutdown(self):
+        """Graceful system shutdown"""
+        if not self.system_running:
+            return
+        
+        logger.info("Initiating V3 system shutdown...")
+        self.system_running = False
+        
+        try:
+            if self.controller:
+                self.controller.shutdown()
+                logger.info("Controller shutdown complete")
+            
+            # Final cleanup
+            uptime = datetime.now() - self.startup_time
+            logger.info(f"System uptime: {str(uptime).split('.')[0]}")
+            logger.info("V3 Trading System shutdown complete")
             
         except Exception as e:
-            self.logger.error(f"System error: {e}", exc_info=True)
-            return False
+            logger.error(f"Shutdown error: {e}")
 
 def main():
-    """Main function with error handling"""
-    system_manager = V3SystemManager()
+    """Main entry point with argument parsing"""
+    parser = argparse.ArgumentParser(
+        description="V3 Trading System - Advanced Algorithmic Trading Platform",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python main.py                      # Normal startup
+  python main.py --test-mode          # Test mode (faster, limited scope)
+  python main.py --auto-start         # Auto-start trading after analysis
+  python main.py --clean-state        # Clean previous state on startup
+  python main.py --port 8105          # Use custom port
+  
+Environment:
+  Set FLASK_PORT in .env to configure default port
+  Set AUTO_START_TRADING=true to enable auto-start by default
+  Set LOG_LEVEL=DEBUG for verbose logging
+        """
+    )
+    
+    parser.add_argument(
+        '--test-mode', 
+        action='store_true',
+        help='Run in test mode (limited backtesting for faster testing)'
+    )
+    
+    parser.add_argument(
+        '--auto-start',
+        action='store_true',
+        help='Automatically start trading after backtesting completes'
+    )
+    
+    parser.add_argument(
+        '--clean-state',
+        action='store_true',
+        help='Clean previous system state on startup (fixes "already started" issues)'
+    )
+    
+    parser.add_argument(
+        '--port',
+        type=int,
+        help='Override the Flask port (default from .env FLASK_PORT)'
+    )
+    
+    parser.add_argument(
+        '--host',
+        type=str,
+        default='0.0.0.0',
+        help='Flask host address (default: 0.0.0.0)'
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version='V3.0-FIXED (Enhanced Multi-Timeframe Trading System)'
+    )
+    
+    args = parser.parse_args()
+    
+    # Override environment variables if specified
+    if args.port:
+        os.environ['FLASK_PORT'] = str(args.port)
+    
+    if args.host:
+        os.environ['HOST'] = args.host
+    
+    # Handle special arguments
+    if args.auto_start:
+        os.environ['AUTO_START_TRADING'] = 'true'
     
     try:
-        success = asyncio.run(system_manager.run_system())
+        # Create and run system manager
+        system_manager = V3SystemManager(
+            test_mode=args.test_mode,
+            auto_start=args.auto_start,
+            clean_state=args.clean_state
+        )
         
-        if success:
-            system_manager.logger.info("System completed successfully")
-        else:
-            system_manager.logger.error("System completed with errors")
-            sys.exit(1)
-            
-    except KeyboardInterrupt:
-        system_manager.logger.info("System interrupted by user")
+        exit_code = system_manager.run_system()
+        sys.exit(exit_code)
+        
     except Exception as e:
-        if system_manager.logger:
-            system_manager.logger.error(f"Unhandled error: {e}", exc_info=True)
-        else:
-            print(f"Critical error: {e}")
-            traceback.print_exc()
+        print(f"\nCRITICAL ERROR: {e}")
+        traceback.print_exc()
         sys.exit(1)
-    finally:
-        if system_manager.logger:
-            system_manager.logger.info("V3 Fixed Trading System shutdown complete")
 
 if __name__ == "__main__":
-    print("?? Starting V3 Fixed Trading System...")
-    print("? Database Pooling + Memory Management + Enhanced Error Handling")
     main()

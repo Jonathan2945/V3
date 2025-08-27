@@ -1,1452 +1,939 @@
 #!/usr/bin/env python3
 """
-V3 COMPREHENSIVE TRADING SYSTEM TEST SUITE
-==========================================
+UPGRADED V3 COMPREHENSIVE TEST SUITE WITH CROSS-COMMUNICATION TESTING
+====================================================================
 
-Enhanced test harness specifically designed for the V3 Trading System.
-Tests all files, validates trading system components, checks dependencies,
-ensures V3 architecture compliance, and validates REAL DATA ONLY usage.
-
-Features:
-- Complete file discovery and testing
-- Trading system component validation
-- V3 architecture compliance checks
-- SMART Real market data validation (NO MOCK DATA)
-- Environment configuration validation
-- API integration testing
-- Database connectivity verification
-- Performance benchmarking
-- Comprehensive reporting with trading metrics
+Enhanced test harness that:
+- Tests all system components individually
+- Tests cross-communication between components
+- Tests dashboard integration and API endpoints
+- Tests backtesting workflow and progress tracking
+- Tests state management and persistence
+- Tests error handling and recovery
+- Provides real-time monitoring and diagnostics
 """
 
 import os
 import sys
-import importlib.util
-import ast
-import traceback
-import time
+import asyncio
+import aiohttp
 import json
+import time
 import sqlite3
-import re
+import threading
+import subprocess
+import psutil
+import requests
 from pathlib import Path
-from typing import Dict, List, Tuple, Any, Optional, Set
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any, Tuple
+import logging
 from dataclasses import dataclass, asdict
-from contextlib import contextmanager, redirect_stdout, redirect_stderr
-import io
-from datetime import datetime
+import traceback
+import signal
 
-# Third-party imports for trading system testing
-try:
-    import psutil
-    import pandas as pd
-    import numpy as np
-    from dotenv import load_dotenv
-    ADVANCED_TESTING = True
-except ImportError:
-    ADVANCED_TESTING = False
-
-# Load environment if available
-try:
-    load_dotenv()
-except:
-    pass
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
 
 @dataclass
-class V3TestResult:
-    """Enhanced test result for V3 Trading System components."""
-    # Basic file info
-    file_path: str
-    file_name: str
-    module_type: str  # 'core', 'ml', 'api', 'data', 'util', 'test', 'config'
-    component_category: str  # Specific to trading system
-    
-    # Standard tests
-    import_success: bool
-    import_error: Optional[str]
-    syntax_valid: bool
-    syntax_error: Optional[str]
-    dependencies_met: bool
-    missing_dependencies: List[str]
-    runtime_safe: bool
-    runtime_error: Optional[str]
-    
-    # V3 Trading System specific tests
-    trading_system_compatible: bool
-    api_integration_valid: bool
-    database_schema_valid: bool
-    async_compatible: bool
-    config_compliant: bool
-    
-    # V3 Real Data Validation - CRITICAL FOR TRADING
-    mock_data_detected: bool
-    mock_data_issues: List[str]
-    real_market_data_only: bool
-    env_config_valid: bool
-    env_missing_vars: List[str]
-    api_keys_configured: bool
-    
-    # Performance metrics
-    execution_time: float
-    file_size: int
-    lines_of_code: int
-    complexity_score: float
-    
-    # Metadata
-    test_timestamp: str
-    warnings: List[str]
-    recommendations: List[str]
+class TestResult:
+    """Test result data structure"""
+    component: str
+    test_name: str
+    status: str  # 'pass', 'fail', 'warning', 'skip'
+    message: str
+    details: Optional[Dict] = None
+    execution_time: float = 0.0
+    timestamp: str = ""
 
-
-class V3TradingSystemTestHarness:
-    """Comprehensive test harness for V3 Trading System."""
+class V3SystemTester:
+    """Comprehensive V3 System Tester with cross-communication testing"""
     
-    def __init__(self, directory: str = ".", excluded_patterns: List[str] = None):
-        self.directory = Path(directory).resolve()
-        self.excluded_patterns = excluded_patterns or [
-            "__pycache__", ".git", ".pytest_cache", "venv", "env", 
-            "node_modules", ".vscode", ".idea", "logs"
-        ]
-        self.results: Dict[str, V3TestResult] = {}
-        self.test_start_time = time.time()
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.results: List[TestResult] = []
+        self.start_time = time.time()
         
-        # V3 Trading System specific categorization - ONLY ACTUAL REPOSITORY FILES
-        self.v3_file_categories = {
-            # Core trading components (VERIFIED IN REPO)
-            'core': [
-                'main.py', 'main_controller.py', 'start.py', 'start_system.py',
-                'quick_launcher.py', 'intelligent_trading_engine.py',
-                'adaptive_trading_manager.py', 'real_trading_system.py'
-            ],
-            
-            # Machine Learning components (VERIFIED IN REPO)
-            'ml': [
-                'advanced_ml_engine.py', 'ml_data_manager.py',
-                'strategy_discovery_engine.py', 'confirmation_engine.py'
-            ],
-            
-            # API and Exchange Management (VERIFIED IN REPO)
-            'api': [
-                'api_monitor.py', 'api_rotation_manager.py', 'binance_exchange_manager.py',
-                'api-test.py', 'credential_monitor.py'
-            ],
-            
-            # Data Management (VERIFIED IN REPO)
-            'data': [
-                'historical_data_manager.py', 'external_data_collector.py',
-                'pnl_persistence.py', 'trade_logger.py'
-            ],
-            
-            # Analysis and Scanning (VERIFIED IN REPO)
-            'analysis': [
-                'market_analysis_engine.py', 'multi_pair_scanner.py',
-                'multi_timeframe_analyzer.py', 'price_action_core.py',
-                'execution_cost_intelligence.py'
-            ],
-            
-            # Backtesting and Testing (VERIFIED IN REPO)
-            'backtest': [
-                'advanced_backtester.py', 'test.py'
-            ],
-            
-            # Configuration and Setup (VERIFIED IN REPO)
-            'config': [
-                'config_reader.py', 'setup_environment.py', 'health_check.py'
-            ],
-            
-            # Utilities and Optimization (VERIFIED IN REPO)
-            'util': [
-                'resource_optimizer.py', 'emotion_simulator.py',
-                'clear_mock_ml_data.py', 'reset_ml_only.py'
-            ]
+        # System configuration
+        self.base_port = int(os.getenv('FLASK_PORT', '8102'))
+        self.dashboard_url = f"http://localhost:{self.base_port}"
+        self.api_base = f"{self.dashboard_url}/api"
+        
+        # Component status tracking
+        self.component_status = {
+            'main_controller': False,
+            'dashboard': False,
+            'backtester': False,
+            'trading_engine': False,
+            'database': False,
+            'api_endpoints': False
         }
         
-        # ACTUAL FILES IN YOUR REPOSITORY (from JSON manifest)
-        self.actual_python_files = {
-            'adaptive_trading_manager.py', 'advanced_backtester.py', 'advanced_ml_engine.py',
-            'api-test.py', 'api_monitor.py', 'api_rotation_manager.py', 'binance_exchange_manager.py',
-            'clear_mock_ml_data.py', 'config_reader.py', 'confirmation_engine.py', 'credential_monitor.py',
-            'emotion_simulator.py', 'execution_cost_intelligence.py', 'external_data_collector.py',
-            'health_check.py', 'historical_data_manager.py', 'intelligent_trading_engine.py',
-            'main.py', 'main_controller.py', 'market_analysis_engine.py', 'ml_data_manager.py',
-            'multi_pair_scanner.py', 'multi_timeframe_analyzer.py', 'pnl_persistence.py',
-            'price_action_core.py', 'quick_launcher.py', 'real_trading_system.py',
-            'reset_ml_only.py', 'resource_optimizer.py', 'setup_environment.py',
-            'start.py', 'start_system.py', 'strategy_discovery_engine.py', 'test.py', 'trade_logger.py'
-        }
+        # Test configuration
+        self.test_timeout = 30  # seconds
+        self.long_test_timeout = 300  # 5 minutes for backtesting tests
         
-        # ACTUAL NON-PYTHON FILES IN YOUR REPOSITORY
-        self.actual_other_files = {
-            'dashbored.html', 'requirements.txt',
-            'api_monitor.db', 'system_metrics.db',
-            'data/api_management.db', 'data/trading_metrics.db', 'data/exchange_info_backup.json',
-            'logs/enhanced_backtesting.log', 'logs/strategy_discovery.log'
-        }
-        
-        # Known V3 dependencies
-        self.v3_dependencies = {
-            'trading': ['binance', 'ccxt', 'pandas', 'numpy'],
-            'ml': ['sklearn', 'tensorflow', 'torch', 'xgboost'],
-            'data': ['sqlite3', 'psycopg2', 'sqlalchemy'],
-            'async': ['asyncio', 'aiohttp', 'websockets'],
-            'monitoring': ['psutil', 'logging'],
-            'external': ['requests', 'urllib3', 'python-dotenv']
-        }
-        
-        # V3 Environment Configuration (from provided .env)
-        self.required_env_vars = {
-            'trading_core': [
-                'TESTNET', 'MIN_CONFIDENCE', 'MAX_TOTAL_POSITIONS', 'MAX_RISK_PERCENT',
-                'TRADE_AMOUNT_USDT', 'TIMEFRAMES', 'PRIMARY_TIMEFRAME'
-            ],
-            'real_data_only': [
-                'ENABLE_REAL_MARKET_TRAINING', 'CLEAR_MOCK_ML_DATA', 'ENABLE_MOCK_APIS',
-                'REALISTIC_SIMULATION'
-            ],
-            'v2_multi_pair': [
-                'ENABLE_ALL_PAIRS', 'MAX_CONCURRENT_PAIRS', 'MIN_VOLUME_24H',
-                'OPPORTUNITY_SCANNER_ENABLED', 'SCAN_INTERVAL_SECONDS'
-            ],
-            'api_rotation': [
-                'API_ROTATION_ENABLED', 'API_ROTATION_STRATEGY', 'API_RATE_LIMIT_THRESHOLD'
-            ],
-            'binance_keys': [
-                'BINANCE_API_KEY_1', 'BINANCE_API_SECRET_1',
-                'BINANCE_LIVE_API_KEY_1', 'BINANCE_LIVE_API_SECRET_1'
-            ],
-            'external_apis': [
-                'ALPHA_VANTAGE_API_KEY_1', 'NEWS_API_KEY_1', 'FRED_API_KEY_1',
-                'TWITTER_BEARER_TOKEN_1', 'REDDIT_CLIENT_ID_1'
-            ]
-        }
-        
-        # SMART Mock Data Detection - Context Aware
-        self.mock_usage_indicators = [
-            # These patterns indicate ACTUAL mock data usage (bad for V3)
-            r'mock_data\s*=\s*True',
-            r'use_mock\s*=\s*True',
-            r'enable_mock\s*=\s*True',
-            r'test_mode\s*=\s*True',
-            r'fake_data\s*=\s*True',
-            r'MockClient\(',
-            r'FakeClient\(',
-            r'SimulatedClient\(',
-            r'generate_mock_',
-            r'create_fake_',
-            r'simulate_data\(',
-            r'fake_prices\s*=',
-            r'mock_prices\s*=',
-            r'dummy_data\s*=',
-            r'\.mock\(\)',
-            r'@mock\.',
-            r'mock\.patch',
-            r'return\s+mock_',
-            r'return\s+fake_',
-            r'class\s+Mock\w+Client',
-            r'def\s+mock_',
-            r'def\s+fake_',
-            r'if\s+mock[_\w]*:',
-            r'if\s+use_mock',
-        ]
-        
-        # These patterns indicate GOOD practices (disabling mock data)
-        self.real_data_indicators = [
-            r'mock_data\s*=\s*False',
-            r'use_mock\s*=\s*False', 
-            r'enable_mock\s*=\s*False',
-            r'test_mode\s*=\s*False',
-            r'ENABLE_MOCK_APIS\s*=\s*false',
-            r'CLEAR_MOCK_ML_DATA\s*=\s*true',
-            r'USE_REAL_DATA_ONLY\s*=\s*true',
-            r'real_market_data',
-            r'binance\.client',
-            r'exchange\.fetch',
-            r'api\.get_',
-            r'live_data',
-            r'actual_data',
-            r'historical_data',
-            r'market_data',
-            r'not\s+mock',
-            r'disable.*mock',
-            r'real.*only',
-            r'no.*mock'
-        ]
-        
-        # Legitimate references that should NOT be flagged
-        self.legitimate_references = [
-            r'#.*mock',  # Comments mentioning mock
-            r'""".*mock.*"""',  # Docstrings mentioning mock
-            r"'.*mock.*'",  # String literals
-            r'".*mock.*"',  # String literals
-            r'clear.*mock',  # Clearing mock data
-            r'remove.*mock',  # Removing mock data
-            r'delete.*mock',  # Deleting mock data
-            r'cleanup.*mock',  # Cleaning up mock data
-            r'mock.*disabled',  # Mock disabled
-            r'mock.*false',  # Mock set to false
-            r'no.*mock',  # No mock
-        ]
-        
-        print(f"\nV3 TRADING SYSTEM COMPREHENSIVE TEST SUITE")
-        print(f"Testing directory: {self.directory}")
-        print(f"V3 Architecture: Core + ML + Multi-pair + API Rotation")
-        print(f"Advanced testing: {'Enabled' if ADVANCED_TESTING else 'Basic mode'}")
-        
-    def discover_v3_files(self) -> Tuple[List[Path], List[Path]]:
-        """Discover all V3 trading system files - ONLY ACTUAL REPOSITORY FILES."""
-        python_files = []
-        other_files = []
-        
-        for root, dirs, files in os.walk(self.directory):
-            # Filter directories
-            dirs[:] = [d for d in dirs if not any(pattern in d for pattern in self.excluded_patterns)]
-            
-            for file in files:
-                file_path = Path(root) / file
-                relative_path = file_path.relative_to(self.directory)
-                
-                # Only include files that are ACTUALLY in the repository
-                if file.endswith('.py') and file != Path(__file__).name:
-                    if file in self.actual_python_files:
-                        python_files.append(file_path)
-                    else:
-                        print(f"Skipping deleted/unknown Python file: {file}")
-                
-                # Important non-Python files - only if they exist in repo
-                elif file.endswith(('.db', '.json', '.html', '.txt', '.yml', '.yaml', '.log')):
-                    # Check if this file path exists in our known files
-                    if (file in self.actual_other_files or 
-                        str(relative_path) in self.actual_other_files or
-                        str(relative_path).replace('\\', '/') in self.actual_other_files):
-                        other_files.append(file_path)
-        
-        print(f"Discovered {len(python_files)} Python files, {len(other_files)} other files")
-        print(f"Only testing files that exist in your current repository")
-        
-        # Verify we found the expected files
-        missing_files = self.actual_python_files - {f.name for f in python_files}
-        if missing_files:
-            print(f"Expected but not found: {missing_files}")
-        
-        return sorted(python_files), sorted(other_files)
+        self.logger.info(f"V3 System Tester initialized - Dashboard URL: {self.dashboard_url}")
     
-    def categorize_v3_file(self, file_path: Path) -> Tuple[str, str]:
-        """Categorize file by V3 system component."""
-        file_name = file_path.name
+    def add_result(self, component: str, test_name: str, status: str, message: str, details: Dict = None, execution_time: float = 0.0):
+        """Add a test result"""
+        result = TestResult(
+            component=component,
+            test_name=test_name,
+            status=status,
+            message=message,
+            details=details or {},
+            execution_time=execution_time,
+            timestamp=datetime.now().isoformat()
+        )
+        self.results.append(result)
         
-        for category, files in self.v3_file_categories.items():
-            if file_name in files:
-                return category, self.get_component_description(category, file_name)
-        
-        # Fallback categorization
-        if 'test' in file_name.lower():
-            return 'test', 'Testing module'
-        elif any(keyword in file_name.lower() for keyword in ['api', 'client', 'exchange']):
-            return 'api', 'API integration'
-        elif any(keyword in file_name.lower() for keyword in ['ml', 'model', 'ai', 'brain']):
-            return 'ml', 'Machine learning'
-        elif any(keyword in file_name.lower() for keyword in ['data', 'database', 'persistence']):
-            return 'data', 'Data management'
-        else:
-            return 'util', 'Utility module'
+        # Log result
+        status_icon = {'pass': '?', 'fail': '?', 'warning': '?', 'skip': '?'}.get(status, '?')
+        self.logger.info(f"{status_icon} [{component}] {test_name}: {message}")
     
-    def get_component_description(self, category: str, file_name: str) -> str:
-        """Get detailed component description - ONLY FOR ACTUAL REPOSITORY FILES."""
-        descriptions = {
-            # Core components
-            'main.py': 'Main entry point',
-            'main_controller.py': 'V3 system controller with backtesting workflow',
-            'start.py': 'System startup controller',
-            'start_system.py': 'Simple system starter',
-            'quick_launcher.py': 'Quick launch utility',
-            'intelligent_trading_engine.py': 'Core trading execution engine',
-            'adaptive_trading_manager.py': 'Adaptive trading manager',
-            'real_trading_system.py': 'Real trading system implementation',
-            
-            # ML components
-            'advanced_ml_engine.py': 'ML engine for strategy optimization',
-            'ml_data_manager.py': 'ML data management system',
-            'strategy_discovery_engine.py': 'Strategy discovery and optimization',
-            'confirmation_engine.py': 'Signal confirmation engine',
-            
-            # API components
-            'api_monitor.py': 'API monitoring and health checks',
-            'api_rotation_manager.py': 'API key rotation system',
-            'binance_exchange_manager.py': 'Binance exchange integration',
-            'api-test.py': 'API testing utility',
-            'credential_monitor.py': 'Credential monitoring system',
-            
-            # Data components
-            'historical_data_manager.py': 'Historical data management',
-            'external_data_collector.py': 'Economic and social data collector',
-            'pnl_persistence.py': 'P&L persistence system',
-            'trade_logger.py': 'Trade logging system',
-            
-            # Analysis components
-            'market_analysis_engine.py': 'Market analysis engine',
-            'multi_pair_scanner.py': 'Multi-pair opportunity scanner',
-            'multi_timeframe_analyzer.py': 'Multi-timeframe analysis',
-            'price_action_core.py': 'Price action analysis core',
-            'execution_cost_intelligence.py': 'Execution cost optimization',
-            
-            # Backtesting components
-            'advanced_backtester.py': 'Advanced backtesting system',
-            'test.py': 'Comprehensive test suite',
-            
-            # Config components
-            'config_reader.py': 'Configuration management',
-            'setup_environment.py': 'Environment setup utility',
-            'health_check.py': 'System health check',
-            
-            # Utility components
-            'resource_optimizer.py': 'Resource optimization system',
-            'emotion_simulator.py': 'Emotion simulation for testing',
-            'clear_mock_ml_data.py': 'ML data cleanup utility',
-            'reset_ml_only.py': 'ML-only reset utility'
-        }
-        return descriptions.get(file_name, f'{category.title()} component')
-    
-    def check_syntax(self, file_path: Path) -> Tuple[bool, Optional[str]]:
-        """Check Python syntax."""
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            ast.parse(content)
-            return True, None
-        except SyntaxError as e:
-            return False, f"Line {e.lineno}: {e.msg}"
-        except Exception as e:
-            return False, f"Parse error: {str(e)}"
-    
-    def extract_imports(self, file_path: Path) -> List[str]:
-        """Extract import statements."""
-        imports = []
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            
-            tree = ast.parse(content)
-            for node in ast.walk(tree):
-                if isinstance(node, ast.Import):
-                    for alias in node.names:
-                        imports.append(alias.name.split('.')[0])
-                elif isinstance(node, ast.ImportFrom):
-                    if node.module:
-                        imports.append(node.module.split('.')[0])
-        except:
-            pass
-        return list(set(imports))
-    
-    def check_v3_dependencies(self, imports: List[str]) -> Tuple[bool, List[str]]:
-        """Check V3-specific dependencies."""
-        missing = []
-        
-        # Standard library modules
-        stdlib_modules = {
-            'os', 'sys', 'time', 'datetime', 'json', 'urllib', 'http', 're', 'math',
-            'random', 'itertools', 'collections', 'functools', 'pathlib', 'subprocess',
-            'threading', 'multiprocessing', 'asyncio', 'logging', 'argparse',
-            'configparser', 'sqlite3', 'csv', 'xml', 'html', 'email', 'base64',
-            'hashlib', 'hmac', 'uuid', 'tempfile', 'shutil', 'glob', 'fnmatch',
-            'pickle', 'copy', 'operator', 'typing', 'dataclasses', 'contextlib',
-            'warnings', 'traceback', 'io', 'socket', 'ssl', 'zipfile', 'gzip'
-        }
-        
-        for module_name in imports:
-            if module_name in stdlib_modules:
-                continue
-            
-            try:
-                importlib.import_module(module_name)
-            except ImportError:
-                missing.append(module_name)
-            except Exception:
-                pass
-        
-        return len(missing) == 0, missing
-    
-    def check_runtime_safety(self, file_path: Path) -> Tuple[bool, Optional[str]]:
-        """Check runtime safety."""
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            
-            # Dangerous patterns outside of main guard
-            dangerous_patterns = [
-                ('os.system(', 'System command execution'),
-                ('subprocess.call(', 'Subprocess execution'),
-                ('eval(', 'Code evaluation'),
-                ('exec(', 'Code execution'),
-                ('__import__(', 'Dynamic import'),
-                ('shutil.rmtree(', 'Directory removal'),
-                ('os.remove(', 'File removal')
-            ]
-            
-            has_main_guard = 'if __name__ ==' in content
-            
-            if not has_main_guard:
-                lines = content.split('\n')
-                for i, line in enumerate(lines, 1):
-                    for pattern, description in dangerous_patterns:
-                        if pattern in line and not line.strip().startswith('#'):
-                            return False, f"Line {i}: {description} without main guard"
-            
-            return True, None
-            
-        except Exception as e:
-            return False, f"Safety check failed: {str(e)}"
-    
-    def smart_mock_data_detection(self, file_path: Path) -> Tuple[bool, List[str]]:
-        """SMART context-aware mock data detection for V3."""
-        mock_issues = []
-        
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-                lines = content.split('\n')
-            
-            # Skip files that are specifically for cleaning mock data
-            if 'clear_mock' in file_path.name or 'reset_ml' in file_path.name:
-                return False, []  # These files are SUPPOSED to reference mock data
-            
-            # Check for actual mock usage patterns (context-aware)
-            mock_usage_found = False
-            real_data_found = False
-            
-            # Count real data indicators vs mock usage indicators
-            for i, line in enumerate(lines, 1):
-                line_lower = line.lower().strip()
-                
-                # Skip comments and docstrings
-                if line_lower.startswith('#') or line_lower.startswith('"""') or line_lower.startswith("'''"):
-                    continue
-                
-                # Check for legitimate references (should NOT be flagged)
-                is_legitimate = False
-                for pattern in self.legitimate_references:
-                    if re.search(pattern, line, re.IGNORECASE):
-                        is_legitimate = True
-                        break
-                
-                if is_legitimate:
-                    continue
-                
-                # Check for real data indicators (GOOD)
-                for pattern in self.real_data_indicators:
-                    if re.search(pattern, line, re.IGNORECASE):
-                        real_data_found = True
-                        break
-                
-                # Check for actual mock usage (BAD for V3)
-                for pattern in self.mock_usage_indicators:
-                    if re.search(pattern, line, re.IGNORECASE):
-                        mock_usage_found = True
-                        mock_issues.append(f"Line {i}: Detected active mock data usage - '{line.strip()[:60]}...'")
-                        break
-            
-            # Special handling for test files and utilities
-            if file_path.name in ['test.py', 'api-test.py', 'emotion_simulator.py']:
-                # Test files can reference mock concepts but should not use them for actual trading
-                if mock_usage_found:
-                    # Filter out violations in test files that are just checking for mock usage
-                    filtered_issues = []
-                    for issue in mock_issues:
-                        if not any(test_pattern in issue.lower() for test_pattern in 
-                                 ['check_mock', 'detect_mock', 'validate_mock', 'test_mock', 'mock_data_patterns']):
-                            filtered_issues.append(issue)
-                    mock_issues = filtered_issues
-                    mock_usage_found = len(filtered_issues) > 0
-            
-            # V3 system should have more real data indicators than mock usage
-            if mock_usage_found and not real_data_found:
-                mock_issues.append("V3 Violation: File uses mock data without real data alternatives")
-            
-            # Check environment variable usage for V3 compliance
-            env_check_patterns = [
-                r'os\.getenv\(["\']ENABLE_MOCK_APIS["\'].*false',
-                r'os\.getenv\(["\']CLEAR_MOCK_ML_DATA["\'].*true',
-                r'os\.getenv\(["\']USE_REAL_DATA_ONLY["\'].*true',
-            ]
-            
-            has_proper_env_check = any(re.search(pattern, content, re.IGNORECASE) for pattern in env_check_patterns)
-            
-            # Files that handle data should have proper environment checks
-            if (any(keyword in file_path.name.lower() for keyword in ['data', 'trading', 'ml', 'engine']) and
-                mock_usage_found and not has_proper_env_check):
-                mock_issues.append("V3 Compliance: Should check environment variables to disable mock data")
-            
-            return mock_usage_found and len(mock_issues) > 0, mock_issues
-            
-        except Exception as e:
-            return False, [f"Smart mock detection failed: {str(e)}"]
-    
-    def validate_env_configuration(self, file_path: Path) -> Tuple[bool, List[str]]:
-        """Validate that file properly uses environment configuration."""
-        missing_vars = []
-        
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            
-            # Check if file uses environment variables
-            if 'os.getenv' in content or 'os.environ' in content or 'load_dotenv' in content:
-                
-                # Core files should check critical V3 settings
-                if file_path.name in ['main.py', 'main_controller.py', 'intelligent_trading_engine.py']:
-                    required_vars = self.required_env_vars['trading_core'] + self.required_env_vars['real_data_only']
-                    
-                    for var in required_vars:
-                        if var not in content:
-                            missing_vars.append(f"Missing critical V3 env var: {var}")
-                
-                # API files should check API rotation settings
-                elif any(keyword in file_path.name.lower() for keyword in ['api', 'exchange', 'rotation']):
-                    api_vars = self.required_env_vars['api_rotation'] + self.required_env_vars['binance_keys']
-                    
-                    # Check for at least some API configuration
-                    if not any(var in content for var in api_vars):
-                        missing_vars.append("No API configuration environment variables detected")
-                
-                # Data collector should check external API keys
-                elif 'external_data' in file_path.name or 'data_collector' in file_path.name:
-                    external_vars = self.required_env_vars['external_apis']
-                    
-                    if not any(var in content for var in external_vars):
-                        missing_vars.append("No external API keys configuration detected")
-            
-            return len(missing_vars) == 0, missing_vars
-            
-        except Exception as e:
-            return False, [f"Environment validation failed: {str(e)}"]
-    
-    def check_real_market_data_compliance(self, file_path: Path) -> bool:
-        """Check that file uses real market data sources only."""
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read().lower()
-            
-            # Files that handle data should have real data patterns
-            if any(keyword in file_path.name.lower() for keyword in ['data', 'market', 'price', 'trading', 'ml']):
-                
-                # Must have real data indicators
-                has_real_data = any(re.search(pattern, content, re.IGNORECASE) for pattern in self.real_data_indicators)
-                
-                # Should NOT have active mock usage (checked by smart detection)
-                has_active_mock, _ = self.smart_mock_data_detection(file_path)
-                
-                return has_real_data and not has_active_mock
-            
-            return True  # Non-data files pass by default
-            
-        except:
-            return False
-    
-    def validate_api_key_usage(self, file_path: Path) -> bool:
-        """Validate proper API key usage from environment."""
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            
-            # API-related files should use environment variables for keys
-            if any(keyword in file_path.name.lower() for keyword in ['api', 'exchange', 'client', 'binance']):
-                
-                # Should NOT have hardcoded API keys
-                dangerous_patterns = [
-                    'api_key="', "api_key='", 'api_secret="', "api_secret='",
-                    'bearer_token="', "bearer_token='", 'client_id="', "client_id='"
-                ]
-                
-                for pattern in dangerous_patterns:
-                    if pattern in content.lower():
-                        return False
-                
-                # Should use environment variables
-                env_patterns = ['os.getenv', 'os.environ', 'getenv']
-                return any(pattern in content for pattern in env_patterns)
-            
-            return True
-            
-        except:
-            return False
-    
-    def check_v3_compliance(self, file_path: Path) -> Tuple[bool, List[str]]:
-        """Check V3 trading system compliance."""
-        compliance_issues = []
-        
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            
-            # Check for V3 architecture patterns
-            if 'main' in file_path.name.lower() or 'controller' in file_path.name.lower():
-                if 'V3' not in content and 'v3' not in content.lower():
-                    compliance_issues.append("Missing V3 branding in core component")
-            
-            # Check for proper async usage in core components
-            if file_path.name in ['main_controller.py', 'intelligent_trading_engine.py']:
-                if 'async def' not in content:
-                    compliance_issues.append("Core component should use async patterns")
-            
-            # Check for proper error handling
-            if 'try:' not in content and 'except' not in content:
-                if file_path.name not in ['__init__.py', 'health_check.py']:
-                    compliance_issues.append("Missing error handling")
-            
-            # Check for logging in core components
-            if file_path.name.startswith(('main', 'trading', 'ml', 'api')):
-                if 'logging' not in content and 'print(' in content:
-                    compliance_issues.append("Should use logging instead of print statements")
-            
-            return len(compliance_issues) == 0, compliance_issues
-            
-        except Exception as e:
-            return False, [f"Compliance check failed: {str(e)}"]
-    
-    def check_api_integration(self, file_path: Path) -> bool:
-        """Check if API integration patterns are properly implemented."""
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            
-            # API-related files should have proper patterns
-            if any(keyword in file_path.name.lower() for keyword in ['api', 'exchange', 'client']):
-                required_patterns = ['try:', 'except', 'Client', 'api_key']
-                return any(pattern in content for pattern in required_patterns)
-            
-            return True  # Non-API files pass by default
-            
-        except:
-            return False
-    
-    def check_database_schema(self, file_path: Path) -> bool:
-        """Check database schema validity."""
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            
-            # Database-related files should have proper schema patterns
-            if any(keyword in file_path.name.lower() for keyword in ['data', 'persistence', 'logger']):
-                if 'CREATE TABLE' in content:
-                    # Should have proper SQL patterns
-                    return 'PRIMARY KEY' in content and 'INTEGER' in content
-                elif 'sqlite3' in content or 'database' in content.lower():
-                    return 'connect' in content
-            
-            return True  # Non-database files pass by default
-            
-        except:
-            return False
-    
-    def calculate_complexity_score(self, file_path: Path) -> float:
-        """Calculate code complexity score."""
-        try:
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-            
-            tree = ast.parse(content)
-            
-            complexity = 0
-            for node in ast.walk(tree):
-                # Add complexity for control structures
-                if isinstance(node, (ast.If, ast.For, ast.While, ast.Try)):
-                    complexity += 1
-                elif isinstance(node, ast.FunctionDef):
-                    complexity += 1
-                elif isinstance(node, ast.AsyncFunctionDef):
-                    complexity += 2  # Async functions are more complex
-                elif isinstance(node, ast.ClassDef):
-                    complexity += 2
-            
-            return complexity / max(1, len(content.split('\n'))) * 100
-            
-        except:
-            return 0.0
-    
-    def load_and_validate_env_file(self) -> Tuple[bool, Dict[str, Any]]:
-        """Load and validate the .env file against V3 requirements."""
-        env_status = {
-            'file_exists': False,
-            'can_load': False,
-            'v3_compliant': False,
-            'real_data_mode': False,
-            'api_rotation_enabled': False,
-            'missing_critical_vars': [],
-            'mock_data_violations': []
-        }
-        
-        try:
-            env_path = Path('.env')
-            if env_path.exists():
-                env_status['file_exists'] = True
-                
-                with open(env_path, 'r', encoding='utf-8', errors='ignore') as f:
-                    env_content = f.read()
-                
-                env_status['can_load'] = True
-                
-                # Check critical V3 settings for real data only
-                critical_settings = {
-                    'CLEAR_MOCK_ML_DATA': 'true',
-                    'ENABLE_MOCK_APIS': 'false', 
-                    'REALISTIC_SIMULATION': 'false',
-                    'ENABLE_REAL_MARKET_TRAINING': 'true'
-                }
-                
-                mock_violations = []
-                for setting, expected_value in critical_settings.items():
-                    if setting in env_content:
-                        # Extract the value
-                        for line in env_content.split('\n'):
-                            if line.startswith(f'{setting}='):
-                                actual_value = line.split('=', 1)[1].strip().lower()
-                                if actual_value != expected_value.lower():
-                                    mock_violations.append(f"{setting}={actual_value} (should be {expected_value})")
-                                break
-                    else:
-                        env_status['missing_critical_vars'].append(setting)
-                
-                env_status['mock_data_violations'] = mock_violations
-                env_status['real_data_mode'] = len(mock_violations) == 0
-                
-                # Check API rotation
-                env_status['api_rotation_enabled'] = 'API_ROTATION_ENABLED=true' in env_content
-                
-                # Check for required variables
-                all_required = []
-                for category_vars in self.required_env_vars.values():
-                    all_required.extend(category_vars)
-                
-                missing = []
-                for var in all_required:
-                    if var not in env_content:
-                        missing.append(var)
-                
-                env_status['missing_critical_vars'].extend(missing)
-                env_status['v3_compliant'] = len(env_status['missing_critical_vars']) == 0 and env_status['real_data_mode']
-                
-        except Exception as e:
-            print(f"Error validating .env file: {e}")
-        
-        return env_status['v3_compliant'], env_status
-    
-    @contextmanager
-    def sandboxed_environment(self):
-        """Create sandboxed environment for testing."""
-        old_path = sys.path.copy()
-        old_modules = sys.modules.copy()
-        old_argv = sys.argv.copy()
-        
-        try:
-            sys.argv = ['test_script']
-            yield
-        finally:
-            sys.path[:] = old_path
-            modules_to_remove = set(sys.modules.keys()) - set(old_modules.keys())
-            for module in modules_to_remove:
-                try:
-                    del sys.modules[module]
-                except KeyError:
-                    pass
-            sys.argv[:] = old_argv
-    
-    def safe_import_test(self, file_path: Path) -> Tuple[bool, Optional[str], List[str]]:
-        """Safely test importing a file."""
-        warnings_list = []
-        
-        try:
-            with self.sandboxed_environment():
-                stdout_capture = io.StringIO()
-                stderr_capture = io.StringIO()
-                
-                with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
-                    spec = importlib.util.spec_from_file_location(file_path.stem, file_path)
-                    if spec is None:
-                        return False, "Could not create module spec", warnings_list
-                    
-                    module = importlib.util.module_from_spec(spec)
-                    sys.modules[file_path.stem] = module
-                    spec.loader.exec_module(module)
-                
-                stderr_content = stderr_capture.getvalue()
-                if stderr_content:
-                    warnings_list.extend(stderr_content.strip().split('\n'))
-                
-                return True, None, warnings_list
-                
-        except Exception as e:
-            error_msg = f"{type(e).__name__}: {str(e)}"
-            return False, error_msg, warnings_list
-    
-    def generate_recommendations(self, result: V3TestResult, file_path: Path) -> List[str]:
-        """Generate improvement recommendations."""
-        recommendations = []
-        
-        # Critical V3 violations first
-        if result.mock_data_detected:
-            recommendations.append("CRITICAL: Remove all mock data usage - V3 requires real market data only")
-        
-        # Missing dependencies
-        if result.missing_dependencies:
-            recommendations.append(f"Install missing dependencies: {', '.join(result.missing_dependencies)}")
-        
-        # Complexity too high
-        if result.complexity_score > 50:
-            recommendations.append("Consider refactoring to reduce complexity")
-        
-        # Large files
-        if result.lines_of_code > 1000:
-            recommendations.append("Consider splitting large file into smaller modules")
-        
-        # Missing async in core components
-        if result.module_type == 'core' and not result.async_compatible:
-            recommendations.append("Consider adding async support for better performance")
-        
-        # API components without proper error handling
-        if result.module_type == 'api' and not result.api_integration_valid:
-            recommendations.append("Add proper API error handling and retry logic")
-        
-        # Environment configuration issues
-        if not result.env_config_valid:
-            recommendations.append("Fix environment configuration compliance")
-        
-        return recommendations
-    
-    def test_v3_file(self, file_path: Path) -> V3TestResult:
-        """Comprehensive test of a V3 file."""
+    def test_environment_setup(self):
+        """Test environment configuration"""
         start_time = time.time()
         
-        # Basic file info
-        file_size = file_path.stat().st_size if file_path.exists() else 0
-        module_type, component_category = self.categorize_v3_file(file_path)
-        
-        # Initialize result
-        result = V3TestResult(
-            file_path=str(file_path),
-            file_name=file_path.name,
-            module_type=module_type,
-            component_category=component_category,
-            import_success=False,
-            import_error=None,
-            syntax_valid=False,
-            syntax_error=None,
-            dependencies_met=False,
-            missing_dependencies=[],
-            runtime_safe=False,
-            runtime_error=None,
-            trading_system_compatible=False,
-            api_integration_valid=False,
-            database_schema_valid=False,
-            async_compatible=False,
-            config_compliant=False,
-            mock_data_detected=False,
-            mock_data_issues=[],
-            real_market_data_only=False,
-            env_config_valid=False,
-            env_missing_vars=[],
-            api_keys_configured=False,
-            execution_time=0,
-            file_size=file_size,
-            lines_of_code=0,
-            complexity_score=0,
-            test_timestamp=datetime.now().isoformat(),
-            warnings=[],
-            recommendations=[]
-        )
-        
+        # Test .env file exists and is valid
         try:
-            # Count lines of code
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                lines = f.readlines()
-                result.lines_of_code = sum(1 for line in lines 
-                                         if line.strip() and not line.strip().startswith('#'))
+            env_path = Path('.env')
+            if not env_path.exists():
+                self.add_result('environment', 'env_file_check', 'fail', '.env file not found')
+                return
             
-            # Test syntax
-            result.syntax_valid, result.syntax_error = self.check_syntax(file_path)
+            with open(env_path, 'r') as f:
+                env_content = f.read()
             
-            # Extract imports and check dependencies
-            imports = self.extract_imports(file_path)
-            result.dependencies_met, result.missing_dependencies = self.check_v3_dependencies(imports)
+            # Check critical V3 settings
+            critical_settings = [
+                'BINANCE_API_KEY_1', 'BINANCE_API_SECRET_1',
+                'FLASK_PORT', 'COMPREHENSIVE_ANALYSIS_ENABLED',
+                'CLEAR_MOCK_ML_DATA', 'USE_REAL_DATA_ONLY'
+            ]
             
-            # Runtime safety check
-            result.runtime_safe, result.runtime_error = self.check_runtime_safety(file_path)
+            missing_settings = []
+            for setting in critical_settings:
+                if setting not in env_content:
+                    missing_settings.append(setting)
             
-            # V3-specific tests
-            result.trading_system_compatible, compliance_issues = self.check_v3_compliance(file_path)
-            result.api_integration_valid = self.check_api_integration(file_path)
-            result.database_schema_valid = self.check_database_schema(file_path)
-            
-            # V3 SMART Real Data Validation (CRITICAL)
-            result.mock_data_detected, mock_issues = self.smart_mock_data_detection(file_path)
-            result.mock_data_issues = mock_issues
-            
-            # Environment configuration validation
-            result.env_config_valid, env_missing = self.validate_env_configuration(file_path)
-            result.env_missing_vars = env_missing
-            
-            # Real market data compliance
-            result.real_market_data_only = self.check_real_market_data_compliance(file_path)
-            
-            # API key configuration
-            result.api_keys_configured = self.validate_api_key_usage(file_path)
-            
-            # Check async compatibility
-            with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                content = f.read()
-                result.async_compatible = 'async' in content or 'await' in content
-            
-            # Calculate complexity
-            result.complexity_score = self.calculate_complexity_score(file_path)
-            
-            # Safe import test (if syntax is valid)
-            if result.syntax_valid:
-                result.import_success, result.import_error, warnings = self.safe_import_test(file_path)
-                result.warnings.extend(warnings)
-            
-            # Add compliance issues to warnings
-            if compliance_issues:
-                result.warnings.extend(compliance_issues)
-            
-            # Add mock data violations (CRITICAL for V3) - only if actual violations found
-            if result.mock_data_detected:
-                result.warnings.extend([f"CRITICAL V3 VIOLATION: {issue}" for issue in result.mock_data_issues])
-            
-            # Add environment configuration issues
-            if not result.env_config_valid:
-                result.warnings.extend([f"ENV CONFIG: {var}" for var in result.env_missing_vars])
-            
-            # Generate recommendations
-            result.recommendations = self.generate_recommendations(result, file_path)
+            if missing_settings:
+                self.add_result('environment', 'env_file_check', 'warning', 
+                              f"Missing settings: {', '.join(missing_settings[:3])}{'...' if len(missing_settings) > 3 else ''}")
+            else:
+                self.add_result('environment', 'env_file_check', 'pass', 'Environment configuration valid')
             
         except Exception as e:
-            result.warnings.append(f"Test error: {str(e)}")
+            self.add_result('environment', 'env_file_check', 'fail', f"Environment check failed: {e}")
         
-        result.execution_time = time.time() - start_time
-        return result
+        # Test required directories
+        try:
+            required_dirs = ['data', 'logs', 'backups', 'models']
+            for dir_name in required_dirs:
+                Path(dir_name).mkdir(exist_ok=True)
+            
+            self.add_result('environment', 'directory_setup', 'pass', f"Created {len(required_dirs)} required directories")
+        
+        except Exception as e:
+            self.add_result('environment', 'directory_setup', 'fail', f"Directory setup failed: {e}")
+        
+        # Test Python dependencies
+        try:
+            required_modules = ['pandas', 'numpy', 'flask', 'sqlite3', 'asyncio', 'aiohttp', 'requests']
+            missing_modules = []
+            
+            for module in required_modules:
+                try:
+                    __import__(module)
+                except ImportError:
+                    missing_modules.append(module)
+            
+            if missing_modules:
+                self.add_result('environment', 'dependencies_check', 'fail', 
+                              f"Missing modules: {', '.join(missing_modules)}")
+            else:
+                self.add_result('environment', 'dependencies_check', 'pass', 
+                              f"All {len(required_modules)} dependencies available")
+        
+        except Exception as e:
+            self.add_result('environment', 'dependencies_check', 'fail', f"Dependency check failed: {e}")
+        
+        execution_time = time.time() - start_time
+        self.add_result('environment', 'total_environment_setup', 'pass', 
+                       f"Environment tests completed in {execution_time:.2f}s", 
+                       execution_time=execution_time)
     
-    def run_comprehensive_test(self) -> Dict[str, V3TestResult]:
-        """Run comprehensive V3 system test - ONLY ON ACTUAL REPOSITORY FILES."""
-        # First, validate .env file
-        print(f"\nVALIDATING V3 ENVIRONMENT CONFIGURATION")
-        print("="*50)
+    def test_database_connectivity(self):
+        """Test database connections and schemas"""
+        start_time = time.time()
         
-        env_valid, env_status = self.load_and_validate_env_file()
-        
-        if env_status['file_exists']:
-            print(f".env file found")
-            print(f"V3 Real Data Mode: {'ENABLED' if env_status['real_data_mode'] else 'DISABLED'}")
-            print(f"API Rotation: {'ENABLED' if env_status['api_rotation_enabled'] else 'DISABLED'}")
-            
-            if env_status['mock_data_violations']:
-                print(f"CRITICAL: Mock data violations detected:")
-                for violation in env_status['mock_data_violations']:
-                    print(f"   {violation}")
-            
-            if env_status['missing_critical_vars']:
-                print(f"Missing critical environment variables:")
-                for var in env_status['missing_critical_vars'][:5]:  # Show first 5
-                    print(f"   {var}")
-                if len(env_status['missing_critical_vars']) > 5:
-                    print(f"   ... and {len(env_status['missing_critical_vars']) - 5} more")
-        else:
-            print(f".env file not found - V3 system requires environment configuration")
-        
-        python_files, other_files = self.discover_v3_files()
-        
-        print(f"\nTESTING {len(python_files)} PYTHON FILES FROM YOUR REPOSITORY")
-        print(f"Skipping any files not in your current repo manifest")
-        print(f"CRITICAL: Smart context-aware mock data detection (V3 uses REAL DATA ONLY)")
-        print("=" * 80)
-        
-        tested_files = set()
-        mock_data_violations = 0
-        env_config_issues = 0
-        
-        for file_path in python_files:
-            # Double-check this file is in our known repository files
-            if file_path.name not in self.actual_python_files:
-                print(f"Skipping unknown file: {file_path.name}")
-                continue
-                
-            print(f"Testing: {file_path.name}")
-            result = self.test_v3_file(file_path)
-            self.results[str(file_path)] = result
-            tested_files.add(file_path.name)
-            
-            # Track critical violations
-            if result.mock_data_detected:
-                mock_data_violations += 1
-            if not result.env_config_valid:
-                env_config_issues += 1
-            
-            # Status indicators
-            symbols = []
-            symbols.append("?" if result.syntax_valid else "?")
-            symbols.append("??" if result.dependencies_met else "?")
-            symbols.append("??" if result.runtime_safe else "??")
-            symbols.append("?" if result.import_success else "?")
-            symbols.append("??" if result.trading_system_compatible else "?")
-            symbols.append("??" if not result.mock_data_detected else "??")  # Smart mock data check
-            symbols.append("??" if result.env_config_valid else "?")  # Env config check
-            
-            status = ''.join(symbols)
-            print(f"   {status} [{result.module_type.upper()}] {result.component_category} ({result.execution_time:.3f}s)")
-            
-            # Show critical violations first
-            if result.mock_data_detected:
-                for issue in result.mock_data_issues[:1]:  # Show first mock data issue
-                    print(f"      ?? CRITICAL: {issue}")
-            
-            if result.warnings:
-                for warning in result.warnings[:1]:  # Show first warning
-                    print(f"      ??  {warning}")
-        
-        # Show critical summary
-        print(f"\nCRITICAL V3 VALIDATION RESULTS:")
-        print(f"   Files with mock data violations: {mock_data_violations}")
-        print(f"   Files with env config issues: {env_config_issues}")
-        
-        # Show summary of what was actually tested
-        print(f"\nTESTED FILES FROM YOUR REPOSITORY:")
-        print(f"   Python files tested: {len(tested_files)}")
-        expected_count = len(self.actual_python_files)
-        if len(tested_files) < expected_count:
-            missing = self.actual_python_files - tested_files
-            print(f"   Missing files (not found): {missing}")
-        
-        print(f"\nTesting {len(other_files)} configuration/data files...")
-        self.test_configuration_files(other_files)
-        
-        return self.results
-    
-    def test_configuration_files(self, files: List[Path]):
-        """Test configuration and data files."""
-        for file_path in files:
-            try:
-                if file_path.suffix == '.json':
-                    with open(file_path, 'r') as f:
-                        json.load(f)
-                    print(f"   ? Valid JSON: {file_path.name}")
-                
-                elif file_path.suffix == '.db':
-                    conn = sqlite3.connect(file_path)
-                    conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
-                    conn.close()
-                    print(f"   ? Valid SQLite DB: {file_path.name}")
-                
-                elif file_path.suffix == '.html':
-                    # Basic HTML validation
-                    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
-                        content = f.read()
-                        if '<html' in content.lower() and '</html>' in content.lower():
-                            print(f"   ? Valid HTML: {file_path.name}")
-                        else:
-                            print(f"   ?  HTML missing structure: {file_path.name}")
-                
-            except Exception as e:
-                print(f"   ? Invalid {file_path.suffix}: {file_path.name} - {str(e)[:50]}")
-    
-    def generate_comprehensive_report(self) -> str:
-        """Generate comprehensive V3 system report."""
-        if not self.results:
-            return "No test results available."
-        
-        total_files = len(self.results)
-        
-        # Calculate pass rates
-        syntax_passed = sum(1 for r in self.results.values() if r.syntax_valid)
-        import_passed = sum(1 for r in self.results.values() if r.import_success)
-        v3_compliant = sum(1 for r in self.results.values() if r.trading_system_compatible)
-        
-        # V3 Critical Metrics (using smart detection)
-        no_mock_data = sum(1 for r in self.results.values() if not r.mock_data_detected)
-        real_data_only = sum(1 for r in self.results.values() if r.real_market_data_only)
-        env_config_valid = sum(1 for r in self.results.values() if r.env_config_valid)
-        api_keys_proper = sum(1 for r in self.results.values() if r.api_keys_configured)
-        
-        overall_passed = sum(1 for r in self.results.values() 
-                           if r.syntax_valid and r.import_success and r.dependencies_met and r.runtime_safe)
-        
-        # V3 specific pass rate (critical for trading system)
-        v3_critical_passed = sum(1 for r in self.results.values() 
-                               if (r.syntax_valid and r.import_success and r.dependencies_met and 
-                                   r.runtime_safe and not r.mock_data_detected and r.real_market_data_only))
-        
-        # Calculate metrics by category
-        category_stats = {}
-        for result in self.results.values():
-            cat = result.module_type
-            if cat not in category_stats:
-                category_stats[cat] = {'total': 0, 'passed': 0, 'complexity': []}
-            
-            category_stats[cat]['total'] += 1
-            category_stats[cat]['complexity'].append(result.complexity_score)
-            
-            if (result.syntax_valid and result.import_success and 
-                result.dependencies_met and result.runtime_safe):
-                category_stats[cat]['passed'] += 1
-        
-        # Generate report
-        total_time = time.time() - self.test_start_time
-        total_loc = sum(r.lines_of_code for r in self.results.values())
-        total_size = sum(r.file_size for r in self.results.values())
-        avg_complexity = sum(r.complexity_score for r in self.results.values()) / total_files
-        
-        report = [
-            "\n" + "="*100,
-            "V3 TRADING SYSTEM - COMPREHENSIVE TEST REPORT",
-            "="*100,
-            f"OVERALL SUMMARY:",
-            f"   Total Files Tested: {total_files}",
-            f"   Overall Pass Rate: {overall_passed}/{total_files} ({(overall_passed/total_files)*100:.1f}%)",
-            f"   Syntax Valid: {syntax_passed}/{total_files} ({(syntax_passed/total_files)*100:.1f}%)",
-            f"   Import Success: {import_passed}/{total_files} ({(import_passed/total_files)*100:.1f}%)",
-            f"   V3 Compliant: {v3_compliant}/{total_files} ({(v3_compliant/total_files)*100:.1f}%)",
-            "",
-            f"V3 CRITICAL SMART DATA VALIDATION:",
-            f"   No Mock Data Detected: {no_mock_data}/{total_files} ({(no_mock_data/total_files)*100:.1f}%)",
-            f"   Real Market Data Only: {real_data_only}/{total_files} ({(real_data_only/total_files)*100:.1f}%)",
-            f"   Environment Config Valid: {env_config_valid}/{total_files} ({(env_config_valid/total_files)*100:.1f}%)",
-            f"   API Keys Properly Configured: {api_keys_proper}/{total_files} ({(api_keys_proper/total_files)*100:.1f}%)",
-            f"   V3 Trading Ready: {v3_critical_passed}/{total_files} ({(v3_critical_passed/total_files)*100:.1f}%)",
-            "",
-            f"PERFORMANCE METRICS:",
-            f"   Total Test Time: {total_time:.2f}s",
-            f"   Lines of Code: {total_loc:,}",
-            f"   Total File Size: {total_size:,} bytes ({total_size/1024/1024:.1f} MB)",
-            f"   Average Complexity: {avg_complexity:.1f}",
-            "",
-            f"V3 COMPONENT ANALYSIS:",
-            "-"*80
-        ]
-        
-        # Component breakdown
-        for category, stats in sorted(category_stats.items()):
-            pass_rate = (stats['passed'] / stats['total']) * 100
-            avg_complexity = sum(stats['complexity']) / len(stats['complexity']) if stats['complexity'] else 0
-            
-            status_icon = "?" if pass_rate >= 90 else "??" if pass_rate >= 70 else "?"
-            
-            report.extend([
-                f"{status_icon} {category.upper()}: {stats['passed']}/{stats['total']} ({pass_rate:.1f}%) | Complexity: {avg_complexity:.1f}"
-            ])
-        
-        # System recommendations
-        report.extend([
-            "",
-            "V3 SYSTEM RECOMMENDATIONS:",
-            "-"*50
-        ])
-        
-        # Generate V3-specific system-wide recommendations
-        mock_data_files = [r for r in self.results.values() if r.mock_data_detected]
-        env_config_files = [r for r in self.results.values() if not r.env_config_valid]
-        high_complexity_files = [r for r in self.results.values() if r.complexity_score > 50]
-        non_real_data_files = [r for r in self.results.values() if not r.real_market_data_only]
-        
-        missing_deps = set()
-        for r in self.results.values():
-            missing_deps.update(r.missing_dependencies)
-        
-        # Critical V3 violations first
-        if mock_data_files:
-            report.append(f"CRITICAL: {len(mock_data_files)} files contain actual mock data usage - V3 requires REAL DATA ONLY")
-            
-        if non_real_data_files:
-            report.append(f"{len(non_real_data_files)} files need real market data validation")
-        
-        if env_config_files:
-            report.append(f"{len(env_config_files)} files have environment configuration issues")
-        
-        # Standard recommendations
-        if high_complexity_files:
-            report.append(f"{len(high_complexity_files)} files have high complexity - consider refactoring")
-        
-        if missing_deps:
-            report.append(f"Install missing dependencies: {', '.join(sorted(missing_deps)[:5])}")
-        
-        if v3_compliant < total_files * 0.9:
-            report.append(f"{total_files - v3_compliant} files need V3 compliance improvements")
-        
-        # V3 specific recommendations
-        if v3_critical_passed < total_files * 0.95:
-            report.append(f"V3 Trading System Readiness: {v3_critical_passed}/{total_files} files pass critical validation")
-            report.append("   ? Ensure all files use real market data only")
-            report.append("   ? Validate environment configuration compliance")
-            report.append("   ? Check API key usage from environment variables")
-        
-        # Final status determination
-        system_ready = (overall_passed >= total_files * 0.9 and 
-                       v3_critical_passed >= total_files * 0.95 and
-                       len(mock_data_files) == 0)
-        
-        report.extend([
-            "",
-            f"V3 Trading System test completed at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-            f"System Status: {'READY FOR LIVE TRADING' if system_ready else 'NEEDS CRITICAL FIXES' if mock_data_files else 'READY FOR TESTING'}",
-            f"V3 Architecture: Hybrid V1 Performance + V2 Infrastructure",
-            f"Real Data Compliance: {'VERIFIED with Smart Detection' if len(mock_data_files) == 0 else 'VIOLATIONS DETECTED'}",
-            "="*100
-        ])
-        
-        return "\n".join(report)
-    
-    def save_json_report(self, filename: str = "v3_test_results.json"):
-        """Save comprehensive JSON report."""
-        # Convert results to JSON-serializable format
-        json_results = {}
-        for path, result in self.results.items():
-            json_results[path] = asdict(result)
-        
-        # System summary
-        total_files = len(self.results)
-        overall_passed = sum(1 for r in self.results.values() 
-                           if r.syntax_valid and r.import_success and r.dependencies_met and r.runtime_safe)
-        
-        report_data = {
-            'test_summary': {
-                'total_files': total_files,
-                'passed': overall_passed,
-                'pass_rate': (overall_passed / total_files) * 100 if total_files > 0 else 0,
-                'v3_compliant': sum(1 for r in self.results.values() if r.trading_system_compatible),
-                'mock_data_violations': sum(1 for r in self.results.values() if r.mock_data_detected),
-                'real_data_compliance': sum(1 for r in self.results.values() if r.real_market_data_only),
-                'test_timestamp': datetime.now().isoformat(),
-                'total_execution_time': time.time() - self.test_start_time,
-                'total_lines_of_code': sum(r.lines_of_code for r in self.results.values()),
-                'average_complexity': sum(r.complexity_score for r in self.results.values()) / total_files if total_files > 0 else 0
-            },
-            'v3_system_info': {
-                'architecture': 'V1 Performance + V2 Infrastructure',
-                'components_tested': list(self.v3_file_categories.keys()),
-                'advanced_testing_enabled': ADVANCED_TESTING,
-                'smart_mock_detection': True,
-                'real_data_only_mode': True
-            },
-            'results': json_results
+        # Test main databases
+        databases = {
+            'trading_metrics': 'data/trading_metrics.db',
+            'backtest_results': 'data/comprehensive_backtest.db',
+            'backtest_progress': 'data/backtest_progress.db',
+            'api_monitor': 'data/api_monitor.db'
         }
         
-        with open(filename, 'w') as f:
-            json.dump(report_data, f, indent=2)
+        for db_name, db_path in databases.items():
+            try:
+                # Ensure directory exists
+                Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+                
+                # Test connection
+                conn = sqlite3.connect(db_path)
+                cursor = conn.cursor()
+                
+                # Test basic operations
+                cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+                tables = cursor.fetchall()
+                
+                conn.close()
+                
+                self.add_result('database', f'{db_name}_connectivity', 'pass', 
+                              f"Connected successfully, {len(tables)} tables found")
+                
+            except Exception as e:
+                self.add_result('database', f'{db_name}_connectivity', 'fail', 
+                              f"Database connection failed: {e}")
         
-        print(f"V3 test results saved to: {filename}")
+        # Test database cleanup functionality
+        try:
+            from pnl_persistence import PnLPersistence
+            pnl = PnLPersistence()
+            
+            # Test save and load
+            test_metrics = {'total_trades': 0, 'total_pnl': 0.0, 'win_rate': 0.0}
+            save_success = pnl.save_metrics(test_metrics)
+            loaded_metrics = pnl.load_metrics()
+            
+            if save_success and loaded_metrics:
+                self.add_result('database', 'pnl_persistence_test', 'pass', "P&L persistence working correctly")
+            else:
+                self.add_result('database', 'pnl_persistence_test', 'fail', "P&L persistence failed")
+                
+        except Exception as e:
+            self.add_result('database', 'pnl_persistence_test', 'fail', f"P&L persistence test failed: {e}")
+        
+        execution_time = time.time() - start_time
+        self.add_result('database', 'total_database_tests', 'pass', 
+                       f"Database tests completed in {execution_time:.2f}s", 
+                       execution_time=execution_time)
     
-    def run_performance_benchmark(self):
-        """Run performance benchmark on V3 system."""
-        if not ADVANCED_TESTING:
-            print("Advanced testing not available - install pandas, numpy, psutil")
-            return
+    def test_component_imports(self):
+        """Test that all V3 components can be imported"""
+        start_time = time.time()
         
-        print(f"\nRUNNING V3 PERFORMANCE BENCHMARK")
-        print("-" * 50)
+        components = {
+            'main_controller': 'main_controller.py',
+            'advanced_backtester': 'advanced_backtester.py',
+            'trading_engine': 'intelligent_trading_engine.py',
+            'ml_engine': 'advanced_ml_engine.py',
+            'api_rotation': 'api_rotation_manager.py',
+            'price_action': 'price_action_core.py',
+            'multi_pair_scanner': 'multi_pair_scanner.py',
+            'external_data': 'external_data_collector.py'
+        }
         
-        # System resources
-        cpu_usage = psutil.cpu_percent(interval=1)
-        memory = psutil.virtual_memory()
-        disk = psutil.disk_usage('/')
+        successful_imports = 0
         
-        print(f"System Resources:")
-        print(f"   CPU Usage: {cpu_usage}%")
-        print(f"   Memory: {memory.percent}% ({memory.used/1024/1024/1024:.1f}GB/{memory.total/1024/1024/1024:.1f}GB)")
-        print(f"   Disk: {disk.percent}% ({disk.used/1024/1024/1024:.1f}GB/{disk.total/1024/1024/1024:.1f}GB)")
+        for component, filename in components.items():
+            try:
+                if Path(filename).exists():
+                    # Test import
+                    import importlib.util
+                    spec = importlib.util.spec_from_file_location(component, filename)
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    
+                    successful_imports += 1
+                    self.add_result('import', f'{component}_import', 'pass', f"Successfully imported {filename}")
+                else:
+                    self.add_result('import', f'{component}_import', 'skip', f"File {filename} not found")
+                
+            except Exception as e:
+                self.add_result('import', f'{component}_import', 'fail', f"Import failed: {str(e)[:100]}")
         
-        # File analysis performance
-        total_files = len(self.results)
-        total_time = time.time() - self.test_start_time
-        files_per_second = total_files / total_time if total_time > 0 else 0
+        execution_time = time.time() - start_time
+        self.add_result('import', 'total_import_tests', 'pass', 
+                       f"Import tests completed: {successful_imports}/{len(components)} successful in {execution_time:.2f}s",
+                       execution_time=execution_time)
+    
+    def start_main_system(self) -> Optional[subprocess.Popen]:
+        """Start the main V3 system for testing"""
+        try:
+            self.logger.info("Starting V3 main system for testing...")
+            
+            # Kill any existing processes on the port
+            self.kill_processes_on_port(self.base_port)
+            time.sleep(2)
+            
+            # Set environment for testing
+            env = os.environ.copy()
+            env['AUTO_START_TRADING'] = 'false'  # Don't auto-start trading during tests
+            env['TEST_MODE'] = 'true'
+            
+            # Start main.py
+            process = subprocess.Popen(
+                [sys.executable, 'main.py'],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=env,
+                universal_newlines=True
+            )
+            
+            # Wait for system to start
+            max_wait = 30
+            for i in range(max_wait):
+                time.sleep(1)
+                try:
+                    response = requests.get(f"{self.dashboard_url}/api/status", timeout=5)
+                    if response.status_code == 200:
+                        self.logger.info(f"V3 system started successfully on port {self.base_port}")
+                        return process
+                except:
+                    continue
+            
+            # If we get here, system didn't start
+            if process.poll() is None:
+                process.terminate()
+            
+            self.logger.error("Failed to start V3 system")
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error starting main system: {e}")
+            return None
+    
+    def kill_processes_on_port(self, port: int):
+        """Kill any processes running on the specified port"""
+        try:
+            for proc in psutil.process_iter(['pid', 'name', 'connections']):
+                try:
+                    for conn in proc.info['connections']:
+                        if conn.laddr.port == port:
+                            self.logger.info(f"Killing process {proc.info['pid']} ({proc.info['name']}) on port {port}")
+                            psutil.Process(proc.info['pid']).terminate()
+                            time.sleep(1)
+                            if psutil.pid_exists(proc.info['pid']):
+                                psutil.Process(proc.info['pid']).kill()
+                except (psutil.NoSuchProcess, psutil.AccessDenied, AttributeError):
+                    continue
+        except Exception as e:
+            self.logger.warning(f"Error killing processes on port {port}: {e}")
+    
+    def test_dashboard_api_endpoints(self):
+        """Test dashboard API endpoints"""
+        start_time = time.time()
         
-        print(f"\nTesting Performance:")
-        print(f"   Files per second: {files_per_second:.1f}")
-        print(f"   Average test time: {(total_time / total_files)*1000:.1f}ms per file")
+        # API endpoints to test
+        endpoints = {
+            'status': '/api/status',
+            'metrics': '/api/metrics',
+            'backtest_progress': '/api/backtest/progress',
+            'strategies': '/api/strategies',
+            'system_info': '/api/system',
+            'trades': '/api/trades'
+        }
         
-        # Complexity analysis
-        complexities = [r.complexity_score for r in self.results.values()]
-        if complexities:
-            print(f"\nComplexity Analysis:")
-            print(f"   Average complexity: {sum(complexities)/len(complexities):.1f}")
-            print(f"   Highest complexity: {max(complexities):.1f}")
-            print(f"   Files over 50 complexity: {sum(1 for c in complexities if c > 50)}")
-
+        successful_endpoints = 0
+        
+        for endpoint_name, endpoint_path in endpoints.items():
+            try:
+                url = f"{self.dashboard_url}{endpoint_path}"
+                response = requests.get(url, timeout=10)
+                
+                if response.status_code == 200:
+                    try:
+                        data = response.json()
+                        self.add_result('api', f'{endpoint_name}_endpoint', 'pass', 
+                                      f"Endpoint working, returned {len(str(data))} bytes")
+                        successful_endpoints += 1
+                    except json.JSONDecodeError:
+                        self.add_result('api', f'{endpoint_name}_endpoint', 'warning', 
+                                      f"Endpoint returns non-JSON data")
+                else:
+                    self.add_result('api', f'{endpoint_name}_endpoint', 'fail', 
+                                  f"HTTP {response.status_code}: {response.text[:100]}")
+                    
+            except requests.exceptions.ConnectionError:
+                self.add_result('api', f'{endpoint_name}_endpoint', 'fail', 
+                              "Connection refused - system not running")
+            except requests.exceptions.Timeout:
+                self.add_result('api', f'{endpoint_name}_endpoint', 'fail', 
+                              "Request timeout")
+            except Exception as e:
+                self.add_result('api', f'{endpoint_name}_endpoint', 'fail', 
+                              f"Request failed: {e}")
+        
+        # Test dashboard HTML
+        try:
+            response = requests.get(self.dashboard_url, timeout=10)
+            if response.status_code == 200 and 'html' in response.headers.get('content-type', '').lower():
+                self.add_result('api', 'dashboard_html', 'pass', "Dashboard HTML loads successfully")
+            else:
+                self.add_result('api', 'dashboard_html', 'fail', f"Dashboard HTML failed: {response.status_code}")
+        except Exception as e:
+            self.add_result('api', 'dashboard_html', 'fail', f"Dashboard HTML test failed: {e}")
+        
+        execution_time = time.time() - start_time
+        self.add_result('api', 'total_api_tests', 'pass', 
+                       f"API tests completed: {successful_endpoints}/{len(endpoints)} endpoints working in {execution_time:.2f}s",
+                       execution_time=execution_time)
+    
+    def test_backtesting_workflow(self):
+        """Test the complete backtesting workflow and progress tracking"""
+        start_time = time.time()
+        
+        try:
+            # First, clear any existing backtest state
+            self.logger.info("Clearing previous backtest state...")
+            try:
+                response = requests.post(f"{self.api_base}/backtest/clear", timeout=10)
+                if response.status_code == 200:
+                    self.add_result('backtest', 'state_clear', 'pass', "Previous state cleared successfully")
+                else:
+                    self.add_result('backtest', 'state_clear', 'warning', f"State clear returned {response.status_code}")
+            except Exception as e:
+                self.add_result('backtest', 'state_clear', 'fail', f"State clear failed: {e}")
+            
+            time.sleep(2)
+            
+            # Check initial progress state
+            try:
+                response = requests.get(f"{self.api_base}/backtest/progress", timeout=10)
+                if response.status_code == 200:
+                    progress_data = response.json()
+                    initial_status = progress_data.get('status', 'unknown')
+                    
+                    if initial_status == 'not_started':
+                        self.add_result('backtest', 'initial_state_check', 'pass', 
+                                      "Initial state is 'not_started' as expected")
+                    else:
+                        self.add_result('backtest', 'initial_state_check', 'warning', 
+                                      f"Initial state is '{initial_status}', expected 'not_started'")
+                else:
+                    self.add_result('backtest', 'initial_state_check', 'fail', 
+                                  f"Progress endpoint returned {response.status_code}")
+            except Exception as e:
+                self.add_result('backtest', 'initial_state_check', 'fail', 
+                              f"Initial state check failed: {e}")
+            
+            # Start a mini backtest (limited scope for testing)
+            self.logger.info("Starting mini backtest for testing...")
+            try:
+                backtest_config = {
+                    'pairs': ['BTCUSDT', 'ETHUSDT', 'BNBUSDT'],  # Limited pairs for testing
+                    'strategies': ['MTF_Scalping_Ultra', 'MTF_Short_Term_Momentum'],  # Limited strategies
+                    'test_mode': True
+                }
+                
+                response = requests.post(
+                    f"{self.api_base}/backtest/start",
+                    json=backtest_config,
+                    timeout=15
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if result.get('status') == 'started':
+                        self.add_result('backtest', 'start_backtest', 'pass', 
+                                      "Backtest started successfully")
+                    else:
+                        self.add_result('backtest', 'start_backtest', 'warning', 
+                                      f"Backtest start returned: {result}")
+                else:
+                    self.add_result('backtest', 'start_backtest', 'fail', 
+                                  f"Backtest start failed: {response.status_code} - {response.text[:100]}")
+                    return  # Can't continue without starting backtest
+                    
+            except Exception as e:
+                self.add_result('backtest', 'start_backtest', 'fail', f"Start backtest failed: {e}")
+                return
+            
+            # Monitor progress for a short time
+            self.logger.info("Monitoring backtest progress...")
+            progress_updates = 0
+            max_monitor_time = 30  # seconds
+            monitor_start = time.time()
+            
+            while time.time() - monitor_start < max_monitor_time:
+                try:
+                    response = requests.get(f"{self.api_base}/backtest/progress", timeout=5)
+                    if response.status_code == 200:
+                        progress = response.json()
+                        status = progress.get('status')
+                        completed = progress.get('completed', 0)
+                        total = progress.get('total', 0)
+                        
+                        progress_updates += 1
+                        
+                        if status == 'in_progress':
+                            if completed > 0:
+                                self.add_result('backtest', 'progress_tracking', 'pass', 
+                                              f"Progress tracking working: {completed}/{total} completed")
+                                break
+                        elif status == 'completed':
+                            self.add_result('backtest', 'progress_tracking', 'pass', 
+                                          "Backtest completed successfully")
+                            break
+                        elif status == 'error':
+                            self.add_result('backtest', 'progress_tracking', 'fail', 
+                                          "Backtest encountered an error")
+                            break
+                            
+                    time.sleep(2)
+                    
+                except Exception as e:
+                    self.logger.warning(f"Progress check failed: {e}")
+                    time.sleep(2)
+            
+            if progress_updates == 0:
+                self.add_result('backtest', 'progress_tracking', 'fail', 
+                              "No progress updates received")
+            elif progress_updates > 0:
+                self.add_result('backtest', 'progress_monitoring', 'pass', 
+                              f"Received {progress_updates} progress updates")
+            
+            # Test stopping the backtest
+            try:
+                response = requests.post(f"{self.api_base}/backtest/stop", timeout=10)
+                if response.status_code == 200:
+                    self.add_result('backtest', 'stop_backtest', 'pass', "Backtest stopped successfully")
+                else:
+                    self.add_result('backtest', 'stop_backtest', 'warning', 
+                                  f"Stop backtest returned {response.status_code}")
+            except Exception as e:
+                self.add_result('backtest', 'stop_backtest', 'fail', f"Stop backtest failed: {e}")
+            
+        except Exception as e:
+            self.add_result('backtest', 'workflow_test', 'fail', 
+                          f"Backtest workflow test failed: {e}")
+        
+        execution_time = time.time() - start_time
+        self.add_result('backtest', 'total_backtest_workflow', 'pass', 
+                       f"Backtest workflow tests completed in {execution_time:.2f}s",
+                       execution_time=execution_time)
+    
+    def test_cross_component_communication(self):
+        """Test communication between V3 components"""
+        start_time = time.time()
+        
+        # Test controller -> dashboard communication
+        try:
+            response = requests.get(f"{self.api_base}/system", timeout=10)
+            if response.status_code == 200:
+                system_info = response.json()
+                required_fields = ['status', 'version', 'components']
+                
+                missing_fields = [field for field in required_fields if field not in system_info]
+                if not missing_fields:
+                    self.add_result('communication', 'controller_dashboard', 'pass', 
+                                  "Controller->Dashboard communication working")
+                else:
+                    self.add_result('communication', 'controller_dashboard', 'warning', 
+                                  f"Missing fields: {missing_fields}")
+            else:
+                self.add_result('communication', 'controller_dashboard', 'fail', 
+                              f"System info endpoint failed: {response.status_code}")
+        except Exception as e:
+            self.add_result('communication', 'controller_dashboard', 'fail', 
+                          f"Controller communication failed: {e}")
+        
+        # Test metrics persistence
+        try:
+            response = requests.get(f"{self.api_base}/metrics", timeout=10)
+            if response.status_code == 200:
+                metrics = response.json()
+                if isinstance(metrics, dict) and len(metrics) > 0:
+                    self.add_result('communication', 'metrics_persistence', 'pass', 
+                                  f"Metrics communication working: {len(metrics)} metrics")
+                else:
+                    self.add_result('communication', 'metrics_persistence', 'warning', 
+                                  "Metrics endpoint returns empty data")
+            else:
+                self.add_result('communication', 'metrics_persistence', 'fail', 
+                              f"Metrics endpoint failed: {response.status_code}")
+        except Exception as e:
+            self.add_result('communication', 'metrics_persistence', 'fail', 
+                          f"Metrics communication failed: {e}")
+        
+        # Test real-time updates (WebSocket simulation)
+        try:
+            # Get initial state
+            response1 = requests.get(f"{self.api_base}/status", timeout=5)
+            time.sleep(1)
+            # Get state again
+            response2 = requests.get(f"{self.api_base}/status", timeout=5)
+            
+            if response1.status_code == 200 and response2.status_code == 200:
+                status1 = response1.json()
+                status2 = response2.json()
+                
+                # Check if timestamps are updating (indicating real-time updates)
+                ts1 = status1.get('timestamp')
+                ts2 = status2.get('timestamp')
+                
+                if ts1 and ts2 and ts1 != ts2:
+                    self.add_result('communication', 'realtime_updates', 'pass', 
+                                  "Real-time status updates working")
+                else:
+                    self.add_result('communication', 'realtime_updates', 'warning', 
+                                  "Status timestamps not updating")
+            else:
+                self.add_result('communication', 'realtime_updates', 'fail', 
+                              "Status endpoint not responding consistently")
+                
+        except Exception as e:
+            self.add_result('communication', 'realtime_updates', 'fail', 
+                          f"Real-time updates test failed: {e}")
+        
+        execution_time = time.time() - start_time
+        self.add_result('communication', 'total_communication_tests', 'pass', 
+                       f"Cross-communication tests completed in {execution_time:.2f}s",
+                       execution_time=execution_time)
+    
+    def test_error_handling_and_recovery(self):
+        """Test system error handling and recovery mechanisms"""
+        start_time = time.time()
+        
+        # Test invalid API requests
+        try:
+            invalid_endpoints = [
+                '/api/nonexistent',
+                '/api/backtest/invalid_action',
+                '/api/trading/invalid_command'
+            ]
+            
+            error_handling_working = 0
+            
+            for endpoint in invalid_endpoints:
+                response = requests.get(f"{self.dashboard_url}{endpoint}", timeout=5)
+                if response.status_code in [404, 400, 405]:  # Proper error codes
+                    error_handling_working += 1
+            
+            if error_handling_working == len(invalid_endpoints):
+                self.add_result('error_handling', 'invalid_requests', 'pass', 
+                              "Invalid requests handled correctly")
+            else:
+                self.add_result('error_handling', 'invalid_requests', 'warning', 
+                              f"{error_handling_working}/{len(invalid_endpoints)} requests handled correctly")
+                
+        except Exception as e:
+            self.add_result('error_handling', 'invalid_requests', 'fail', 
+                          f"Error handling test failed: {e}")
+        
+        # Test malformed JSON requests
+        try:
+            response = requests.post(
+                f"{self.api_base}/backtest/start",
+                data="invalid json",
+                headers={'Content-Type': 'application/json'},
+                timeout=5
+            )
+            
+            if response.status_code in [400, 422]:  # Bad request
+                self.add_result('error_handling', 'malformed_json', 'pass', 
+                              "Malformed JSON handled correctly")
+            else:
+                self.add_result('error_handling', 'malformed_json', 'warning', 
+                              f"Unexpected response to malformed JSON: {response.status_code}")
+                
+        except Exception as e:
+            self.add_result('error_handling', 'malformed_json', 'fail', 
+                          f"Malformed JSON test failed: {e}")
+        
+        execution_time = time.time() - start_time
+        self.add_result('error_handling', 'total_error_tests', 'pass', 
+                       f"Error handling tests completed in {execution_time:.2f}s",
+                       execution_time=execution_time)
+    
+    def test_performance_and_resources(self):
+        """Test system performance and resource usage"""
+        start_time = time.time()
+        
+        # Check system resources
+        try:
+            cpu_percent = psutil.cpu_percent(interval=1)
+            memory = psutil.virtual_memory()
+            disk = psutil.disk_usage('.')
+            
+            # Performance thresholds
+            cpu_threshold = 90  # %
+            memory_threshold = 90  # %
+            disk_threshold = 95  # %
+            
+            performance_issues = []
+            
+            if cpu_percent > cpu_threshold:
+                performance_issues.append(f"CPU usage high: {cpu_percent}%")
+            
+            if memory.percent > memory_threshold:
+                performance_issues.append(f"Memory usage high: {memory.percent}%")
+            
+            if disk.percent > disk_threshold:
+                performance_issues.append(f"Disk usage high: {disk.percent}%")
+            
+            if not performance_issues:
+                self.add_result('performance', 'resource_usage', 'pass', 
+                              f"Resources OK: CPU {cpu_percent}%, RAM {memory.percent}%, Disk {disk.percent}%")
+            else:
+                self.add_result('performance', 'resource_usage', 'warning', 
+                              f"Performance issues: {'; '.join(performance_issues)}")
+                
+        except Exception as e:
+            self.add_result('performance', 'resource_usage', 'fail', 
+                          f"Resource check failed: {e}")
+        
+        # Test API response times
+        try:
+            endpoints_to_test = ['/api/status', '/api/metrics', '/api/backtest/progress']
+            response_times = []
+            
+            for endpoint in endpoints_to_test:
+                endpoint_start = time.time()
+                response = requests.get(f"{self.dashboard_url}{endpoint}", timeout=10)
+                response_time = (time.time() - endpoint_start) * 1000  # ms
+                
+                response_times.append(response_time)
+            
+            avg_response_time = sum(response_times) / len(response_times)
+            
+            if avg_response_time < 1000:  # Under 1 second
+                self.add_result('performance', 'api_response_times', 'pass', 
+                              f"Average API response time: {avg_response_time:.1f}ms")
+            else:
+                self.add_result('performance', 'api_response_times', 'warning', 
+                              f"Slow API responses: {avg_response_time:.1f}ms average")
+                
+        except Exception as e:
+            self.add_result('performance', 'api_response_times', 'fail', 
+                          f"API response time test failed: {e}")
+        
+        execution_time = time.time() - start_time
+        self.add_result('performance', 'total_performance_tests', 'pass', 
+                       f"Performance tests completed in {execution_time:.2f}s",
+                       execution_time=execution_time)
+    
+    def run_comprehensive_test_suite(self):
+        """Run the complete V3 test suite"""
+        self.logger.info("="*80)
+        self.logger.info("V3 COMPREHENSIVE SYSTEM TEST SUITE STARTING")
+        self.logger.info("="*80)
+        
+        # Phase 1: Environment and setup
+        self.logger.info("\n?? Phase 1: Environment and Setup")
+        self.test_environment_setup()
+        self.test_database_connectivity()
+        self.test_component_imports()
+        
+        # Phase 2: Start the main system
+        self.logger.info("\n?? Phase 2: System Startup")
+        main_process = self.start_main_system()
+        
+        if not main_process:
+            self.add_result('system', 'startup', 'fail', "Failed to start main system")
+            self.logger.error("Cannot continue tests without running system")
+            return self.generate_test_report()
+        
+        self.add_result('system', 'startup', 'pass', "Main system started successfully")
+        
+        try:
+            # Phase 3: API and Dashboard tests
+            self.logger.info("\n?? Phase 3: API and Dashboard Testing")
+            time.sleep(5)  # Let system fully initialize
+            self.test_dashboard_api_endpoints()
+            
+            # Phase 4: Cross-component communication
+            self.logger.info("\n?? Phase 4: Cross-Component Communication")
+            self.test_cross_component_communication()
+            
+            # Phase 5: Backtesting workflow (THE MAIN ISSUE YOU WANTED FIXED)
+            self.logger.info("\n?? Phase 5: Backtesting Workflow Testing")
+            self.test_backtesting_workflow()
+            
+            # Phase 6: Error handling and recovery
+            self.logger.info("\n??  Phase 6: Error Handling and Recovery")
+            self.test_error_handling_and_recovery()
+            
+            # Phase 7: Performance and resources
+            self.logger.info("\n? Phase 7: Performance and Resource Testing")
+            self.test_performance_and_resources()
+            
+        finally:
+            # Cleanup: Stop the main system
+            self.logger.info("\n?? Cleanup: Stopping Test System")
+            try:
+                if main_process and main_process.poll() is None:
+                    self.logger.info("Terminating main system...")
+                    main_process.terminate()
+                    
+                    # Wait for graceful shutdown
+                    try:
+                        main_process.wait(timeout=10)
+                        self.add_result('cleanup', 'system_shutdown', 'pass', "System shut down gracefully")
+                    except subprocess.TimeoutExpired:
+                        self.logger.warning("Graceful shutdown timeout, force killing...")
+                        main_process.kill()
+                        main_process.wait()
+                        self.add_result('cleanup', 'system_shutdown', 'warning', "System force killed")
+            except Exception as e:
+                self.add_result('cleanup', 'system_shutdown', 'fail', f"Shutdown error: {e}")
+            
+            # Final cleanup
+            self.kill_processes_on_port(self.base_port)
+        
+        return self.generate_test_report()
+    
+    def generate_test_report(self) -> Dict:
+        """Generate comprehensive test report"""
+        total_execution_time = time.time() - self.start_time
+        
+        # Count results by status
+        status_counts = {'pass': 0, 'fail': 0, 'warning': 0, 'skip': 0}
+        component_results = {}
+        
+        for result in self.results:
+            status_counts[result.status] += 1
+            
+            if result.component not in component_results:
+                component_results[result.component] = {'pass': 0, 'fail': 0, 'warning': 0, 'skip': 0}
+            
+            component_results[result.component][result.status] += 1
+        
+        total_tests = len(self.results)
+        pass_rate = (status_counts['pass'] / total_tests * 100) if total_tests > 0 else 0
+        
+        # Determine overall system status
+        if status_counts['fail'] == 0 and status_counts['warning'] <= total_tests * 0.1:
+            system_status = "EXCELLENT"
+        elif status_counts['fail'] <= total_tests * 0.05 and status_counts['warning'] <= total_tests * 0.2:
+            system_status = "GOOD"
+        elif status_counts['fail'] <= total_tests * 0.15:
+            system_status = "ACCEPTABLE"
+        else:
+            system_status = "NEEDS_ATTENTION"
+        
+        # Critical issues
+        critical_issues = [r for r in self.results if r.status == 'fail' and 
+                          r.component in ['system', 'backtest', 'communication']]
+        
+        report = {
+            'summary': {
+                'total_tests': total_tests,
+                'pass_rate': pass_rate,
+                'system_status': system_status,
+                'execution_time': total_execution_time,
+                'timestamp': datetime.now().isoformat()
+            },
+            'status_counts': status_counts,
+            'component_results': component_results,
+            'critical_issues': [
+                {
+                    'component': issue.component,
+                    'test': issue.test_name,
+                    'message': issue.message
+                } for issue in critical_issues
+            ],
+            'detailed_results': [asdict(result) for result in self.results]
+        }
+        
+        # Print summary to console
+        print("\n" + "="*80)
+        print("V3 SYSTEM TEST REPORT")
+        print("="*80)
+        print(f"Overall Status: {system_status}")
+        print(f"Total Tests: {total_tests}")
+        print(f"Pass Rate: {pass_rate:.1f}%")
+        print(f"Execution Time: {total_execution_time:.1f}s")
+        print()
+        print("Results by Status:")
+        for status, count in status_counts.items():
+            if count > 0:
+                print(f"  {status.upper()}: {count}")
+        print()
+        
+        if critical_issues:
+            print("CRITICAL ISSUES:")
+            for issue in critical_issues:
+                print(f"  ? [{issue['component']}] {issue['test']}: {issue['message']}")
+            print()
+        
+        print("Component Summary:")
+        for component, counts in component_results.items():
+            total_component = sum(counts.values())
+            component_pass_rate = (counts['pass'] / total_component * 100) if total_component > 0 else 0
+            status_icon = "?" if counts['fail'] == 0 else "??" if counts['fail'] <= 1 else "?"
+            print(f"  {status_icon} {component}: {component_pass_rate:.0f}% pass rate ({counts['pass']}/{total_component})")
+        
+        print("="*80)
+        
+        return report
+    
+    def save_test_report(self, report: Dict, filename: str = None):
+        """Save test report to file"""
+        if filename is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"v3_test_report_{timestamp}.json"
+        
+        try:
+            with open(filename, 'w') as f:
+                json.dump(report, f, indent=2, default=str)
+            self.logger.info(f"Test report saved to: {filename}")
+        except Exception as e:
+            self.logger.error(f"Failed to save test report: {e}")
 
 def main():
-    """Main function to run V3 comprehensive test."""
+    """Main function to run V3 comprehensive tests"""
     import argparse
     
     parser = argparse.ArgumentParser(description="V3 Trading System Comprehensive Test Suite")
-    parser.add_argument(
-        "directory", 
-        nargs="?", 
-        default=".", 
-        help="Directory to test (default: current directory)"
-    )
-    parser.add_argument(
-        "--json-report", 
-        action="store_true", 
-        help="Generate JSON report"
-    )
-    parser.add_argument(
-        "--benchmark", 
-        action="store_true", 
-        help="Run performance benchmark"
-    )
-    parser.add_argument(
-        "--exclude", 
-        nargs="*", 
-        default=["__pycache__", ".git", ".pytest_cache", "venv", "env", "logs"],
-        help="Patterns to exclude from testing"
-    )
-    
+    parser.add_argument('--save-report', action='store_true', help='Save test report to JSON file')
+    parser.add_argument('--port', type=int, help='Override dashboard port')
     args = parser.parse_args()
     
-    # Create test harness
-    harness = V3TradingSystemTestHarness(args.directory, args.exclude)
+    # Override port if specified
+    if args.port:
+        os.environ['FLASK_PORT'] = str(args.port)
     
-    print("Starting V3 Trading System Comprehensive Analysis...")
+    # Create and run tester
+    tester = V3SystemTester()
     
-    # Run comprehensive test
-    results = harness.run_comprehensive_test()
-    
-    # Generate and display report
-    report = harness.generate_comprehensive_report()
-    print(report)
-    
-    # Save JSON report if requested
-    if args.json_report:
-        harness.save_json_report()
-    
-    # Run benchmark if requested
-    if args.benchmark:
-        harness.run_performance_benchmark()
-    
-    # Final status
-    total_files = len(results)
-    passed_files = sum(1 for r in results.values() 
-                      if r.syntax_valid and r.import_success and r.dependencies_met and r.runtime_safe)
-    
-    mock_data_violations = sum(1 for r in results.values() if r.mock_data_detected)
-    
-    print(f"\n{'='*60}")
-    if passed_files >= total_files * 0.9 and mock_data_violations == 0:
-        print("V3 TRADING SYSTEM: READY FOR LIVE TRADING!")
-        print(f"{passed_files}/{total_files} files passed comprehensive testing")
-        print("REAL DATA COMPLIANCE: VERIFIED with Smart Detection")
-        exit_code = 0
-    elif mock_data_violations > 0:
-        print("V3 TRADING SYSTEM: CRITICAL VIOLATIONS DETECTED")
-        print(f"CRITICAL: {mock_data_violations} files contain actual mock data usage")
-        print("V3 requires REAL MARKET DATA ONLY")
-        exit_code = 2
-    else:
-        print("V3 TRADING SYSTEM: NEEDS IMPROVEMENTS")
-        print(f"{total_files - passed_files}/{total_files} files need attention")
-        exit_code = 1
-    
-    print(f"V3 Architecture: Hybrid V1 + V2 with Smart ML Enhancement")
-    print(f"Test Coverage: Core, ML, API, Data, Analysis, Backtesting")
-    print(f"Smart Mock Detection: Context-Aware Pattern Matching")
-    print(f"Completed in {time.time() - harness.test_start_time:.1f}s")
-    print("="*60)
-    
-    sys.exit(exit_code)
-
+    try:
+        # Run comprehensive test suite
+        report = tester.run_comprehensive_test_suite()
+        
+        # Save report if requested
+        if args.save_report:
+            tester.save_test_report(report)
+        
+        # Determine exit code
+        critical_failures = len([r for r in tester.results if r.status == 'fail' and 
+                                r.component in ['system', 'backtest']])
+        
+        if critical_failures == 0:
+            print("\n?? ALL CRITICAL TESTS PASSED - V3 System is ready!")
+            exit_code = 0
+        elif critical_failures <= 2:
+            print(f"\n??  {critical_failures} critical issues found - system needs attention")
+            exit_code = 1
+        else:
+            print(f"\n? {critical_failures} critical failures - system not ready")
+            exit_code = 2
+        
+        sys.exit(exit_code)
+        
+    except KeyboardInterrupt:
+        print("\n\n?? Test suite interrupted by user")
+        sys.exit(130)
+    except Exception as e:
+        print(f"\n?? Test suite crashed: {e}")
+        traceback.print_exc()
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
