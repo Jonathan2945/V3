@@ -4,17 +4,10 @@
 V3 TRADING SYSTEM - FIXED MAIN ENTRY POINT
 ==========================================
 CRITICAL FIXES APPLIED:
-- Graceful handling of missing dependencies
-- Proper error handling for import failures
-- Enhanced logging and debugging
+- Fixed controller initialization issue
+- Proper trading engine capability detection
+- Enhanced error handling for import failures
 - Safe fallback for missing components
-- Maintains existing functionality when possible
-
-Changes Made:
-- Added try/except blocks for all imports
-- Graceful degradation when dependencies missing
-- Better error messages and debugging info
-- Safe environment variable handling
 - Maintains V3 real-data-only compliance
 """
 
@@ -37,7 +30,7 @@ sys.setrecursionlimit(5000)
 current_dir = Path(__file__).parent.resolve()
 sys.path.insert(0, str(current_dir))
 
-# CRITICAL: Safe import handling to fix 0/36 import success rate
+# CRITICAL: Safe import handling
 def safe_import(module_name: str, package_name: str = None, required: bool = True):
     """Safely import a module with proper error handling"""
     try:
@@ -74,6 +67,7 @@ required_packages = {
     'pandas': 'pandas>=2.0.0',
     'numpy': 'numpy>=1.24.0',
     'psutil': 'psutil>=5.9.5',
+    'flask': 'flask>=2.0.0',
     'asyncio': None,  # Built-in
     'logging': None,  # Built-in
     'sqlite3': None,  # Built-in
@@ -83,7 +77,7 @@ required_packages = {
 AVAILABLE_PACKAGES = {}
 
 for package, install_cmd in required_packages.items():
-    result = safe_import(package, required=(package in ['asyncio', 'logging', 'sqlite3']))
+    result = safe_import(package, required=(package in ['asyncio', 'logging']))
     AVAILABLE_PACKAGES[package] = result is not None
     
     if not AVAILABLE_PACKAGES[package] and install_cmd:
@@ -97,7 +91,7 @@ if not BASIC_REQUIREMENTS_MET:
     sys.exit(1)
 
 class V3SystemManager:
-    """Enhanced system manager with graceful error handling"""
+    """Enhanced system manager with graceful error handling and FIXED initialization"""
     
     def __init__(self):
         self.controller: Optional['V3TradingController'] = None
@@ -149,7 +143,7 @@ class V3SystemManager:
             self.logger.warning("Using fallback logging configuration")
     
     def _check_system_capabilities(self):
-        """Check what system capabilities are available"""
+        """FIXED - Check what system capabilities are available"""
         self.logger.info("Checking V3 system capabilities...")
         
         capabilities = {
@@ -163,34 +157,33 @@ class V3SystemManager:
             'data_analysis': AVAILABLE_PACKAGES.get('pandas', False) and AVAILABLE_PACKAGES.get('numpy', False)
         }
         
-        # Check for V3 components
+        # FIXED - Check for V3 components with proper capability mapping
         v3_components = [
-            ('main_controller', 'V3TradingController'),
-            ('intelligent_trading_engine', 'IntelligentTradingEngine'),
-            ('advanced_ml_engine', 'AdvancedMLEngine'),
-            ('advanced_backtester', 'V3RealDataBacktester'),
-            ('api_rotation_manager', 'get_api_key'),
-            ('external_data_collector', 'ExternalDataCollector')
+            ('main_controller', 'V3TradingController', 'trading_engine'),
+            ('intelligent_trading_engine', 'IntelligentTradingEngine', 'trading_engine'),
+            ('advanced_ml_engine', 'AdvancedMLEngine', 'ml_engine'),
+            ('advanced_backtester', 'V3RealDataBacktester', 'backtesting'),
+            ('api_rotation_manager', 'get_api_key', 'api_rotation'),
+            ('external_data_collector', 'ExternalDataCollector', 'external_data')
         ]
         
-        for module_name, class_name in v3_components:
+        for module_name, class_name, capability_key in v3_components:
             try:
                 module = __import__(module_name)
                 if hasattr(module, class_name):
-                    capability_key = module_name.split('_')[0] if '_' in module_name else module_name
                     if capability_key in capabilities:
                         capabilities[capability_key] = True
-                    self.logger.info(f"? {class_name} available")
+                    self.logger.info(f"✓ {class_name} available")
             except Exception as e:
-                self.logger.warning(f"? {module_name} not available: {e}")
+                self.logger.warning(f"✗ {module_name} not available: {e}")
         
         # Check Flask/Dashboard capability
         flask = safe_import('flask', required=False)
         if flask:
             capabilities['dashboard'] = True
-            self.logger.info("? Flask dashboard available")
+            self.logger.info("✓ Flask dashboard available")
         else:
-            self.logger.warning("? Flask dashboard not available")
+            self.logger.warning("✗ Flask dashboard not available")
         
         self.available_features = capabilities
         self.logger.info(f"Available features: {sum(capabilities.values())}/{len(capabilities)}")
@@ -206,7 +199,7 @@ class V3SystemManager:
             self.logger.error(f"Python 3.8+ required. Current: {sys.version}")
             return False
         
-        self.logger.info(f"? Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+        self.logger.info(f"✓ Python {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
         
         # Check .env file
         env_path = Path('.env')
@@ -272,7 +265,7 @@ class V3SystemManager:
             except Exception as e:
                 self.logger.warning(f"Could not create directory {dir_name}: {e}")
         
-        self.logger.info("? System requirements check passed")
+        self.logger.info("✓ System requirements check passed")
         return True
     
     def setup_signal_handlers(self):
@@ -327,29 +320,29 @@ class V3SystemManager:
     ================================================================
     |                V3 TRADING SYSTEM                             |
     |                                                              |
-    |  Real Data Only � Enhanced Error Handling � API Rotation    |
-    |  Multi-Timeframe Analysis � ML Strategy Discovery           |
+    |  Real Data Only • Enhanced Error Handling • API Rotation    |
+    |  Multi-Timeframe Analysis • ML Strategy Discovery           |
     ================================================================
     
     SYSTEM STATUS:
-    ? Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}
-    ? PID: {os.getpid()}
-    ? Directory: {self.directory if hasattr(self, 'directory') else 'Current'}
+    ✓ Python: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}
+    ✓ PID: {os.getpid()}
+    ✓ Directory: {current_dir}
     
     AVAILABLE FEATURES:
-    {'?' if self.available_features.get('database') else '?'} Database Support
-    {'?' if self.available_features.get('data_analysis') else '?'} Data Analysis (Pandas/NumPy)
-    {'?' if self.available_features.get('trading_engine') else '?'} Trading Engine
-    {'?' if self.available_features.get('ml_engine') else '?'} ML Engine
-    {'?' if self.available_features.get('api_rotation') else '?'} API Rotation
-    {'?' if self.available_features.get('dashboard') else '?'} Web Dashboard
-    {'?' if self.available_features.get('backtesting') else '?'} Advanced Backtesting
+    {'✓' if self.available_features.get('database') else '✗'} Database Support
+    {'✓' if self.available_features.get('data_analysis') else '✗'} Data Analysis (Pandas/NumPy)
+    {'✓' if self.available_features.get('trading_engine') else '✗'} Trading Engine
+    {'✓' if self.available_features.get('ml_engine') else '✗'} ML Engine
+    {'✓' if self.available_features.get('api_rotation') else '✗'} API Rotation
+    {'✓' if self.available_features.get('dashboard') else '✗'} Web Dashboard
+    {'✓' if self.available_features.get('backtesting') else '✗'} Advanced Backtesting
     
     CRITICAL VALIDATION:
-    ? Real Data Only Mode (No Mock Data)
-    ? Environment Configuration Loaded
-    ? Error Handling Enhanced
-    ? Graceful Shutdown Support
+    ✓ Real Data Only Mode (No Mock Data)
+    ✓ Environment Configuration Loaded
+    ✓ Error Handling Enhanced
+    ✓ Graceful Shutdown Support
         """
         print(banner)
         
@@ -358,35 +351,40 @@ class V3SystemManager:
         if missing_features:
             print("    MISSING FEATURES (Install dependencies to enable):")
             for feature in missing_features[:5]:  # Show first 5
-                print(f"    ? {feature.replace('_', ' ').title()}")
+                print(f"    ✗ {feature.replace('_', ' ').title()}")
             if len(missing_features) > 5:
                 print(f"    ... and {len(missing_features) - 5} more")
     
     async def initialize_controller(self):
-        """Initialize the trading controller with error handling"""
+        """FIXED - Initialize the trading controller with proper error handling"""
         try:
             self.logger.info("Initializing V3 Trading Controller...")
             
-            # Check if main controller is available
+            # FIXED - Check if trading controller is available
             if not self.available_features.get('trading_engine', False):
-                self.logger.warning("Trading controller not available - running in limited mode")
+                self.logger.error("V3TradingController not available - check imports")
                 return False
             
-            # Import and initialize controller
+            # FIXED - Import and initialize controller
             try:
                 from main_controller import V3TradingController
                 self.controller = V3TradingController()
                 
+                # Initialize the controller
                 success = await self.controller.initialize_system()
                 if not success:
-                    raise RuntimeError("Controller initialization failed")
+                    self.logger.error("Controller initialization returned False")
+                    return False
                 
-                self.logger.info("? Trading controller initialized successfully")
+                self.logger.info("✓ V3 Trading Controller initialized successfully")
                 return True
                 
             except ImportError as e:
                 self.logger.error(f"Could not import V3TradingController: {e}")
-                self.logger.info("Running in safe mode without trading controller")
+                return False
+            except Exception as e:
+                self.logger.error(f"Controller initialization failed: {e}")
+                traceback.print_exc()
                 return False
             
         except Exception as e:
@@ -394,29 +392,33 @@ class V3SystemManager:
             return False
     
     def start_flask_app(self):
-        """Start Flask app with error handling"""
+        """FIXED - Start Flask app with proper error handling"""
         if not self.available_features.get('dashboard', False):
             self.logger.warning("Dashboard not available - Flask not installed")
+            return
+        
+        if not self.controller:
+            self.logger.warning("No controller available - cannot start Flask app")
             return
         
         def run_flask():
             try:
                 self.logger.info("Starting Flask dashboard server...")
                 
-                if self.controller and hasattr(self.controller, 'run_flask_app'):
+                if hasattr(self.controller, 'run_flask_app'):
                     self.controller.run_flask_app()
                 else:
-                    self.logger.warning("No Flask app method available")
+                    self.logger.error("Controller has no run_flask_app method")
                     
             except Exception as e:
                 self.logger.error(f"Flask server error: {e}", exc_info=True)
         
         self.flask_thread = threading.Thread(target=run_flask, daemon=True)
         self.flask_thread.start()
-        time.sleep(2)  # Wait for Flask to start
+        time.sleep(3)  # Wait for Flask to start
         
         dashboard_port = int(os.getenv('FLASK_PORT', '8102'))
-        self.logger.info(f"Dashboard available at: http://localhost:{dashboard_port}")
+        self.logger.info(f"Dashboard should be available at: http://localhost:{dashboard_port}")
     
     def print_status(self):
         """Enhanced status display"""
@@ -424,35 +426,35 @@ class V3SystemManager:
         auto_start = os.getenv('AUTO_START_TRADING', 'false').lower() == 'true'
         
         print("=" * 70)
-        print("?? V3 TRADING SYSTEM READY!")
+        print("🚀 V3 TRADING SYSTEM READY!")
         
         # Show available features
-        if self.available_features.get('dashboard'):
-            print(f"?? Dashboard: http://localhost:{dashboard_port}")
+        if self.available_features.get('dashboard') and self.controller:
+            print(f"🌐 Dashboard: http://localhost:{dashboard_port}")
         
-        if self.available_features.get('trading_engine'):
-            print("? Trading Engine: READY")
+        if self.available_features.get('trading_engine') and self.controller:
+            print("✓ Trading Engine: READY")
         else:
-            print("? Trading Engine: NOT AVAILABLE")
+            print("✗ Trading Engine: NOT AVAILABLE")
         
         if self.available_features.get('api_rotation'):
-            print("?? API Rotation: ACTIVE")
+            print("🔄 API Rotation: ACTIVE")
         
-        print("? Real Data Only Mode: ACTIVE")
-        print("? Enhanced Error Handling: ACTIVE")
+        print("✓ Real Data Only Mode: ACTIVE")
+        print("✓ Enhanced Error Handling: ACTIVE")
         print("=" * 70)
         
         if auto_start:
-            print("\n?? AUTO_START_TRADING=true - Will start automatically")
+            print("\n🚀 AUTO_START_TRADING=true - Will start automatically")
         else:
-            print("\n?? Monitor mode - Use dashboard to start trading")
-            if self.available_features.get('dashboard'):
+            print("\n🔍 Monitor mode - Use dashboard to start trading")
+            if self.available_features.get('dashboard') and self.controller:
                 print(f"Dashboard: http://localhost:{dashboard_port}")
         
-        print("\n?? V3 System running... Press Ctrl+C to shutdown gracefully")
+        print("\n🔄 V3 System running... Press Ctrl+C to shutdown gracefully")
     
     async def run_system(self):
-        """Enhanced main system run loop"""
+        """FIXED - Enhanced main system run loop"""
         try:
             if not self.check_requirements():
                 self.logger.error("System requirements not met - exiting")
@@ -461,21 +463,32 @@ class V3SystemManager:
             self.print_startup_banner()
             self.setup_signal_handlers()
             
+            # FIXED - Initialize controller first
             controller_initialized = await self.initialize_controller()
             
-            # Start dashboard if available
+            if not controller_initialized:
+                self.logger.error("CRITICAL: Controller initialization failed")
+                print("\n" + "="*60)
+                print("CONTROLLER INITIALIZATION FAILED:")
+                print("1. Check that all dependencies are installed")
+                print("2. Verify your .env configuration")
+                print("3. Check logs/v3_system.log for details")
+                print("="*60)
+                return False
+            
+            # Start dashboard if controller available
             self.start_flask_app()
             
             self.print_status()
             
             # Auto-start trading if enabled and controller available
             auto_start = os.getenv('AUTO_START_TRADING', 'false').lower() == 'true'
-            if auto_start and controller_initialized and self.controller:
+            if auto_start and self.controller:
                 self.logger.info("AUTO_START_TRADING enabled")
                 try:
                     result = await self.controller.start_trading()
                     if result.get('success'):
-                        self.logger.info("? Trading started automatically")
+                        self.logger.info("✓ Trading started automatically")
                     else:
                         self.logger.warning(f"Auto-start failed: {result.get('error')}")
                 except Exception as e:
@@ -506,7 +519,7 @@ class V3SystemManager:
             return False
 
 def main():
-    """Enhanced main function with comprehensive error handling"""
+    """FIXED - Enhanced main function with comprehensive error handling"""
     system_manager = V3SystemManager()
     
     try:
@@ -548,6 +561,6 @@ def main():
             system_manager.logger.info("V3 Trading System shutdown complete")
 
 if __name__ == "__main__":
-    print("?? Starting V3 Trading System...")
-    print("? Real Data Only Mode � Enhanced Error Handling � Graceful Imports")
+    print("🚀 Starting V3 Trading System...")
+    print("✓ Real Data Only Mode • Enhanced Error Handling • Graceful Imports")
     main()
