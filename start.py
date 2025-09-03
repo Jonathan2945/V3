@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 """
-V3 MAIN TRADING SYSTEM STARTER - FIXED & ENHANCED
-==================================================
-FIXES APPLIED:
-- Enhanced port management and process cleanup
-- Better error handling and recovery
-- Improved cross-system communication
-- More robust startup validation
-- Enhanced monitoring and status checks
+V3 MAIN TRADING SYSTEM STARTER - COMPLETE UPDATED VERSION
+==========================================================
+All encoding issues fixed, enhanced functionality, production ready
 """
 
 import subprocess
@@ -21,13 +16,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 import logging
 import threading
-from typing import Optional
+from typing import Optional, Dict
 
 # Load environment variables
 load_dotenv()
 
 class V3MainSystemStarter:
-    """Enhanced system starter with better error handling and monitoring"""
+    """Complete V3 system starter with all fixes applied"""
     
     def __init__(self):
         self.main_proc = None
@@ -47,7 +42,7 @@ class V3MainSystemStarter:
         self.logger.info("V3 Main System Starter initialized")
         
     def _setup_logging(self):
-        """Setup logging for the starter"""
+        """Setup comprehensive logging"""
         try:
             Path('logs').mkdir(exist_ok=True)
             
@@ -68,7 +63,7 @@ class V3MainSystemStarter:
             self.logger = logging.getLogger(__name__)
 
     def check_port_with_timeout(self, port: int, timeout: int = 5) -> bool:
-        """Check if port is in use with timeout"""
+        """Check if port is in use"""
         try:
             for conn in psutil.net_connections():
                 if hasattr(conn.laddr, 'port') and conn.laddr.port == port and conn.status == 'LISTEN':
@@ -79,7 +74,7 @@ class V3MainSystemStarter:
             return False
 
     def kill_port_enhanced(self, port: int) -> bool:
-        """Enhanced port killing with better error handling"""
+        """Enhanced port cleanup with multiple methods"""
         self.logger.info(f"Freeing port {port}...")
         
         killed_processes = 0
@@ -110,38 +105,10 @@ class V3MainSystemStarter:
                     self.logger.warning(f"Error handling process: {e}")
                     continue
             
-            # Method 2: Fallback using system commands
-            if killed_processes == 0:
+            # Method 2: System commands fallback
+            if killed_processes == 0 and os.name == 'posix':
                 try:
-                    # Try netstat + kill on Unix systems
-                    if os.name == 'posix':
-                        result = subprocess.run(
-                            ['netstat', '-tulpn'], 
-                            capture_output=True, text=True, timeout=5
-                        )
-                        
-                        for line in result.stdout.split('\n'):
-                            if f':{port}' in line and 'LISTEN' in line:
-                                parts = line.split()
-                                for part in parts:
-                                    if '/' in part and part.split('/')[0].isdigit():
-                                        pid = int(part.split('/')[0])
-                                        try:
-                                            os.kill(pid, signal.SIGTERM)
-                                            self.logger.info(f"Killed PID {pid} using netstat method")
-                                            killed_processes += 1
-                                        except ProcessLookupError:
-                                            pass
-                                        except Exception as e:
-                                            self.logger.warning(f"Failed to kill PID {pid}: {e}")
-                                        break
-                        
-                except Exception as e:
-                    self.logger.warning(f"Netstat method failed: {e}")
-            
-            # Method 3: Final fallback using lsof
-            if killed_processes == 0:
-                try:
+                    # Try lsof method
                     result = subprocess.run(
                         ['lsof', '-ti', f':{port}'], 
                         capture_output=True, text=True, timeout=5
@@ -175,7 +142,7 @@ class V3MainSystemStarter:
             return False
 
     def check_environment_enhanced(self) -> bool:
-        """Enhanced environment validation"""
+        """Complete environment validation"""
         self.logger.info("Performing comprehensive environment check...")
         
         # Check .env file
@@ -190,7 +157,7 @@ class V3MainSystemStarter:
             'main.py': 'Main system entry point',
             'main_controller.py': 'Main trading controller', 
             'intelligent_trading_engine.py': 'Trading engine',
-            'api_rotation_manager.py': 'API rotation system'
+            'dashboard.html': 'Web dashboard interface'
         }
         
         missing_files = []
@@ -241,7 +208,7 @@ class V3MainSystemStarter:
                         f"TradeAmount=${trade_amount}, MinConfidence={min_confidence}%, "
                         f"Testnet={testnet_mode}")
         
-        print("âœ“ Environment check passed")
+        print("Environment check passed")
         print(f"  - System Port: {self.port}")
         print(f"  - Trade Amount: ${trade_amount}")
         print(f"  - Min Confidence: {min_confidence}%")
@@ -252,8 +219,6 @@ class V3MainSystemStarter:
     def free_ports(self) -> bool:
         """Free all required ports"""
         ports_to_free = [self.port, self.main_system_port]
-        
-        # Remove duplicates while preserving order
         ports_to_free = list(dict.fromkeys(ports_to_free))
         
         all_freed = True
@@ -269,16 +234,16 @@ class V3MainSystemStarter:
         return all_freed
 
     def setup_auto_start_environment(self, auto_start: bool = False):
-        """Enhanced environment setup for auto-start"""
+        """Setup environment for auto-start"""
         if auto_start:
             os.environ['AUTO_START_TRADING'] = 'true'
-            self.logger.info("AUTO_START_TRADING enabled - system will start trading automatically")
+            self.logger.info("AUTO_START_TRADING enabled")
         else:
             os.environ['AUTO_START_TRADING'] = 'false' 
-            self.logger.info("Manual start mode - use dashboard to start trading")
+            self.logger.info("Manual start mode enabled")
 
     def start_main_system_enhanced(self, auto_start: bool = False) -> bool:
-        """Enhanced main system startup"""
+        """Start the main trading system"""
         self.logger.info(f"Starting V3 Main Trading System on port {self.port}...")
         
         try:
@@ -290,7 +255,7 @@ class V3MainSystemStarter:
             env['PYTHONPATH'] = str(Path.cwd())
             env['FLASK_PORT'] = str(self.port)
             
-            # Start main system with enhanced configuration
+            # Start main system
             self.main_proc = subprocess.Popen(
                 [sys.executable, 'main.py'],
                 stdout=subprocess.PIPE,
@@ -300,11 +265,10 @@ class V3MainSystemStarter:
                 cwd=Path.cwd()
             )
             
-            # Enhanced startup validation
-            startup_timeout = 15  # seconds
+            # Wait for startup
+            startup_timeout = 15
             for attempt in range(startup_timeout):
                 if self.main_proc.poll() is not None:
-                    # Process died
                     stdout, stderr = self.main_proc.communicate()
                     self.logger.error(f"Main system failed to start:")
                     self.logger.error(f"STDOUT: {stdout}")
@@ -315,14 +279,14 @@ class V3MainSystemStarter:
                 try:
                     response = requests.get(f'http://localhost:{self.port}/api/status', timeout=2)
                     if response.status_code == 200:
-                        self.logger.info("Main system started successfully and is responding")
+                        self.logger.info("Main system started successfully")
                         return True
                 except requests.exceptions.RequestException:
                     pass
                 
                 time.sleep(1)
             
-            self.logger.warning("Main system started but Flask may not be fully ready")
+            self.logger.warning("Main system started but may not be fully ready")
             return True
             
         except Exception as e:
@@ -330,7 +294,7 @@ class V3MainSystemStarter:
             return False
 
     def check_system_health(self) -> Dict[str, bool]:
-        """Enhanced system health check"""
+        """Check system health status"""
         health = {
             'process_running': False,
             'flask_responding': False,
@@ -365,12 +329,11 @@ class V3MainSystemStarter:
         return health
 
     def monitor_system_health(self):
-        """Background system health monitoring"""
+        """Background health monitoring"""
         while self.running:
             try:
                 current_time = time.time()
                 
-                # Perform health check every 30 seconds
                 if current_time - self.last_health_check > 30:
                     health = self.check_system_health()
                     
@@ -383,52 +346,52 @@ class V3MainSystemStarter:
                     
                     self.last_health_check = current_time
                 
-                time.sleep(5)  # Check every 5 seconds
+                time.sleep(5)
                 
             except Exception as e:
                 self.logger.error(f"Health monitoring error: {e}")
                 time.sleep(10)
 
     def display_system_status(self) -> bool:
-        """Display comprehensive system status"""
+        """Display system status"""
         self.logger.info("Checking system status...")
         
-        max_wait = 30  # seconds
+        max_wait = 30
         
         for attempt in range(max_wait):
             health = self.check_system_health()
             
             print(f"\nSystem Status Check (attempt {attempt + 1}/{max_wait}):")
             print("=" * 50)
-            print(f"Main Process: {'âœ“ Running' if health['process_running'] else 'âœ— Stopped'}")
-            print(f"Flask Server: {'âœ“ Responding' if health['flask_responding'] else 'âœ— Not Responding'}")
-            print(f"API Access: {'âœ“ Accessible' if health['api_accessible'] else 'âœ— Inaccessible'}")
+            print(f"Main Process: {'Running' if health['process_running'] else 'Stopped'}")
+            print(f"Flask Server: {'Responding' if health['flask_responding'] else 'Not Responding'}")
+            print(f"API Access: {'Accessible' if health['api_accessible'] else 'Inaccessible'}")
             
             if all(health.values()):
-                print("\ní ½í¿¢ All systems operational!")
-                print(f"âœ“ Dashboard: http://localhost:{self.port}")
-                print(f"âœ“ External: http://185.202.239.125:{self.port}")
+                print("\nAll systems operational!")
+                print(f"Dashboard: http://localhost:{self.port}")
+                print(f"External: http://185.202.239.125:{self.port}")
                 return True
             
             if not health['process_running']:
-                print("\ní ½í´´ Main process has stopped")
+                print("\nMain process has stopped")
                 return False
             
-            print(f"â³ Waiting for system to fully initialize... ({attempt + 1}/{max_wait})")
+            print(f"Waiting for system to initialize... ({attempt + 1}/{max_wait})")
             time.sleep(1)
         
-        print("\ní ½í¿¡ System partially operational")
+        print("\nSystem partially operational")
         print("Process is running but some components may not be ready")
         return health['process_running']
 
     def cleanup_enhanced(self, signum=None, frame=None):
-        """Enhanced cleanup with better process management"""
+        """Enhanced cleanup process"""
         if signum:
             signal_names = {signal.SIGINT: "SIGINT (Ctrl+C)", signal.SIGTERM: "SIGTERM"}
             signal_name = signal_names.get(signum, f"Signal {signum}")
-            self.logger.info(f"Received {signal_name} - initiating enhanced shutdown")
+            self.logger.info(f"Received {signal_name} - initiating shutdown")
         else:
-            self.logger.info("Initiating enhanced shutdown")
+            self.logger.info("Initiating shutdown")
         
         self.running = False
         
@@ -442,14 +405,13 @@ class V3MainSystemStarter:
             self.logger.info("Stopping main system...")
             
             try:
-                # Try graceful shutdown first
                 self.main_proc.terminate()
                 
                 try:
                     self.main_proc.wait(timeout=10)
                     self.logger.info("Main system stopped gracefully")
                 except subprocess.TimeoutExpired:
-                    self.logger.warning("Graceful shutdown timeout - force killing")
+                    self.logger.warning("Force killing main system")
                     self.main_proc.kill()
                     try:
                         self.main_proc.wait(timeout=5)
@@ -466,10 +428,10 @@ class V3MainSystemStarter:
         except Exception as e:
             self.logger.warning(f"Final port cleanup failed: {e}")
         
-        self.logger.info("Enhanced shutdown completed")
+        self.logger.info("Shutdown completed")
 
     def prompt_for_startup_mode(self) -> str:
-        """Enhanced startup mode selection"""
+        """Startup mode selection"""
         print("\n" + "=" * 60)
         print("V3 TRADING SYSTEM - STARTUP MODE SELECTION")
         print("=" * 60)
@@ -484,28 +446,28 @@ class V3MainSystemStarter:
                 choice = input("\nChoose startup mode (1/2/3/4) [default: 2]: ").strip()
                 
                 if choice == '1':
-                    print("âœ“ Auto-start trading mode selected")
+                    print("Auto-start trading mode selected")
                     return 'auto'
                 elif choice == '3':
-                    print("âœ“ Monitor-only mode selected")
+                    print("Monitor-only mode selected")
                     return 'monitor'
                 elif choice == '4':
-                    print("âœ“ Backtest mode selected")
+                    print("Backtest mode selected")
                     return 'backtest'
                 elif choice == '2' or choice == '':
-                    print("âœ“ Manual start mode selected")
+                    print("Manual start mode selected")
                     return 'manual'
                 else:
-                    print("âŒ Invalid choice. Please enter 1, 2, 3, or 4.")
+                    print("Invalid choice. Please enter 1, 2, 3, or 4.")
                     
             except (KeyboardInterrupt, EOFError):
-                print("\nâœ“ Defaulting to manual start mode")
+                print("\nDefaulting to manual start mode")
                 return 'manual'
 
     def run_enhanced(self) -> int:
-        """Enhanced main run method"""
+        """Main run method"""
         print("=" * 70)
-        print("í ½íº€ V3 ENHANCED TRADING SYSTEM STARTUP")
+        print("V3 ENHANCED TRADING SYSTEM STARTUP")
         print("=" * 70)
         print(f"System Port: {self.port}")
         print("Enhanced: Cross-communication, Real data only, Better error handling")
@@ -529,7 +491,7 @@ class V3MainSystemStarter:
             # Step 3: Startup mode selection
             startup_mode = self.prompt_for_startup_mode()
             
-            # Configure environment variables based on mode
+            # Configure environment based on mode
             if startup_mode == 'auto':
                 auto_start = True
             elif startup_mode == 'monitor':
@@ -546,12 +508,12 @@ class V3MainSystemStarter:
                 self.logger.error("Failed to start main system")
                 return 1
             
-            # Step 5: Health monitoring setup
+            # Step 5: Health monitoring
             self.monitoring_thread = threading.Thread(target=self.monitor_system_health, daemon=True)
             self.monitoring_thread.start()
             
-            # Step 6: System status verification
-            time.sleep(3)  # Allow initial startup
+            # Step 6: Status verification
+            time.sleep(3)
             
             if not self.display_system_status():
                 self.logger.warning("System status check had issues")
@@ -560,13 +522,12 @@ class V3MainSystemStarter:
             self._display_final_status(startup_mode)
             
             # Step 8: Main monitoring loop
-            self.logger.info("System fully operational - entering monitoring mode")
+            self.logger.info("System operational - entering monitoring mode")
             
             while self.running:
                 try:
                     time.sleep(2)
                     
-                    # Check if main process is still alive
                     if self.main_proc and self.main_proc.poll() is not None:
                         stdout, stderr = self.main_proc.communicate()
                         self.logger.error("Main system stopped unexpectedly")
@@ -590,42 +551,42 @@ class V3MainSystemStarter:
             self.cleanup_enhanced()
     
     def _display_final_status(self, startup_mode: str):
-        """Display final startup status"""
+        """Display final status"""
         print("\n" + "=" * 70)
         
         if startup_mode == 'auto':
-            print("í ½í¿¢ V3 SYSTEM STARTED WITH AUTO-TRADING")
+            print("V3 SYSTEM STARTED WITH AUTO-TRADING")
             print("Trading will begin automatically after initialization")
         elif startup_mode == 'monitor':
-            print("í ½í¿¡ V3 SYSTEM STARTED IN MONITOR-ONLY MODE") 
+            print("V3 SYSTEM STARTED IN MONITOR-ONLY MODE") 
             print("No trades will be executed")
         elif startup_mode == 'backtest':
-            print("í ½í´µ V3 SYSTEM STARTED IN BACKTEST MODE")
+            print("V3 SYSTEM STARTED IN BACKTEST MODE")
             print("Comprehensive backtesting will run automatically")
         else:
-            print("í ½í¿¢ V3 SYSTEM STARTED IN MANUAL MODE")
+            print("V3 SYSTEM STARTED IN MANUAL MODE")
             print("Use the dashboard to start trading when ready")
         
-        print(f"í ¼í¼ Dashboard: http://localhost:{self.port}")
-        print(f"í ¼í¼ External: http://185.202.239.125:{self.port}")
-        print("í ½í»‘ Press Ctrl+C to stop the system")
+        print(f"Dashboard: http://localhost:{self.port}")
+        print(f"External: http://185.202.239.125:{self.port}")
+        print("Press Ctrl+C to stop the system")
         print("=" * 70)
 
 def main():
-    """Enhanced main entry point"""
+    """Main entry point"""
     
     # Handle command line arguments
     if len(sys.argv) > 1:
         arg = sys.argv[1].lower()
         if arg in ['--auto', '-a']:
             os.environ['AUTO_START_TRADING'] = 'true'
-            print("âœ“ Command line auto-start mode enabled")
+            print("Command line auto-start mode enabled")
         elif arg in ['--monitor', '-m']:
             os.environ['MONITOR_ONLY'] = 'true'
-            print("âœ“ Command line monitor-only mode enabled")
+            print("Command line monitor-only mode enabled")
         elif arg in ['--backtest', '-b']:
             os.environ['RUN_COMPREHENSIVE_BACKTEST'] = 'true'
-            print("âœ“ Command line backtest mode enabled")
+            print("Command line backtest mode enabled")
         elif arg in ['--help', '-h']:
             print("V3 Enhanced Trading System")
             print("Usage:")
@@ -639,7 +600,7 @@ def main():
             print("  Trading: Configure in .env (TRADE_AMOUNT_USDT, MIN_CONFIDENCE, etc.)")
             return 0
     
-    # Create and run the enhanced starter
+    # Create and run the starter
     starter = V3MainSystemStarter()
     exit_code = starter.run_enhanced()
     sys.exit(exit_code)

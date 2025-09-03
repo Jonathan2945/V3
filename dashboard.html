@@ -679,7 +679,7 @@
         <div class="header-content">
             <div class="header-left">
                 <h1><i class="fas fa-chart-line"></i> V3 Trading Dashboard</h1>
-                <div class="subtitle">Professional Trading System • Real-time Analytics • ML-Powered Strategies</div>
+                <div class="subtitle">Professional Trading System - Real-time Analytics - ML-Powered Strategies</div>
             </div>
             <div class="header-right">
                 <div class="connection-status">
@@ -970,7 +970,7 @@
             // Fallback data refresh every 30 seconds
             setInterval(loadInitialData, 30000);
             
-            console.log('?? V3 Dashboard Initialized');
+            console.log('V3 Dashboard Initialized');
         }
 
         function updateTime() {
@@ -990,13 +990,13 @@
                 socket.on('connect', function() {
                     isConnected = true;
                     updateConnectionStatus('connected', 'Connected');
-                    console.log('?? WebSocket connected');
+                    console.log('WebSocket connected');
                 });
 
                 socket.on('disconnect', function() {
                     isConnected = false;
                     updateConnectionStatus('error', 'Disconnected');
-                    console.log('?? WebSocket disconnected');
+                    console.log('WebSocket disconnected');
                 });
 
                 socket.on('dashboard_update', function(data) {
@@ -1004,7 +1004,7 @@
                 });
 
             } catch (error) {
-                console.error('? WebSocket initialization failed:', error);
+                console.error('WebSocket initialization failed:', error);
                 updateConnectionStatus('error', 'Connection Error');
             }
         }
@@ -1045,7 +1045,7 @@
                 updateConnectionStatus('connected', 'Connected');
 
             } catch (error) {
-                console.error('? Failed to load initial data:', error);
+                console.error('Failed to load initial data:', error);
                 updateConnectionStatus('error', 'API Error');
             }
         }
@@ -1231,12 +1231,12 @@
                 if (result.success) {
                     tradingActive = !tradingActive;
                     updateTradingButton();
-                    showNotification('? ' + result.message, 'success');
+                    showNotification(result.message, 'success');
                 } else {
-                    showNotification('? Action failed: ' + result.error, 'error');
+                    showNotification('Action failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showNotification('? Action failed: ' + error.message, 'error');
+                showNotification('Action failed: ' + error.message, 'error');
             } finally {
                 actionInProgress.trading = false;
                 btn.disabled = false;
@@ -1256,14 +1256,14 @@
             try {
                 const result = await api.post('/api/control/start_backtest');
                 if (result.success) {
-                    showNotification('?? Backtest started', 'success');
+                    showNotification('Backtest started successfully', 'success');
                 } else {
-                    showNotification('? Backtest failed: ' + result.error, 'error');
+                    showNotification('Backtest failed: ' + result.error, 'error');
                     btn.disabled = false;
                     text.textContent = 'Start Backtest';
                 }
             } catch (error) {
-                showNotification('? Backtest failed: ' + error.message, 'error');
+                showNotification('Backtest failed: ' + error.message, 'error');
                 btn.disabled = false;
                 text.textContent = 'Start Backtest';
             } finally {
@@ -1272,17 +1272,17 @@
         }
 
         async function resetMLData() {
-            if (!confirm('?? Reset ML training data? This will clear all trained models.')) return;
+            if (!confirm('Reset ML training data? This will clear all trained models.')) return;
             
             try {
                 const result = await api.post('/api/control/reset_ml_data');
                 if (result.success) {
-                    showNotification('?? ML data reset successfully', 'warning');
+                    showNotification('ML data reset successfully', 'warning');
                 } else {
-                    showNotification('? Reset failed: ' + result.error, 'error');
+                    showNotification('Reset failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showNotification('? Reset failed: ' + error.message, 'error');
+                showNotification('Reset failed: ' + error.message, 'error');
             }
         }
 
@@ -1290,19 +1290,19 @@
             try {
                 const result = await api.post('/api/control/save_metrics');
                 if (result.success) {
-                    showNotification('?? Metrics saved successfully', 'success');
+                    showNotification('Metrics saved successfully', 'success');
                 } else {
-                    showNotification('? Save failed: ' + result.error, 'error');
+                    showNotification('Save failed: ' + result.error, 'error');
                 }
             } catch (error) {
-                showNotification('? Save failed: ' + error.message, 'error');
+                showNotification('Save failed: ' + error.message, 'error');
             }
         }
 
         async function refreshData() {
-            showNotification('?? Refreshing data...', 'info');
+            showNotification('Refreshing data...', 'info');
             await loadInitialData();
-            showNotification('? Data refreshed', 'success');
+            showNotification('Data refreshed', 'success');
         }
 
         // Notification system
