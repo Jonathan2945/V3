@@ -1,1224 +1,1251 @@
 #!/usr/bin/env python3
 """
-V3 HISTORICAL DATA MANAGER - OPTIMIZED FOR 8 vCPU/24GB
-======================================================
-V3 Performance & Compliance Fixes Applied:
-- Enhanced database connection pooling for high throughput
-- UTF-8 encoding specification for all file operations
-- Memory optimization for large data operations with cleanup
-- Intelligent caching system with automatic expiration
-- ThreadPoolExecutor with proper max_workers configuration
-- Real data validation patterns enforced
-- Proper database connection closure and resource management
-- Server-optimized async operations for 8 vCPU/24GB specs
+V3 Historical Data Manager - Performance Optimized
+Enhanced with proper database transaction management and commit handling
 """
 
-import os
 import asyncio
-import aiohttp
-import pandas as pd
-import numpy as np
+import time
 import logging
+import threading
 import sqlite3
 import json
+import numpy as np
+import pandas as pd
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
-import time
-import random
-import threading
-from concurrent.futures import ThreadPoolExecutor
-import gc
+from collections import defaultdict, deque
+from functools import lru_cache, wraps
+import concurrent.futures
+import hashlib
 import psutil
-from functools import lru_cache
+import queue
+from dataclasses import dataclass
+import pickle
+import gzip
+import os
 
-class OptimizedConnectionPool:
-    """High-performance database connection pool optimized for 8 vCPU/24GB server"""
+class TransactionManager:
+    """Enhanced transaction manager with proper commit handling"""
     
-    def __init__(self, db_path: str, max_connections: int = 16):
+    def __init__(self, db_path: str, max_connections: int = 20):
         self.db_path = db_path
         self.max_connections = max_connections
-        self.connections = []
-        self.available = []
-        self.in_use = set()
-        self.lock = threading.RLock()
-        self.stats = {
-            'total_requests': 0,
-            'successful_connections': 0,
-            'failed_connections': 0,
-            'average_wait_time': 0.0,
-            'peak_concurrent_connections': 0
+        self.connections = queue.Queue(maxsize=max_connections)
+        self.total_connections = 0
+        self.lock = threading.Lock()
+        
+        # Transaction statistics
+        self.transaction_stats = {
+            'total_transactions': 0,
+            'successful_commits': 0,
+            'failed_commits': 0,
+            'rollbacks': 0,
+            'auto_commits': 0,
+            'manual_commits': 0,
+            'avg_transaction_time': 0.0
         }
         
-        # Initialize connection pool with optimized settings
         self._initialize_pool()
     
     def _initialize_pool(self):
-        """Initialize connection pool with performance optimizations"""
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        
-        for i in range(self.max_connections):
-            conn = sqlite3.connect(
-                self.db_path, 
-                check_same_thread=False,
-                timeout=30.0,
-                isolation_level=None  # Autocommit for better performance
-            )
-            
-            # Apply comprehensive performance optimizations
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("PRAGMA cache_size=25000")  # 25MB cache per connection
-            conn.execute("PRAGMA temp_store=MEMORY")
-            conn.execute("PRAGMA synchronous=NORMAL")
-            conn.execute("PRAGMA page_size=4096")
-            conn.execute("PRAGMA mmap_size=268435456")  # 256MB memory map
-            conn.execute("PRAGMA wal_autocheckpoint=1000")
-            conn.execute("PRAGMA optimize")
-            
-            # Enable query optimization
-            conn.execute("PRAGMA automatic_index=ON")
-            conn.execute("PRAGMA threads=4")  # Use multiple threads per connection
-            
-            self.connections.append(conn)
-            self.available.append(conn)
-    
-    def get_connection(self, timeout: float = 30.0) -> Optional[sqlite3.Connection]:
-        """Get optimized connection with performance tracking"""
-        start_time = time.time()
-        self.stats['total_requests'] += 1
-        
-        while time.time() - start_time < timeout:
-            with self.lock:
-                if self.available:
-                    conn = self.available.pop()
-                    self.in_use.add(conn)
-                    
-                    wait_time = time.time() - start_time
-                    self._update_wait_time_stats(wait_time)
-                    
-                    # Update peak concurrent connections
-                    current_in_use = len(self.in_use)
-                    if current_in_use > self.stats['peak_concurrent_connections']:
-                        self.stats['peak_concurrent_connections'] = current_in_use
-                    
-                    self.stats['successful_connections'] += 1
-                    return conn
-            
-            time.sleep(0.005)  # 5ms wait to reduce CPU usage
-        
-        self.stats['failed_connections'] += 1
-        logging.warning(f"Connection pool timeout after {timeout}s")
-        return None
-    
-    def return_connection(self, conn: sqlite3.Connection):
-        """Return connection with health validation"""
-        with self.lock:
-            if conn in self.in_use:
-                self.in_use.remove(conn)
-                
-                # Validate connection health before returning
-                try:
-                    conn.execute("SELECT 1")
-                    self.available.append(conn)
-                except sqlite3.Error as e:
-                    logging.warning(f"Unhealthy connection detected: {e}")
-                    try:
-                        conn.close()
-                    except:
-                        pass
-                    self._create_replacement_connection()
-    
-    def _create_replacement_connection(self):
-        """Create replacement connection with full optimization"""
+        """Initialize the connection pool with proper transaction settings"""
         try:
-            conn = sqlite3.connect(
-                self.db_path, 
-                check_same_thread=False,
-                timeout=30.0,
-                isolation_level=None
-            )
+            for _ in range(min(8, self.max_connections)):
+                conn = self._create_connection()
+                if conn:
+                    self.connections.put(conn)
+                    self.total_connections += 1
             
-            # Apply all optimizations
-            optimizations = [
-                "PRAGMA journal_mode=WAL",
-                "PRAGMA cache_size=25000",
-                "PRAGMA temp_store=MEMORY",
-                "PRAGMA synchronous=NORMAL",
-                "PRAGMA page_size=4096",
-                "PRAGMA mmap_size=268435456",
-                "PRAGMA wal_autocheckpoint=1000",
-                "PRAGMA automatic_index=ON",
-                "PRAGMA threads=4",
-                "PRAGMA optimize"
-            ]
-            
-            for pragma in optimizations:
-                conn.execute(pragma)
-            
-            self.connections.append(conn)
-            self.available.append(conn)
+            logging.info(f"Historical data transaction pool initialized with {self.total_connections} connections")
             
         except Exception as e:
-            logging.error(f"Failed to create replacement connection: {e}")
+            logging.error(f"Transaction pool initialization error: {e}")
     
-    def _update_wait_time_stats(self, wait_time: float):
-        """Update average wait time statistics"""
-        current_avg = self.stats['average_wait_time']
-        successful_count = self.stats['successful_connections']
-        
-        if successful_count == 1:
-            self.stats['average_wait_time'] = wait_time
-        else:
-            self.stats['average_wait_time'] = (
-                (current_avg * (successful_count - 1) + wait_time) / successful_count
-            )
-    
-    def execute_batch(self, operations: List[Tuple[str, tuple]], max_retries: int = 3) -> List[Any]:
-        """Execute batch operations for better performance"""
-        results = []
-        
-        for attempt in range(max_retries):
-            conn = self.get_connection()
-            if not conn:
-                continue
-            
-            try:
-                conn.execute("BEGIN TRANSACTION")
-                
-                for query, params in operations:
-                    cursor = conn.execute(query, params)
-                    results.append(cursor.fetchall())
-                
-                conn.execute("COMMIT")
-                self.return_connection(conn)
-                return results
-            
-            except sqlite3.Error as e:
-                try:
-                    conn.execute("ROLLBACK")
-                except:
-                    pass
-                
-                try:
-                    conn.close()
-                except:
-                    pass
-                
-                if attempt == max_retries - 1:
-                    logging.error(f"Batch operation failed after {max_retries} attempts: {e}")
-                    raise
-                
-                time.sleep(0.1 * (attempt + 1))
-        
-        return results
-    
-    def get_pool_stats(self) -> Dict[str, Any]:
-        """Get comprehensive pool statistics"""
-        with self.lock:
-            total_requests = self.stats['total_requests']
-            success_rate = (
-                (self.stats['successful_connections'] / max(1, total_requests)) * 100
+    def _create_connection(self) -> Optional[sqlite3.Connection]:
+        """Create connection with proper transaction settings"""
+        try:
+            conn = sqlite3.connect(
+                self.db_path,
+                check_same_thread=False,
+                timeout=60.0,
+                isolation_level='DEFERRED'  # Enable explicit transaction control
             )
             
-            return {
-                'total_connections': len(self.connections),
-                'available_connections': len(self.available),
-                'in_use_connections': len(self.in_use),
-                'total_requests': total_requests,
-                'success_rate_percent': round(success_rate, 2),
-                'average_wait_time_ms': round(self.stats['average_wait_time'] * 1000, 2),
-                'peak_concurrent_connections': self.stats['peak_concurrent_connections']
-            }
-    
-    def cleanup(self):
-        """Comprehensive cleanup of all connections"""
-        with self.lock:
-            all_connections = self.connections + list(self.in_use)
-            for conn in all_connections:
-                try:
-                    conn.close()
-                except Exception as e:
-                    logging.warning(f"Error closing connection: {e}")
+            # Optimize for historical data workloads
+            conn.execute('PRAGMA journal_mode=WAL')
+            conn.execute('PRAGMA synchronous=NORMAL')
+            conn.execute('PRAGMA cache_size=50000')  # Large cache for historical data
+            conn.execute('PRAGMA temp_store=MEMORY')
+            conn.execute('PRAGMA mmap_size=1073741824')  # 1GB mmap
+            conn.execute('PRAGMA page_size=32768')  # Large page size for bulk data
+            conn.execute('PRAGMA wal_autocheckpoint=1000')
             
-            self.connections.clear()
-            self.available.clear()
-            self.in_use.clear()
-
-class MemoryOptimizedCache:
-    """Intelligent caching system with memory management for large datasets"""
-    
-    def __init__(self, max_memory_mb: int = 1024):
-        self.cache = {}
-        self.access_times = {}
-        self.cache_sizes = {}  # Track individual item sizes
-        self.max_memory_bytes = max_memory_mb * 1024 * 1024
-        self.current_memory_usage = 0
-        self.lock = threading.RLock()
-        
-        # Performance statistics
-        self.stats = {
-            'hits': 0,
-            'misses': 0,
-            'evictions': 0,
-            'memory_cleanups': 0,
-            'total_items_cached': 0
-        }
-        
-        # Background cleanup
-        self._cleanup_interval = 300  # 5 minutes
-        self._last_cleanup = time.time()
-    
-    def get(self, key: str) -> Optional[Any]:
-        """Get item with memory tracking"""
-        with self.lock:
-            if key in self.cache:
-                data, timestamp, ttl = self.cache[key]
-                current_time = time.time()
-                
-                if current_time - timestamp <= ttl:
-                    self.access_times[key] = current_time
-                    self.stats['hits'] += 1
-                    return data
-                else:
-                    # Expired item
-                    self._remove_item(key)
+            # Create historical data tables
+            self._create_historical_tables(conn)
             
-            self.stats['misses'] += 1
-            self._maybe_cleanup()
+            return conn
+            
+        except Exception as e:
+            logging.error(f"Historical data connection creation error: {e}")
             return None
     
-    def set(self, key: str, value: Any, ttl: int = 1800):
-        """Set item with intelligent memory management"""
-        with self.lock:
-            # Estimate memory usage of the item
-            item_size = self._estimate_size(value)
-            
-            # Check if we need to free space
-            if self.current_memory_usage + item_size > self.max_memory_bytes:
-                self._free_memory_for_item(item_size)
-            
-            # Store the item
-            current_time = time.time()
-            self.cache[key] = (value, current_time, ttl)
-            self.access_times[key] = current_time
-            self.cache_sizes[key] = item_size
-            self.current_memory_usage += item_size
-            
-            self.stats['total_items_cached'] += 1
-    
-    def _estimate_size(self, obj: Any) -> int:
-        """Estimate memory size of an object"""
+    def _create_historical_tables(self, conn: sqlite3.Connection):
+        """Create historical data tables with proper indexing"""
         try:
-            if isinstance(obj, pd.DataFrame):
-                return obj.memory_usage(deep=True).sum()
-            elif isinstance(obj, dict):
-                return len(str(obj).encode('utf-8'))
-            elif isinstance(obj, (list, tuple)):
-                return sum(len(str(item).encode('utf-8')) for item in obj)
-            else:
-                return len(str(obj).encode('utf-8'))
-        except Exception:
-            return 1024  # Default size estimate
-    
-    def _free_memory_for_item(self, needed_bytes: int):
-        """Free memory using LRU eviction"""
-        if not self.access_times:
-            return
-        
-        # Calculate how much to free (needed + 20% buffer)
-        target_free = int(needed_bytes * 1.2)
-        freed = 0
-        
-        # Sort by access time (oldest first)
-        sorted_items = sorted(self.access_times.items(), key=lambda x: x[1])
-        
-        for key, _ in sorted_items:
-            if freed >= target_free:
-                break
+            # Main historical data table
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS historical_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    symbol TEXT NOT NULL,
+                    timeframe TEXT NOT NULL,
+                    timestamp DATETIME NOT NULL,
+                    open_price REAL NOT NULL,
+                    high_price REAL NOT NULL,
+                    low_price REAL NOT NULL,
+                    close_price REAL NOT NULL,
+                    volume REAL NOT NULL,
+                    quote_volume REAL,
+                    trades_count INTEGER,
+                    taker_buy_volume REAL,
+                    taker_buy_quote_volume REAL,
+                    data_source TEXT NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(symbol, timeframe, timestamp, data_source)
+                )
+            ''')
             
-            if key in self.cache_sizes:
-                freed += self.cache_sizes[key]
-                self._remove_item(key)
-                self.stats['evictions'] += 1
-    
-    def _remove_item(self, key: str):
-        """Remove item and update memory tracking"""
-        if key in self.cache:
-            del self.cache[key]
-        if key in self.access_times:
-            del self.access_times[key]
-        if key in self.cache_sizes:
-            self.current_memory_usage -= self.cache_sizes[key]
-            del self.cache_sizes[key]
-    
-    def _maybe_cleanup(self):
-        """Periodic cleanup of expired items"""
-        current_time = time.time()
-        if current_time - self._last_cleanup > self._cleanup_interval:
-            self._cleanup_expired_items()
-            self._last_cleanup = current_time
-    
-    def _cleanup_expired_items(self):
-        """Remove all expired items"""
-        current_time = time.time()
-        expired_keys = []
-        
-        for key, (_, timestamp, ttl) in self.cache.items():
-            if current_time - timestamp > ttl:
-                expired_keys.append(key)
-        
-        for key in expired_keys:
-            self._remove_item(key)
-        
-        if expired_keys:
-            self.stats['memory_cleanups'] += 1
-            # Force garbage collection after cleanup
-            gc.collect()
-    
-    def get_cache_stats(self) -> Dict[str, Any]:
-        """Get comprehensive cache statistics"""
-        with self.lock:
-            total_requests = self.stats['hits'] + self.stats['misses']
-            hit_rate = (self.stats['hits'] / max(1, total_requests)) * 100
-            memory_usage_mb = self.current_memory_usage / (1024 * 1024)
+            # Data quality tracking table
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS data_quality (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    symbol TEXT NOT NULL,
+                    timeframe TEXT NOT NULL,
+                    date_range_start DATETIME NOT NULL,
+                    date_range_end DATETIME NOT NULL,
+                    total_records INTEGER NOT NULL,
+                    missing_records INTEGER DEFAULT 0,
+                    duplicate_records INTEGER DEFAULT 0,
+                    quality_score REAL DEFAULT 100.0,
+                    last_validation DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    validation_status TEXT DEFAULT 'pending',
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
             
-            return {
-                'cache_size': len(self.cache),
-                'memory_usage_mb': round(memory_usage_mb, 2),
-                'memory_limit_mb': self.max_memory_bytes / (1024 * 1024),
-                'hit_rate_percent': round(hit_rate, 2),
-                'total_hits': self.stats['hits'],
-                'total_misses': self.stats['misses'],
-                'total_evictions': self.stats['evictions'],
-                'memory_cleanups': self.stats['memory_cleanups'],
-                'items_cached': self.stats['total_items_cached']
-            }
-    
-    def clear(self):
-        """Clear all cached data"""
-        with self.lock:
-            self.cache.clear()
-            self.access_times.clear()
-            self.cache_sizes.clear()
-            self.current_memory_usage = 0
-
-class HistoricalDataManager:
-    """V3 Historical Data Manager optimized for 8 vCPU/24GB server with real data validation"""
-    
-    def __init__(self):
-        self.db_path = 'data/historical_data.db'
-        self.config = {
-            'years_of_data': 2,
-            'enable_backtesting': True,
-            'cache_expiry_hours': 6,
-            'cleanup_days': 30,
-            'v3_compliance': True,
-            'live_data_only': True,
-            'utf8_encoding': True,
-            'max_memory_mb': 1024,
-            'max_workers': min(8, os.cpu_count() or 4)
-        }
-        
-        # Performance optimizations for 8 vCPU/24GB
-        self.connection_pool = OptimizedConnectionPool(self.db_path, max_connections=16)
-        self.memory_cache = MemoryOptimizedCache(max_memory_mb=1024)
-        self.thread_pool = ThreadPoolExecutor(max_workers=self.config['max_workers'])
-        
-        # V3 Multiple live data sources for resilience
-        self.live_api_endpoints = [
-            'https://api.binance.com/api/v3/klines',
-            'https://api.binance.us/api/v3/klines',
-            'https://testnet.binance.vision/api/v3/klines',
-        ]
-        
-        self.symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 'SOLUSDT']
-        self.timeframes = {'1h': '1h', '4h': '4h', '1d': '1d'}
-        self.last_update_times = {}
-        
-        # Performance monitoring
-        self._last_memory_check = time.time()
-        self._memory_check_interval = 300  # 5 minutes
-        
-        logging.info("[DATA_MANAGER] V3 Historical Data Manager initialized - PERFORMANCE OPTIMIZED")
-        print(f"[DATA_MANAGER] Connection pool: {len(self.connection_pool.connections)} connections")
-        print(f"[DATA_MANAGER] Thread pool: {self.config['max_workers']} workers")
-        print(f"[DATA_MANAGER] Memory cache: {self.config['max_memory_mb']} MB limit")
-    
-    async def initialize(self):
-        """V3 Initialize with enhanced performance and validation"""
-        try:
-            await self.init_database()
-            await self.test_live_api_connectivity()
-            self._start_background_maintenance()
+            # Data synchronization tracking
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS sync_status (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    symbol TEXT NOT NULL,
+                    timeframe TEXT NOT NULL,
+                    last_sync_timestamp DATETIME,
+                    sync_status TEXT DEFAULT 'pending',
+                    records_synced INTEGER DEFAULT 0,
+                    sync_duration REAL DEFAULT 0.0,
+                    error_message TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(symbol, timeframe)
+                )
+            ''')
             
-            logging.info("[DATA_MANAGER] V3 Historical Data Manager initialization complete - HIGH PERFORMANCE MODE")
-        except Exception as e:
-            logging.error(f"[DATA_MANAGER] V3 Data Manager initialization failed: {e}")
-            raise RuntimeError(f"V3 Live data initialization failed: {e}")
-    
-    async def init_database(self):
-        """Initialize V3 database with UTF-8 support and optimized schema"""
-        try:
-            live_historical_sql = """
-            CREATE TABLE IF NOT EXISTS live_historical_data (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                symbol TEXT NOT NULL COLLATE NOCASE,
-                timeframe TEXT NOT NULL COLLATE NOCASE,
-                timestamp INTEGER NOT NULL,
-                open_price REAL NOT NULL,
-                high_price REAL NOT NULL,
-                low_price REAL NOT NULL,
-                close_price REAL NOT NULL,
-                volume REAL NOT NULL,
-                data_source TEXT DEFAULT 'live_api' COLLATE NOCASE,
-                encoding TEXT DEFAULT 'utf-8',
-                v3_compliance BOOLEAN DEFAULT TRUE,
-                data_quality_score REAL DEFAULT 1.0,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(symbol, timeframe, timestamp)
-            )
-            """
+            # Compressed historical data for long-term storage
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS compressed_historical_data (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    symbol TEXT NOT NULL,
+                    timeframe TEXT NOT NULL,
+                    date_range_start DATETIME NOT NULL,
+                    date_range_end DATETIME NOT NULL,
+                    compressed_data BLOB NOT NULL,
+                    compression_ratio REAL,
+                    record_count INTEGER NOT NULL,
+                    checksum TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(symbol, timeframe, date_range_start)
+                )
+            ''')
+            
+            # Transaction log for audit trail
+            conn.execute('''
+                CREATE TABLE IF NOT EXISTS transaction_log (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    transaction_id TEXT NOT NULL,
+                    operation_type TEXT NOT NULL,
+                    table_name TEXT NOT NULL,
+                    record_count INTEGER,
+                    transaction_status TEXT NOT NULL,
+                    execution_time REAL,
+                    error_message TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            ''')
             
             # Create indexes for performance
             indexes = [
-                "CREATE INDEX IF NOT EXISTS idx_symbol_timeframe ON live_historical_data(symbol, timeframe)",
-                "CREATE INDEX IF NOT EXISTS idx_timestamp ON live_historical_data(timestamp)",
-                "CREATE INDEX IF NOT EXISTS idx_symbol_timestamp ON live_historical_data(symbol, timestamp)",
-                "CREATE INDEX IF NOT EXISTS idx_v3_compliance ON live_historical_data(v3_compliance)",
-                "CREATE INDEX IF NOT EXISTS idx_data_source ON live_historical_data(data_source)",
-                "CREATE INDEX IF NOT EXISTS idx_created_at ON live_historical_data(created_at)",
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_data ON live_historical_data(symbol, timeframe, timestamp)"
+                'CREATE INDEX IF NOT EXISTS idx_historical_symbol_timeframe ON historical_data(symbol, timeframe)',
+                'CREATE INDEX IF NOT EXISTS idx_historical_timestamp ON historical_data(timestamp)',
+                'CREATE INDEX IF NOT EXISTS idx_historical_symbol_time ON historical_data(symbol, timeframe, timestamp)',
+                'CREATE INDEX IF NOT EXISTS idx_quality_symbol ON data_quality(symbol, timeframe)',
+                'CREATE INDEX IF NOT EXISTS idx_sync_status ON sync_status(symbol, timeframe)',
+                'CREATE INDEX IF NOT EXISTS idx_compressed_symbol ON compressed_historical_data(symbol, timeframe)',
+                'CREATE INDEX IF NOT EXISTS idx_transaction_log_id ON transaction_log(transaction_id)',
+                'CREATE INDEX IF NOT EXISTS idx_transaction_log_time ON transaction_log(created_at)'
             ]
             
-            # Execute schema creation with connection pool
-            operations = [(live_historical_sql, ())] + [(idx, ()) for idx in indexes]
-            self.connection_pool.execute_batch(operations)
+            for index_sql in indexes:
+                conn.execute(index_sql)
             
-            logging.info("[DATA_MANAGER] V3 Live historical data database initialized with UTF-8 support")
+            # Explicit commit for table creation
+            conn.commit()
+            
         except Exception as e:
-            logging.error(f"[DATA_MANAGER] V3 Database initialization failed: {e}")
-            raise
+            logging.error(f"Historical table creation error: {e}")
+            conn.rollback()
     
-    def _start_background_maintenance(self):
-        """Start background maintenance tasks"""
-        def maintenance_worker():
-            while True:
-                try:
-                    # Memory management
-                    self._manage_memory_usage()
-                    
-                    # Cache cleanup
-                    self.memory_cache._cleanup_expired_items()
-                    
-                    # Database maintenance
-                    self._optimize_database()
-                    
-                    time.sleep(300)  # 5 minutes
-                except Exception as e:
-                    logging.error(f"Background maintenance error: {e}")
-                    time.sleep(600)  # 10 minutes on error
-        
-        maintenance_thread = threading.Thread(target=maintenance_worker, daemon=True)
-        maintenance_thread.start()
-    
-    def _manage_memory_usage(self):
-        """Intelligent memory management for large data operations"""
-        current_time = time.time()
-        if current_time - self._last_memory_check > self._memory_check_interval:
-            try:
-                process = psutil.Process()
-                memory_mb = process.memory_info().rss / 1024 / 1024
-                
-                if memory_mb > self.config['max_memory_mb'] * 0.8:  # 80% threshold
-                    # Clear expired cache entries
-                    self.memory_cache._cleanup_expired_items()
-                    
-                    # Force garbage collection
-                    gc.collect()
-                    
-                    # Log memory status
-                    new_memory_mb = psutil.Process().memory_info().rss / 1024 / 1024
-                    freed_mb = memory_mb - new_memory_mb
-                    
-                    logging.info(f"Memory cleanup: {freed_mb:.1f}MB freed, usage: {new_memory_mb:.1f}MB")
-                
-                self._last_memory_check = current_time
-                
-            except Exception as e:
-                logging.warning(f"Memory management error: {e}")
-    
-    def _optimize_database(self):
-        """Perform database optimization"""
+    def get_connection(self) -> Optional[sqlite3.Connection]:
+        """Get connection from pool"""
         try:
-            conn = self.connection_pool.get_connection()
+            if not self.connections.empty():
+                return self.connections.get(timeout=5)
+            
+            # Create new connection if under limit
+            with self.lock:
+                if self.total_connections < self.max_connections:
+                    conn = self._create_connection()
+                    if conn:
+                        self.total_connections += 1
+                        return conn
+            
+            # Wait for available connection
+            return self.connections.get(timeout=30)
+            
+        except queue.Empty:
+            logging.warning("No database connections available for historical data")
+            return None
+        except Exception as e:
+            logging.error(f"Error getting database connection: {e}")
+            return None
+    
+    def return_connection(self, conn: sqlite3.Connection):
+        """Return connection to pool"""
+        try:
+            if conn and not self.connections.full():
+                # Test connection is still valid
+                conn.execute('SELECT 1')
+                self.connections.put(conn)
+            elif conn:
+                conn.close()
+                with self.lock:
+                    self.total_connections -= 1
+        except Exception as e:
+            logging.error(f"Error returning connection: {e}")
             if conn:
                 try:
-                    # Update database statistics
-                    conn.execute("ANALYZE")
-                    conn.execute("PRAGMA optimize")
+                    conn.close()
+                except:
+                    pass
+                with self.lock:
+                    self.total_connections -= 1
+    
+    def execute_transaction(self, operations: List[Tuple[str, tuple]], 
+                          commit_strategy: str = 'auto') -> Dict[str, Any]:
+        """Execute transaction with proper commit handling"""
+        start_time = time.time()
+        transaction_id = hashlib.md5(f"{time.time()}_{threading.current_thread().ident}".encode()).hexdigest()[:12]
+        
+        conn = None
+        result = {
+            'success': False,
+            'transaction_id': transaction_id,
+            'records_affected': 0,
+            'execution_time': 0.0,
+            'commit_strategy': commit_strategy,
+            'error': None
+        }
+        
+        try:
+            conn = self.get_connection()
+            if not conn:
+                raise Exception("No database connection available")
+            
+            # Start explicit transaction
+            conn.execute('BEGIN IMMEDIATE')
+            
+            total_affected = 0
+            for sql, params in operations:
+                cursor = conn.cursor()
+                cursor.execute(sql, params)
+                total_affected += cursor.rowcount
+            
+            result['records_affected'] = total_affected
+            
+            # Handle commit strategy
+            if commit_strategy == 'auto':
+                conn.commit()
+                result['success'] = True
+                self.transaction_stats['successful_commits'] += 1
+                self.transaction_stats['auto_commits'] += 1
+                
+            elif commit_strategy == 'manual':
+                # Don't commit yet, let caller handle it
+                result['success'] = True
+                self.transaction_stats['manual_commits'] += 1
+                
+            elif commit_strategy == 'batch':
+                # Commit only if batch size is met
+                if total_affected >= 100:  # Batch size threshold
+                    conn.commit()
+                    result['success'] = True
+                    self.transaction_stats['successful_commits'] += 1
+                else:
+                    result['success'] = True  # Success but no commit yet
                     
-                    # Checkpoint WAL file if it's getting large
-                    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-                    
+            else:
+                # Default to auto commit
+                conn.commit()
+                result['success'] = True
+                self.transaction_stats['successful_commits'] += 1
+                self.transaction_stats['auto_commits'] += 1
+            
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
+            
+            # Log transaction
+            self._log_transaction(transaction_id, 'bulk_insert', 'historical_data', 
+                                total_affected, 'success', execution_time)
+            
+            # Update statistics
+            self.transaction_stats['total_transactions'] += 1
+            self._update_avg_transaction_time(execution_time)
+            
+            return result
+            
+        except Exception as e:
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
+            result['error'] = str(e)
+            
+            if conn:
+                try:
+                    conn.rollback()
+                    self.transaction_stats['rollbacks'] += 1
+                except:
+                    pass
+            
+            self.transaction_stats['failed_commits'] += 1
+            self.transaction_stats['total_transactions'] += 1
+            
+            # Log failed transaction
+            self._log_transaction(transaction_id, 'bulk_insert', 'historical_data', 
+                                0, 'failed', execution_time, str(e))
+            
+            logging.error(f"Transaction {transaction_id} failed: {e}")
+            return result
+            
+        finally:
+            if conn:
+                self.return_connection(conn)
+    
+    def execute_single_operation(self, sql: str, params: tuple, 
+                                commit: bool = True) -> Dict[str, Any]:
+        """Execute single operation with commit control"""
+        start_time = time.time()
+        transaction_id = hashlib.md5(f"{time.time()}_{sql[:20]}".encode()).hexdigest()[:8]
+        
+        conn = None
+        result = {
+            'success': False,
+            'transaction_id': transaction_id,
+            'records_affected': 0,
+            'execution_time': 0.0,
+            'committed': commit,
+            'error': None
+        }
+        
+        try:
+            conn = self.get_connection()
+            if not conn:
+                raise Exception("No database connection available")
+            
+            cursor = conn.cursor()
+            cursor.execute(sql, params)
+            result['records_affected'] = cursor.rowcount
+            
+            if commit:
+                conn.commit()
+                self.transaction_stats['successful_commits'] += 1
+                self.transaction_stats['auto_commits'] += 1
+            
+            result['success'] = True
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
+            
+            self.transaction_stats['total_transactions'] += 1
+            self._update_avg_transaction_time(execution_time)
+            
+            return result
+            
+        except Exception as e:
+            execution_time = time.time() - start_time
+            result['execution_time'] = execution_time
+            result['error'] = str(e)
+            
+            if conn:
+                try:
+                    conn.rollback()
+                    self.transaction_stats['rollbacks'] += 1
+                except:
+                    pass
+            
+            self.transaction_stats['failed_commits'] += 1
+            self.transaction_stats['total_transactions'] += 1
+            
+            logging.error(f"Single operation {transaction_id} failed: {e}")
+            return result
+            
+        finally:
+            if conn:
+                self.return_connection(conn)
+    
+    def _log_transaction(self, transaction_id: str, operation_type: str, 
+                        table_name: str, record_count: int, status: str,
+                        execution_time: float, error_message: str = None):
+        """Log transaction for audit trail"""
+        try:
+            conn = self.get_connection()
+            if conn:
+                try:
+                    conn.execute('''
+                        INSERT INTO transaction_log 
+                        (transaction_id, operation_type, table_name, record_count, 
+                         transaction_status, execution_time, error_message)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ''', (transaction_id, operation_type, table_name, record_count,
+                          status, execution_time, error_message))
+                    conn.commit()  # Always commit transaction logs
                 finally:
-                    self.connection_pool.return_connection(conn)
+                    self.return_connection(conn)
         except Exception as e:
-            logging.warning(f"Database optimization error: {e}")
+            logging.error(f"Error logging transaction: {e}")
     
-    async def test_live_api_connectivity(self):
-        """V3 Test live API connectivity with enhanced performance"""
-        working_endpoints = []
-        
-        # Test endpoints concurrently for better performance
-        async def test_endpoint(endpoint):
-            try:
-                timeout = aiohttp.ClientTimeout(total=10, connect=5)
-                async with aiohttp.ClientSession(timeout=timeout) as session:
-                    params = {'symbol': 'BTCUSDT', 'interval': '1h', 'limit': 5}
-                    async with session.get(endpoint, params=params) as response:
-                        if response.status == 200:
-                            data = await response.json()
-                            if data and len(data) > 0:
-                                logging.info(f"[DATA_MANAGER] V3 Live API endpoint working: {endpoint}")
-                                return endpoint
-                        else:
-                            logging.warning(f"[DATA_MANAGER] V3 API endpoint {endpoint} returned {response.status}")
-            except Exception as e:
-                logging.warning(f"[DATA_MANAGER] V3 API endpoint {endpoint} failed: {e}")
-            return None
-        
-        # Test all endpoints concurrently
-        tasks = [test_endpoint(endpoint) for endpoint in self.live_api_endpoints]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        working_endpoints = [result for result in results if result and not isinstance(result, Exception)]
-        
-        if working_endpoints:
-            self.live_api_endpoints = working_endpoints + [
-                ep for ep in self.live_api_endpoints if ep not in working_endpoints
-            ]
-            logging.info(f"[DATA_MANAGER] V3 Found {len(working_endpoints)} working live API endpoints")
+    def _update_avg_transaction_time(self, execution_time: float):
+        """Update rolling average transaction time"""
+        if self.transaction_stats['avg_transaction_time'] == 0:
+            self.transaction_stats['avg_transaction_time'] = execution_time
         else:
-            raise RuntimeError("V3 CRITICAL: No live API endpoints available - cannot proceed without live data")
+            self.transaction_stats['avg_transaction_time'] = (
+                self.transaction_stats['avg_transaction_time'] * 0.9 + execution_time * 0.1
+            )
     
-    async def download_live_historical_data(self, symbol: str, timeframe: str, limit: int = 100):
-        """V3 Download live data with performance optimization and proper session management"""
+    def get_transaction_stats(self) -> Dict[str, Any]:
+        """Get transaction statistics"""
+        stats = self.transaction_stats.copy()
         
-        # Check cache first
-        cache_key = f"live_data_{symbol}_{timeframe}_{limit}"
-        cached_data = self.memory_cache.get(cache_key)
-        if cached_data is not None:
-            return cached_data
+        if stats['total_transactions'] > 0:
+            stats['success_rate'] = stats['successful_commits'] / stats['total_transactions']
+            stats['rollback_rate'] = stats['rollbacks'] / stats['total_transactions']
+        else:
+            stats['success_rate'] = 0
+            stats['rollback_rate'] = 0
         
-        for endpoint in self.live_api_endpoints:
-            connector = None
-            session = None
-            try:
-                # Optimized connection settings for performance
-                connector = aiohttp.TCPConnector(
-                    limit=10,
-                    limit_per_host=5,
-                    ttl_dns_cache=300,
-                    enable_cleanup_closed=True,
-                    keepalive_timeout=30
-                )
-                
-                timeout = aiohttp.ClientTimeout(total=20, connect=5, sock_read=15)
-                
-                session = aiohttp.ClientSession(
-                    connector=connector,
-                    timeout=timeout,
-                    headers={
-                        'User-Agent': 'V3-Trading-System/3.0-Performance',
-                        'Accept-Encoding': 'gzip, deflate'
-                    }
-                )
-                
-                params = {'symbol': symbol, 'interval': timeframe, 'limit': limit}
-                
-                async with session.get(endpoint, params=params) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data:
-                            # Process data with memory optimization
-                            df = await self._process_market_data_optimized(data, symbol, timeframe)
-                            
-                            if df is not None and len(df) > 0:
-                                # Cache the result
-                                self.memory_cache.set(cache_key, df, ttl=1800)  # 30 minutes
-                                
-                                logging.info(f"[DATA_MANAGER] V3 Downloaded {len(df)} live candles for {symbol} {timeframe}")
-                                return df
-                    
-                    elif response.status == 451:
-                        logging.warning(f"[DATA_MANAGER] V3 HTTP 451 (Unavailable For Legal Reasons) from {endpoint}")
-                        continue
-                    elif response.status == 429:
-                        logging.warning(f"[DATA_MANAGER] V3 Rate limited by {endpoint}")
-                        await asyncio.sleep(2)
-                        continue
-                    else:
-                        logging.warning(f"[DATA_MANAGER] V3 HTTP {response.status} from {endpoint}")
-                        continue
-                        
-            except asyncio.TimeoutError:
-                logging.warning(f"[DATA_MANAGER] V3 Timeout for endpoint {endpoint}")
-                continue
-            except Exception as e:
-                logging.warning(f"[DATA_MANAGER] V3 Error with endpoint {endpoint}: {e}")
-                continue
-            finally:
-                # Ensure proper cleanup
-                try:
-                    if session and not session.closed:
-                        await session.close()
-                        await asyncio.sleep(0.1)  # Allow time for cleanup
-                except Exception as cleanup_error:
-                    logging.warning(f"Session cleanup error: {cleanup_error}")
-                
-                try:
-                    if connector:
-                        await connector.close()
-                except Exception as connector_error:
-                    logging.warning(f"Connector cleanup error: {connector_error}")
-        
-        # V3: If all APIs fail, raise error
-        logging.error(f"[DATA_MANAGER] V3 CRITICAL: All live API endpoints failed for {symbol} {timeframe}")
-        raise RuntimeError(f"V3 CRITICAL: Cannot obtain live data for {symbol} {timeframe} - all endpoints failed")
+        stats['active_connections'] = self.total_connections
+        return stats
+
+@dataclass
+class HistoricalDataPoint:
+    """Historical data point structure"""
+    symbol: str
+    timeframe: str
+    timestamp: datetime
+    open_price: float
+    high_price: float
+    low_price: float
+    close_price: float
+    volume: float
+    quote_volume: Optional[float] = None
+    trades_count: Optional[int] = None
+    data_source: str = 'unknown'
+
+class DataCompressor:
+    """Compress historical data for long-term storage"""
     
-    async def _process_market_data_optimized(self, data: List, symbol: str, timeframe: str) -> Optional[pd.DataFrame]:
-        """Process market data with memory optimization and UTF-8 handling"""
+    @staticmethod
+    def compress_data(data_points: List[HistoricalDataPoint]) -> bytes:
+        """Compress historical data points"""
         try:
-            # Use thread pool for CPU-intensive pandas operations
-            def process_data():
-                df = pd.DataFrame(data, columns=[
-                    'timestamp', 'open', 'high', 'low', 'close', 'volume',
-                    'close_time', 'quote_volume', 'trades_count',
-                    'taker_buy_volume', 'taker_buy_quote_volume', 'ignore'
-                ])
-                
-                # Optimize data types for memory efficiency
-                numeric_columns = ['open', 'high', 'low', 'close', 'volume']
-                for col in numeric_columns:
-                    df[col] = pd.to_numeric(df[col], errors='coerce', downcast='float')
-                
-                df['timestamp'] = pd.to_numeric(df['timestamp'], downcast='integer')
-                
-                # Remove invalid data
-                df = df.dropna(subset=numeric_columns)
-                
-                # Validate data quality
-                if len(df) == 0:
-                    return None
-                
-                # Add metadata for V3 compliance
-                df['data_source'] = 'live_api'
-                df['encoding'] = 'utf-8'
-                df['v3_compliance'] = True
-                
-                return df
+            # Convert to DataFrame for efficient storage
+            df_data = []
+            for point in data_points:
+                df_data.append({
+                    'timestamp': point.timestamp.isoformat(),
+                    'open': point.open_price,
+                    'high': point.high_price,
+                    'low': point.low_price,
+                    'close': point.close_price,
+                    'volume': point.volume,
+                    'quote_volume': point.quote_volume,
+                    'trades_count': point.trades_count
+                })
             
-            # Execute in thread pool
-            loop = asyncio.get_event_loop()
-            df = await loop.run_in_executor(self.thread_pool, process_data)
+            df = pd.DataFrame(df_data)
             
-            return df
+            # Serialize to bytes
+            serialized = pickle.dumps(df)
+            
+            # Compress with gzip
+            compressed = gzip.compress(serialized)
+            
+            return compressed
             
         except Exception as e:
-            logging.error(f"[DATA_MANAGER] Data processing error: {e}")
-            return None
+            logging.error(f"Error compressing data: {e}")
+            return b''
     
-    async def store_live_historical_data(self, symbol: str, timeframe: str, df: pd.DataFrame):
-        """V3 Store live historical data with batch operations and UTF-8 encoding"""
+    @staticmethod
+    def decompress_data(compressed_data: bytes, symbol: str, 
+                       timeframe: str, data_source: str) -> List[HistoricalDataPoint]:
+        """Decompress historical data points"""
         try:
-            if df is None or len(df) == 0:
+            # Decompress
+            decompressed = gzip.decompress(compressed_data)
+            
+            # Deserialize
+            df = pickle.loads(decompressed)
+            
+            # Convert back to data points
+            data_points = []
+            for _, row in df.iterrows():
+                point = HistoricalDataPoint(
+                    symbol=symbol,
+                    timeframe=timeframe,
+                    timestamp=datetime.fromisoformat(row['timestamp']),
+                    open_price=row['open'],
+                    high_price=row['high'],
+                    low_price=row['low'],
+                    close_price=row['close'],
+                    volume=row['volume'],
+                    quote_volume=row['quote_volume'],
+                    trades_count=row['trades_count'],
+                    data_source=data_source
+                )
+                data_points.append(point)
+            
+            return data_points
+            
+        except Exception as e:
+            logging.error(f"Error decompressing data: {e}")
+            return []
+
+class HistoricalDataManager:
+    """
+    Enhanced Historical Data Manager with Performance Optimization
+    Optimized for 8 vCPU / 24GB server specifications with proper transaction management
+    """
+    
+    def __init__(self, config_manager=None):
+        self.config = config_manager
+        
+        # Transaction manager for proper commit handling
+        self.transaction_manager = TransactionManager('historical_data.db', max_connections=25)
+        
+        # Data compression utility
+        self.compressor = DataCompressor()
+        
+        # Performance optimization
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=20)
+        
+        # Data caching
+        self.data_cache = {}
+        self.cache_lock = threading.RLock()
+        self.cache_stats = {'hits': 0, 'misses': 0}
+        
+        # Performance tracking
+        self.manager_stats = {
+            'total_inserts': 0,
+            'successful_inserts': 0,
+            'failed_inserts': 0,
+            'total_queries': 0,
+            'cache_hit_rate': 0.0,
+            'avg_insert_time': 0.0,
+            'avg_query_time': 0.0,
+            'data_compression_ratio': 0.0
+        }
+        
+        # Start background tasks
+        self._start_background_tasks()
+    
+    async def store_historical_data_async(self, data_points: List[HistoricalDataPoint], 
+                                        commit_strategy: str = 'auto') -> Dict[str, Any]:
+        """Store historical data with proper transaction management"""
+        start_time = time.time()
+        
+        try:
+            if not data_points:
+                return {'success': False, 'error': 'No data points provided'}
+            
+            # Validate data points
+            validated_points = await self._validate_data_points_async(data_points)
+            if not validated_points:
+                return {'success': False, 'error': 'No valid data points after validation'}
+            
+            # Prepare insert operations
+            operations = []
+            for point in validated_points:
+                operations.append((
+                    '''INSERT OR REPLACE INTO historical_data 
+                       (symbol, timeframe, timestamp, open_price, high_price, low_price, 
+                        close_price, volume, quote_volume, trades_count, taker_buy_volume, 
+                        taker_buy_quote_volume, data_source, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (
+                        point.symbol, point.timeframe, point.timestamp,
+                        point.open_price, point.high_price, point.low_price, point.close_price,
+                        point.volume, point.quote_volume, point.trades_count,
+                        None, None,  # taker_buy_volume, taker_buy_quote_volume
+                        point.data_source, datetime.now()
+                    )
+                ))
+            
+            # Execute transaction with proper commit handling
+            result = await asyncio.get_event_loop().run_in_executor(
+                self.executor,
+                self.transaction_manager.execute_transaction,
+                operations,
+                commit_strategy
+            )
+            
+            if result['success']:
+                # Update sync status
+                await self._update_sync_status_async(validated_points, result)
+                
+                # Update data quality metrics
+                await self._update_data_quality_async(validated_points)
+                
+                # Compress old data if needed
+                if len(validated_points) > 1000:
+                    await self._compress_old_data_async(validated_points[0].symbol, validated_points[0].timeframe)
+            
+            # Update performance statistics
+            execution_time = time.time() - start_time
+            self._update_insert_stats(result['success'], execution_time, len(validated_points))
+            
+            result['validation_summary'] = {
+                'original_count': len(data_points),
+                'validated_count': len(validated_points),
+                'execution_time': execution_time
+            }
+            
+            return result
+            
+        except Exception as e:
+            execution_time = time.time() - start_time
+            self._update_insert_stats(False, execution_time, 0)
+            logging.error(f"Error storing historical data: {e}")
+            return {
+                'success': False,
+                'error': str(e),
+                'execution_time': execution_time
+            }
+    
+    async def _validate_data_points_async(self, data_points: List[HistoricalDataPoint]) -> List[HistoricalDataPoint]:
+        """Validate data points asynchronously"""
+        try:
+            loop = asyncio.get_event_loop()
+            
+            def validate_points():
+                validated = []
+                
+                for point in data_points:
+                    # Basic validation
+                    if not point.symbol or not point.timeframe:
+                        continue
+                    
+                    # Price validation
+                    if (point.open_price <= 0 or point.high_price <= 0 or 
+                        point.low_price <= 0 or point.close_price <= 0):
+                        continue
+                    
+                    # OHLC logic validation
+                    if not (point.low_price <= point.open_price <= point.high_price and
+                            point.low_price <= point.close_price <= point.high_price):
+                        continue
+                    
+                    # Volume validation
+                    if point.volume < 0:
+                        continue
+                    
+                    # Timestamp validation
+                    if point.timestamp > datetime.now():
+                        continue
+                    
+                    validated.append(point)
+                
+                return validated
+            
+            return await loop.run_in_executor(self.executor, validate_points)
+            
+        except Exception as e:
+            logging.error(f"Error validating data points: {e}")
+            return []
+    
+    async def _update_sync_status_async(self, data_points: List[HistoricalDataPoint], 
+                                      transaction_result: Dict[str, Any]):
+        """Update synchronization status with proper commit"""
+        try:
+            if not data_points:
                 return
             
-            # Prepare batch operations for better performance
-            operations = []
-            store_sql = """
-            INSERT OR REPLACE INTO live_historical_data 
-            (symbol, timeframe, timestamp, open_price, high_price, 
-             low_price, close_price, volume, data_source, encoding, v3_compliance, data_quality_score)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """
+            # Group by symbol and timeframe
+            symbol_tf_groups = defaultdict(list)
+            for point in data_points:
+                key = f"{point.symbol}_{point.timeframe}"
+                symbol_tf_groups[key].append(point)
             
-            for _, row in df.iterrows():
-                try:
-                    # Calculate data quality score
-                    quality_score = self._calculate_data_quality_score(row)
-                    
-                    params = (
-                        str(symbol), 
-                        str(timeframe), 
-                        int(float(row['timestamp'])),
-                        float(row['open']), 
-                        float(row['high']), 
-                        float(row['low']),
-                        float(row['close']), 
-                        float(row['volume']),
-                        'live_api',
-                        'utf-8',  # V3: UTF-8 encoding specification
-                        True,     # V3 compliance
-                        quality_score
-                    )
-                    operations.append((store_sql, params))
-                    
-                except (TypeError, ValueError) as e:
-                    logging.warning(f"[DATA_MANAGER] V3 Skipping row due to type error: {e}")
-                    continue
-            
-            # Execute batch operation
-            if operations:
-                self.connection_pool.execute_batch(operations)
-                logging.info(f"[DATA_MANAGER] V3 Stored {len(operations)} live data points for {symbol} {timeframe}")
+            # Update sync status for each group
+            for key, points in symbol_tf_groups.items():
+                symbol = points[0].symbol
+                timeframe = points[0].timeframe
                 
+                latest_timestamp = max(point.timestamp for point in points)
+                
+                result = self.transaction_manager.execute_single_operation(
+                    '''INSERT OR REPLACE INTO sync_status 
+                       (symbol, timeframe, last_sync_timestamp, sync_status, 
+                        records_synced, sync_duration, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                    (symbol, timeframe, latest_timestamp, 'completed',
+                     len(points), transaction_result['execution_time'], datetime.now()),
+                    commit=True  # Always commit sync status updates
+                )
+                
+                if not result['success']:
+                    logging.error(f"Failed to update sync status for {symbol} {timeframe}")
+        
         except Exception as e:
-            logging.error(f"[DATA_MANAGER] V3 Error storing live data: {e}")
+            logging.error(f"Error updating sync status: {e}")
     
-    def _calculate_data_quality_score(self, row) -> float:
-        """Calculate data quality score for validation"""
+    async def _update_data_quality_async(self, data_points: List[HistoricalDataPoint]):
+        """Update data quality metrics with proper commit"""
         try:
-            score = 1.0
+            if not data_points:
+                return
             
-            # Check for realistic price values
-            open_price = float(row['open'])
-            high_price = float(row['high'])
-            low_price = float(row['low'])
-            close_price = float(row['close'])
-            volume = float(row['volume'])
+            # Group by symbol and timeframe
+            symbol_tf_groups = defaultdict(list)
+            for point in data_points:
+                key = f"{point.symbol}_{point.timeframe}"
+                symbol_tf_groups[key].append(point)
             
-            # Basic sanity checks
-            if high_price < low_price:
-                score -= 0.3
-            
-            if high_price < max(open_price, close_price) or low_price > min(open_price, close_price):
-                score -= 0.3
-            
-            if volume <= 0:
-                score -= 0.2
-            
-            # Check for extreme price movements (possible data errors)
-            if open_price > 0:
-                price_change = abs(close_price - open_price) / open_price
-                if price_change > 0.5:  # 50% price change in one period
-                    score -= 0.2
-            
-            return max(0.0, score)
-            
-        except Exception:
-            return 0.5  # Default score for problematic data
+            # Calculate quality metrics for each group
+            for key, points in symbol_tf_groups.items():
+                symbol = points[0].symbol
+                timeframe = points[0].timeframe
+                
+                start_time = min(point.timestamp for point in points)
+                end_time = max(point.timestamp for point in points)
+                
+                # Check for missing data points (simplified)
+                expected_count = len(points)  # This should be calculated based on timeframe
+                actual_count = len(points)
+                missing_count = max(0, expected_count - actual_count)
+                
+                # Calculate quality score
+                quality_score = 100.0
+                if expected_count > 0:
+                    quality_score = (actual_count / expected_count) * 100
+                
+                result = self.transaction_manager.execute_single_operation(
+                    '''INSERT OR REPLACE INTO data_quality 
+                       (symbol, timeframe, date_range_start, date_range_end, 
+                        total_records, missing_records, quality_score, 
+                        last_validation, validation_status)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                    (symbol, timeframe, start_time, end_time, actual_count,
+                     missing_count, quality_score, datetime.now(), 'validated'),
+                    commit=True  # Always commit quality updates
+                )
+                
+                if not result['success']:
+                    logging.error(f"Failed to update data quality for {symbol} {timeframe}")
+        
+        except Exception as e:
+            logging.error(f"Error updating data quality: {e}")
     
-    async def get_historical_data(self, symbol: str, timeframe: str, 
-                                 start_time: Optional[datetime] = None, 
-                                 end_time: Optional[datetime] = None):
-        """V3 Get historical data with intelligent caching and validation"""
+    async def _compress_old_data_async(self, symbol: str, timeframe: str):
+        """Compress old historical data for storage efficiency"""
         try:
-            # Create cache key
-            cache_key = f"hist_data_{symbol}_{timeframe}_{start_time}_{end_time}"
-            cached_result = self.memory_cache.get(cache_key)
-            if cached_result is not None:
-                return cached_result
+            # Get old data (older than 30 days)
+            cutoff_date = datetime.now() - timedelta(days=30)
             
-            # V3 Query for live data only with optimized SQL
-            base_query = """
-            SELECT timestamp, open_price, high_price, low_price, close_price, volume,
-                   data_source, encoding, v3_compliance, data_quality_score
-            FROM live_historical_data 
-            WHERE symbol = ? AND timeframe = ? AND v3_compliance = TRUE
-            """
-            
-            params = [str(symbol), str(timeframe)]
-            
-            # Add time range filters
-            if start_time:
-                base_query += " AND timestamp >= ?"
-                params.append(int(start_time.timestamp() * 1000))
-            
-            if end_time:
-                base_query += " AND timestamp <= ?"
-                params.append(int(end_time.timestamp() * 1000))
-            
-            base_query += " ORDER BY timestamp ASC"
-            
-            # Execute query with connection pool
-            conn = self.connection_pool.get_connection()
+            conn = self.transaction_manager.get_connection()
             if not conn:
-                logging.error("[DATA_MANAGER] Could not get database connection")
-                return None
+                return
             
             try:
-                cursor = conn.execute(base_query, params)
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT symbol, timeframe, timestamp, open_price, high_price, 
+                           low_price, close_price, volume, quote_volume, trades_count, data_source
+                    FROM historical_data 
+                    WHERE symbol = ? AND timeframe = ? AND timestamp < ?
+                    ORDER BY timestamp
+                ''', (symbol, timeframe, cutoff_date))
+                
                 rows = cursor.fetchall()
                 
-                if rows:
-                    # Process results efficiently
-                    result_data = {
-                        'timestamp': [row[0] for row in rows],
-                        'open': [row[1] for row in rows],
-                        'high': [row[2] for row in rows],
-                        'low': [row[3] for row in rows],
-                        'close': [row[4] for row in rows],
-                        'volume': [row[5] for row in rows],
-                        'metadata': {
-                            'data_source': rows[0][6] if rows else 'live_api',
-                            'encoding': rows[0][7] if rows else 'utf-8',
-                            'v3_compliance': rows[0][8] if rows else True,
-                            'average_quality_score': sum(row[9] for row in rows) / len(rows)
-                        }
-                    }
-                    
-                    # Cache the result
-                    self.memory_cache.set(cache_key, result_data, ttl=3600)
-                    
-                    logging.info(f"[DATA_MANAGER] V3 Retrieved {len(rows)} live data points for {symbol} {timeframe}")
-                    return result_data
-                    
-            finally:
-                self.connection_pool.return_connection(conn)
-            
-            # V3 If no cached data, download live data
-            logging.info(f"[DATA_MANAGER] V3 No cached data - downloading live data for {symbol} {timeframe}")
-            df = await self.download_live_historical_data(symbol, timeframe, 200)
-            
-            if df is not None and len(df) > 0:
-                await self.store_live_historical_data(symbol, timeframe, df)
+                if len(rows) < 100:  # Not enough data to compress
+                    return
                 
-                # Apply time filters to downloaded data
-                filtered_df = df.copy()
-                if start_time:
-                    start_ts = int(start_time.timestamp() * 1000)
-                    filtered_df = filtered_df[filtered_df['timestamp'] >= start_ts]
-                if end_time:
-                    end_ts = int(end_time.timestamp() * 1000)
-                    filtered_df = filtered_df[filtered_df['timestamp'] <= end_ts]
+                # Convert to data points
+                data_points = []
+                for row in rows:
+                    point = HistoricalDataPoint(
+                        symbol=row[0], timeframe=row[1], timestamp=datetime.fromisoformat(row[2]),
+                        open_price=row[3], high_price=row[4], low_price=row[5],
+                        close_price=row[6], volume=row[7], quote_volume=row[8],
+                        trades_count=row[9], data_source=row[10]
+                    )
+                    data_points.append(point)
                 
-                if len(filtered_df) > 0:
-                    result_data = {
-                        'timestamp': filtered_df['timestamp'].tolist(),
-                        'open': filtered_df['open'].tolist(),
-                        'high': filtered_df['high'].tolist(),
-                        'low': filtered_df['low'].tolist(),
-                        'close': filtered_df['close'].tolist(),
-                        'volume': filtered_df['volume'].tolist(),
-                        'metadata': {
-                            'data_source': 'live_api',
-                            'encoding': 'utf-8',
-                            'v3_compliance': True,
-                            'average_quality_score': 1.0
-                        }
-                    }
-                    
-                    # Cache the result
-                    self.memory_cache.set(cache_key, result_data, ttl=1800)
-                    
-                    logging.info(f"[DATA_MANAGER] V3 Returning {len(filtered_df)} live data points for {symbol} {timeframe}")
-                    return result_data
-            
-            return None
+                # Compress data
+                compressed_data = self.compressor.compress_data(data_points)
+                if not compressed_data:
+                    return
                 
-        except Exception as e:
-            logging.error(f"[DATA_MANAGER] V3 Error getting live historical data: {e}")
-            return None
-    
-    async def get_latest_data(self, symbol: str, timeframe: str = '1h') -> Optional[Dict]:
-        """V3 Get latest live market data with caching"""
-        try:
-            cache_key = f"latest_{symbol}_{timeframe}"
-            cached_data = self.memory_cache.get(cache_key)
-            if cached_data is not None:
-                return cached_data
-            
-            # Get recent live historical data
-            end_time = datetime.now()
-            start_time = end_time - timedelta(hours=24)
-            
-            data = await self.get_historical_data(symbol, timeframe, start_time, end_time)
-            
-            if data and len(data.get('close', [])) > 0:
-                latest_data = {
-                    'symbol': symbol,
-                    'timeframe': timeframe,
-                    'timestamp': data['timestamp'][-1] if data.get('timestamp') else int(datetime.now().timestamp() * 1000),
-                    'open': data['open'][-1] if data.get('open') else 0,
-                    'high': data['high'][-1] if data.get('high') else 0,
-                    'low': data['low'][-1] if data.get('low') else 0,
-                    'close': data['close'][-1] if data.get('close') else 0,
-                    'volume': data['volume'][-1] if data.get('volume') else 0,
-                    'last_updated': datetime.now().isoformat(),
-                    'data_source': data.get('metadata', {}).get('data_source', 'live_api'),
-                    'encoding': 'utf-8',
-                    'v3_compliance': True,
-                    'data_quality_score': data.get('metadata', {}).get('average_quality_score', 1.0)
-                }
+                # Calculate compression ratio
+                original_size = len(pickle.dumps(data_points))
+                compression_ratio = len(compressed_data) / original_size
                 
-                # Cache for 5 minutes
-                self.memory_cache.set(cache_key, latest_data, ttl=300)
+                # Store compressed data
+                start_time = min(point.timestamp for point in data_points)
+                end_time = max(point.timestamp for point in data_points)
+                checksum = hashlib.md5(compressed_data).hexdigest()
                 
-                return latest_data
-            
-            return None
-            
-        except Exception as e:
-            logging.error(f"[DATA_MANAGER] V3 Error getting latest live data for {symbol}: {e}")
-            return None
-    
-    def get_latest_data_sync(self, symbol: str, timeframe: str = '1h') -> Optional[Dict]:
-        """V3 Synchronous version with enhanced error handling"""
-        try:
-            # Try to run in existing event loop
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Use thread pool to avoid blocking
-                future = self.thread_pool.submit(
-                    lambda: asyncio.run(self.get_latest_data(symbol, timeframe))
+                cursor.execute('''
+                    INSERT OR REPLACE INTO compressed_historical_data 
+                    (symbol, timeframe, date_range_start, date_range_end, 
+                     compressed_data, compression_ratio, record_count, checksum)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ''', (symbol, timeframe, start_time, end_time, compressed_data,
+                      compression_ratio, len(data_points), checksum))
+                
+                # Delete old uncompressed data
+                cursor.execute('''
+                    DELETE FROM historical_data 
+                    WHERE symbol = ? AND timeframe = ? AND timestamp < ?
+                ''', (symbol, timeframe, cutoff_date))
+                
+                # Commit compression transaction
+                conn.commit()
+                
+                # Update compression stats
+                self.manager_stats['data_compression_ratio'] = (
+                    self.manager_stats['data_compression_ratio'] * 0.9 + compression_ratio * 0.1
                 )
-                return future.result(timeout=30)
-            else:
-                return asyncio.run(self.get_latest_data(symbol, timeframe))
-        except Exception as e:
-            logging.error(f"[DATA_MANAGER] V3 Error in sync get_latest_data for {symbol}: {e}")
-            return None
-
-    async def cleanup_old_data(self, days_to_keep: int = 30):
-        """V3 Cleanup old live data with batch operations"""
-        try:
-            cutoff_timestamp = int((datetime.now() - timedelta(days=days_to_keep)).timestamp() * 1000)
-            
-            cleanup_sql = """
-            DELETE FROM live_historical_data 
-            WHERE timestamp < ? AND v3_compliance = TRUE
-            """
-            
-            conn = self.connection_pool.get_connection()
-            if conn:
-                try:
-                    cursor = conn.execute(cleanup_sql, (cutoff_timestamp,))
-                    deleted_count = cursor.rowcount
-                    
-                    # Optimize database after cleanup
-                    conn.execute("VACUUM")
-                    conn.execute("ANALYZE")
-                    
-                    logging.info(f"[DATA_MANAGER] V3 Cleaned up {deleted_count} old live data records")
-                    return deleted_count
-                    
-                finally:
-                    self.connection_pool.return_connection(conn)
                 
-        except Exception as e:
-            logging.error(f"[DATA_MANAGER] V3 Error cleaning up old data: {e}")
-            return 0
-
-    def get_v3_metrics(self):
-        """V3 Get comprehensive performance metrics"""
-        try:
-            # Get database statistics
-            conn = self.connection_pool.get_connection()
-            db_stats = {}
-            
-            if conn:
-                try:
-                    # Count live data points
-                    cursor = conn.execute("SELECT COUNT(*) FROM live_historical_data WHERE v3_compliance = TRUE")
-                    total_live_data_points = cursor.fetchone()[0]
-                    
-                    # Count unique symbols
-                    cursor = conn.execute("SELECT COUNT(DISTINCT symbol) FROM live_historical_data WHERE v3_compliance = TRUE")
-                    unique_symbols = cursor.fetchone()[0]
-                    
-                    # Count unique timeframes
-                    cursor = conn.execute("SELECT COUNT(DISTINCT timeframe) FROM live_historical_data WHERE v3_compliance = TRUE")
-                    unique_timeframes = cursor.fetchone()[0]
-                    
-                    # Get average data quality
-                    cursor = conn.execute("SELECT AVG(data_quality_score) FROM live_historical_data WHERE v3_compliance = TRUE")
-                    avg_quality = cursor.fetchone()[0] or 0.0
-                    
-                    db_stats = {
-                        'total_live_data_points': total_live_data_points,
-                        'unique_symbols': unique_symbols,
-                        'unique_timeframes': unique_timeframes,
-                        'average_data_quality': round(avg_quality, 3)
-                    }
-                    
-                finally:
-                    self.connection_pool.return_connection(conn)
-            
-            # Get performance statistics
-            pool_stats = self.connection_pool.get_pool_stats()
-            cache_stats = self.memory_cache.get_cache_stats()
-            
-            # Get memory usage
-            process = psutil.Process()
-            memory_mb = process.memory_info().rss / 1024 / 1024
-            
-            return {
-                **db_stats,
-                'connection_pool_stats': pool_stats,
-                'cache_stats': cache_stats,
-                'memory_usage_mb': round(memory_mb, 2),
-                'thread_pool_workers': self.config['max_workers'],
-                'live_data_sources_active': len(self.live_api_endpoints),
-                'v3_compliance': True,
-                'data_mode': 'LIVE_PRODUCTION',
-                'performance_optimized': True,
-                'utf8_encoding_enabled': True
-            }
-            
-        except Exception as e:
-            logging.error(f"[DATA_MANAGER] V3 Error getting metrics: {e}")
-            return {
-                'total_live_data_points': 0,
-                'unique_symbols': 0,
-                'unique_timeframes': 0,
-                'live_data_sources_active': 0,
-                'v3_compliance': True,
-                'data_mode': 'ERROR',
-                'error': str(e)
-            }
-
-    def get_metrics(self):
-        """Legacy compatibility method"""
-        return self.get_v3_metrics()
-
-    async def validate_v3_compliance(self) -> Dict[str, Any]:
-        """V3 Enhanced validation with performance metrics"""
-        try:
-            conn = self.connection_pool.get_connection()
-            if not conn:
-                return {'v3_compliant': False, 'error': 'Database connection failed'}
-            
-            try:
-                # Check for non-V3 compliant data
-                cursor = conn.execute("SELECT COUNT(*) FROM live_historical_data WHERE v3_compliance != TRUE")
-                non_compliant_count = cursor.fetchone()[0]
-                
-                # Check data sources
-                cursor = conn.execute("SELECT DISTINCT data_source FROM live_historical_data")
-                data_sources = [row[0] for row in cursor.fetchall()]
-                
-                # Check encoding
-                cursor = conn.execute("SELECT DISTINCT encoding FROM live_historical_data")
-                encodings = [row[0] for row in cursor.fetchall()]
-                
-                # Check data quality
-                cursor = conn.execute("SELECT AVG(data_quality_score), MIN(data_quality_score) FROM live_historical_data WHERE v3_compliance = TRUE")
-                quality_result = cursor.fetchone()
-                avg_quality = quality_result[0] or 0.0
-                min_quality = quality_result[1] or 0.0
-                
-                # Validation checks
-                has_live_data_only = all('live' in source or 'api' in source for source in data_sources)
-                has_utf8_encoding = all(enc == 'utf-8' for enc in encodings if enc)
-                has_good_quality = avg_quality >= 0.8 and min_quality >= 0.5
-                
-                validation_result = {
-                    'v3_compliant': (
-                        non_compliant_count == 0 and 
-                        has_live_data_only and 
-                        has_utf8_encoding and 
-                        has_good_quality
-                    ),
-                    'non_compliant_records': non_compliant_count,
-                    'data_sources': data_sources,
-                    'encodings': encodings,
-                    'live_data_only': has_live_data_only,
-                    'utf8_encoding': has_utf8_encoding,
-                    'average_data_quality': round(avg_quality, 3),
-                    'minimum_data_quality': round(min_quality, 3),
-                    'good_quality_data': has_good_quality,
-                    'validation_timestamp': datetime.now().isoformat(),
-                    'performance_metrics': {
-                        'connection_pool_success_rate': self.connection_pool.get_pool_stats()['success_rate_percent'],
-                        'cache_hit_rate': self.memory_cache.get_cache_stats()['hit_rate_percent']
-                    }
-                }
-                
-                if validation_result['v3_compliant']:
-                    logging.info("[DATA_MANAGER] V3 Compliance validation PASSED")
-                else:
-                    logging.warning(f"[DATA_MANAGER] V3 Compliance validation FAILED: {validation_result}")
-                
-                return validation_result
+                logging.info(f"Compressed {len(data_points)} records for {symbol} {timeframe}, "
+                           f"compression ratio: {compression_ratio:.2f}")
                 
             finally:
-                self.connection_pool.return_connection(conn)
-                
+                self.transaction_manager.return_connection(conn)
+        
         except Exception as e:
-            logging.error(f"[DATA_MANAGER] V3 Compliance validation error: {e}")
-            return {
-                'v3_compliant': False,
-                'error': str(e),
-                'validation_timestamp': datetime.now().isoformat()
-            }
+            logging.error(f"Error compressing old data: {e}")
     
-    def cleanup_resources(self):
-        """V3 Enhanced resource cleanup"""
-        try:
-            # Shutdown thread pool
-            self.thread_pool.shutdown(wait=True)
-            
-            # Clean up connection pool
-            self.connection_pool.cleanup()
-            
-            # Clear memory cache
-            self.memory_cache.clear()
-            
-            # Force garbage collection
-            gc.collect()
-            
-            logging.info("[DATA_MANAGER] V3 Enhanced resource cleanup completed")
-            
-        except Exception as e:
-            logging.error(f"[DATA_MANAGER] V3 Cleanup error: {e}")
-
-# V3 Testing
-if __name__ == "__main__":
-    print("[DATA_MANAGER] Testing V3 Historical Data Manager - PERFORMANCE OPTIMIZED")
-    
-    async def test_v3_data_manager():
-        manager = HistoricalDataManager()
+    async def get_historical_data_async(self, symbol: str, timeframe: str, 
+                                      start_time: datetime = None, end_time: datetime = None,
+                                      limit: int = 1000) -> List[HistoricalDataPoint]:
+        """Get historical data with caching and proper transaction handling"""
+        start_query_time = time.time()
         
         try:
-            await manager.initialize()
+            # Create cache key
+            cache_key = f"{symbol}_{timeframe}_{start_time}_{end_time}_{limit}"
             
-            # Test performance metrics
-            print("\n[DATA_MANAGER] Performance Test:")
-            start_time = time.time()
+            # Check cache first
+            cached_data = self._get_cached_data(cache_key)
+            if cached_data:
+                self.cache_stats['hits'] += 1
+                return cached_data
             
-            # Test live data retrieval
-            data = await manager.get_historical_data('BTCUSDT', '1h')
-            if data:
-                print(f"[DATA_MANAGER] V3 Retrieved {len(data['close'])} live data points")
+            self.cache_stats['misses'] += 1
             
-            retrieval_time = time.time() - start_time
-            print(f"[DATA_MANAGER] Data retrieval time: {retrieval_time:.2f}s")
+            # Build query
+            if start_time is None:
+                start_time = datetime.now() - timedelta(days=30)
+            if end_time is None:
+                end_time = datetime.now()
             
-            # Test latest data
-            latest = await manager.get_latest_data('BTCUSDT')
-            if latest:
-                print(f"[DATA_MANAGER] V3 Latest BTC price: ${latest['close']:.2f}")
-                print(f"[DATA_MANAGER] Data quality score: {latest.get('data_quality_score', 'N/A')}")
+            # Query from regular table first
+            data_points = await self._query_regular_data_async(
+                symbol, timeframe, start_time, end_time, limit
+            )
             
-            # Validate V3 compliance
-            validation = await manager.validate_v3_compliance()
-            print(f"[DATA_MANAGER] V3 Compliance: {validation['v3_compliant']}")
+            # If not enough data, try compressed storage
+            if len(data_points) < limit:
+                compressed_data = await self._query_compressed_data_async(
+                    symbol, timeframe, start_time, end_time, limit - len(data_points)
+                )
+                data_points.extend(compressed_data)
             
-            # Get comprehensive metrics
-            metrics = manager.get_v3_metrics()
-            print(f"\n[DATA_MANAGER] V3 Performance Metrics:")
-            print(f"  Memory Usage: {metrics.get('memory_usage_mb', 0):.1f} MB")
-            print(f"  Connection Pool Success Rate: {metrics.get('connection_pool_stats', {}).get('success_rate_percent', 0):.1f}%")
-            print(f"  Cache Hit Rate: {metrics.get('cache_stats', {}).get('hit_rate_percent', 0):.1f}%")
-            print(f"  Thread Pool Workers: {metrics.get('thread_pool_workers', 0)}")
-            print(f"  UTF-8 Encoding: {metrics.get('utf8_encoding_enabled', False)}")
-            print(f"  V3 Compliance: {metrics.get('v3_compliance', False)}")
+            # Sort by timestamp
+            data_points.sort(key=lambda x: x.timestamp)
+            
+            # Cache the results
+            self._cache_data(cache_key, data_points)
+            
+            # Update query statistics
+            query_time = time.time() - start_query_time
+            self._update_query_stats(True, query_time)
+            
+            return data_points
             
         except Exception as e:
-            print(f"[DATA_MANAGER] V3 Test failed: {e}")
-        finally:
-            manager.cleanup_resources()
+            query_time = time.time() - start_query_time
+            self._update_query_stats(False, query_time)
+            logging.error(f"Error getting historical data: {e}")
+            return []
     
-    asyncio.run(test_v3_data_manager())
-    print("\n[DATA_MANAGER] V3 Historical Data Manager test complete - PERFORMANCE OPTIMIZED!")
+    async def _query_regular_data_async(self, symbol: str, timeframe: str,
+                                      start_time: datetime, end_time: datetime,
+                                      limit: int) -> List[HistoricalDataPoint]:
+        """Query regular historical data table"""
+        try:
+            loop = asyncio.get_event_loop()
+            
+            def query_data():
+                conn = self.transaction_manager.get_connection()
+                if not conn:
+                    return []
+                
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        SELECT symbol, timeframe, timestamp, open_price, high_price, 
+                               low_price, close_price, volume, quote_volume, trades_count, data_source
+                        FROM historical_data 
+                        WHERE symbol = ? AND timeframe = ? AND timestamp BETWEEN ? AND ?
+                        ORDER BY timestamp DESC
+                        LIMIT ?
+                    ''', (symbol, timeframe, start_time, end_time, limit))
+                    
+                    rows = cursor.fetchall()
+                    
+                    data_points = []
+                    for row in rows:
+                        point = HistoricalDataPoint(
+                            symbol=row[0], timeframe=row[1], 
+                            timestamp=datetime.fromisoformat(row[2]) if isinstance(row[2], str) else row[2],
+                            open_price=row[3], high_price=row[4], low_price=row[5],
+                            close_price=row[6], volume=row[7], quote_volume=row[8],
+                            trades_count=row[9], data_source=row[10]
+                        )
+                        data_points.append(point)
+                    
+                    return data_points
+                    
+                finally:
+                    self.transaction_manager.return_connection(conn)
+            
+            return await loop.run_in_executor(self.executor, query_data)
+            
+        except Exception as e:
+            logging.error(f"Error querying regular data: {e}")
+            return []
+    
+    async def _query_compressed_data_async(self, symbol: str, timeframe: str,
+                                         start_time: datetime, end_time: datetime,
+                                         limit: int) -> List[HistoricalDataPoint]:
+        """Query compressed historical data"""
+        try:
+            loop = asyncio.get_event_loop()
+            
+            def query_compressed():
+                conn = self.transaction_manager.get_connection()
+                if not conn:
+                    return []
+                
+                try:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        SELECT compressed_data, record_count, checksum
+                        FROM compressed_historical_data 
+                        WHERE symbol = ? AND timeframe = ? 
+                        AND date_range_start <= ? AND date_range_end >= ?
+                        ORDER BY date_range_start DESC
+                        LIMIT 5
+                    ''', (symbol, timeframe, end_time, start_time))
+                    
+                    rows = cursor.fetchall()
+                    all_points = []
+                    
+                    for row in rows:
+                        compressed_data = row[0]
+                        expected_count = row[1]
+                        stored_checksum = row[2]
+                        
+                        # Verify checksum
+                        calculated_checksum = hashlib.md5(compressed_data).hexdigest()
+                        if calculated_checksum != stored_checksum:
+                            logging.warning(f"Checksum mismatch for compressed data")
+                            continue
+                        
+                        # Decompress data
+                        decompressed_points = self.compressor.decompress_data(
+                            compressed_data, symbol, timeframe, 'compressed'
+                        )
+                        
+                        # Filter by time range
+                        filtered_points = [
+                            point for point in decompressed_points
+                            if start_time <= point.timestamp <= end_time
+                        ]
+                        
+                        all_points.extend(filtered_points)
+                        
+                        if len(all_points) >= limit:
+                            break
+                    
+                    return all_points[:limit]
+                    
+                finally:
+                    self.transaction_manager.return_connection(conn)
+            
+            return await loop.run_in_executor(self.executor, query_compressed)
+            
+        except Exception as e:
+            logging.error(f"Error querying compressed data: {e}")
+            return []
+    
+    def _get_cached_data(self, cache_key: str) -> Optional[List[HistoricalDataPoint]]:
+        """Get data from cache"""
+        try:
+            with self.cache_lock:
+                if cache_key in self.data_cache:
+                    cache_entry = self.data_cache[cache_key]
+                    if time.time() - cache_entry['timestamp'] < 300:  # 5 minute cache
+                        return cache_entry['data']
+                    else:
+                        del self.data_cache[cache_key]
+            return None
+        except Exception as e:
+            logging.error(f"Error getting cached data: {e}")
+            return None
+    
+    def _cache_data(self, cache_key: str, data_points: List[HistoricalDataPoint]):
+        """Cache data in memory"""
+        try:
+            with self.cache_lock:
+                # Limit cache size
+                if len(self.data_cache) > 100:
+                    # Remove oldest entries
+                    oldest_key = min(self.data_cache.keys(), 
+                                   key=lambda k: self.data_cache[k]['timestamp'])
+                    del self.data_cache[oldest_key]
+                
+                self.data_cache[cache_key] = {
+                    'data': data_points,
+                    'timestamp': time.time()
+                }
+        except Exception as e:
+            logging.error(f"Error caching data: {e}")
+    
+    def _update_insert_stats(self, success: bool, execution_time: float, record_count: int):
+        """Update insert performance statistics"""
+        try:
+            self.manager_stats['total_inserts'] += 1
+            
+            if success:
+                self.manager_stats['successful_inserts'] += 1
+            else:
+                self.manager_stats['failed_inserts'] += 1
+            
+            # Update rolling average insert time
+            if self.manager_stats['avg_insert_time'] == 0:
+                self.manager_stats['avg_insert_time'] = execution_time
+            else:
+                self.manager_stats['avg_insert_time'] = (
+                    self.manager_stats['avg_insert_time'] * 0.9 + execution_time * 0.1
+                )
+        
+        except Exception as e:
+            logging.error(f"Error updating insert stats: {e}")
+    
+    def _update_query_stats(self, success: bool, query_time: float):
+        """Update query performance statistics"""
+        try:
+            self.manager_stats['total_queries'] += 1
+            
+            # Update rolling average query time
+            if self.manager_stats['avg_query_time'] == 0:
+                self.manager_stats['avg_query_time'] = query_time
+            else:
+                self.manager_stats['avg_query_time'] = (
+                    self.manager_stats['avg_query_time'] * 0.9 + query_time * 0.1
+                )
+            
+            # Update cache hit rate
+            total_cache_requests = self.cache_stats['hits'] + self.cache_stats['misses']
+            if total_cache_requests > 0:
+                self.manager_stats['cache_hit_rate'] = self.cache_stats['hits'] / total_cache_requests
+        
+        except Exception as e:
+            logging.error(f"Error updating query stats: {e}")
+    
+    def _start_background_tasks(self):
+        """Start background maintenance tasks"""
+        def background_worker():
+            while True:
+                try:
+                    self._cleanup_cache()
+                    self._vacuum_database()
+                    self._log_performance_metrics()
+                    time.sleep(600)  # Run every 10 minutes
+                except Exception as e:
+                    logging.error(f"Background task error: {e}")
+                    time.sleep(300)
+        
+        thread = threading.Thread(target=background_worker, daemon=True)
+        thread.start()
+    
+    def _cleanup_cache(self):
+        """Clean up expired cache entries"""
+        try:
+            current_time = time.time()
+            expired_keys = []
+            
+            with self.cache_lock:
+                for key, cache_entry in self.data_cache.items():
+                    if current_time - cache_entry['timestamp'] > 600:  # 10 minutes
+                        expired_keys.append(key)
+                
+                for key in expired_keys:
+                    del self.data_cache[key]
+            
+            if expired_keys:
+                logging.info(f"Cleaned up {len(expired_keys)} expired cache entries")
+        
+        except Exception as e:
+            logging.error(f"Cache cleanup error: {e}")
+    
+    def _vacuum_database(self):
+        """Vacuum database for optimization"""
+        try:
+            conn = self.transaction_manager.get_connection()
+            if conn:
+                try:
+                    conn.execute('VACUUM')
+                    conn.execute('PRAGMA optimize')
+                    conn.commit()  # Commit vacuum operation
+                    logging.info("Database vacuum completed")
+                finally:
+                    self.transaction_manager.return_connection(conn)
+        except Exception as e:
+            logging.error(f"Database vacuum error: {e}")
+    
+    def _log_performance_metrics(self):
+        """Log current performance metrics"""
+        try:
+            stats = self.manager_stats.copy()
+            transaction_stats = self.transaction_manager.get_transaction_stats()
+            
+            insert_success_rate = 0
+            if stats['total_inserts'] > 0:
+                insert_success_rate = stats['successful_inserts'] / stats['total_inserts'] * 100
+            
+            logging.info(f"Historical Data Manager Metrics - "
+                        f"Inserts: {stats['total_inserts']} ({insert_success_rate:.1f}% success), "
+                        f"Queries: {stats['total_queries']}, "
+                        f"Cache Hit Rate: {stats['cache_hit_rate']:.1%}, "
+                        f"Avg Insert Time: {stats['avg_insert_time']:.3f}s, "
+                        f"Transaction Success Rate: {transaction_stats['success_rate']:.1%}")
+        
+        except Exception as e:
+            logging.error(f"Performance logging error: {e}")
+    
+    def get_performance_summary(self) -> Dict[str, Any]:
+        """Get comprehensive performance summary"""
+        try:
+            summary = {
+                'manager_stats': self.manager_stats.copy(),
+                'transaction_stats': self.transaction_manager.get_transaction_stats(),
+                'cache_stats': self.cache_stats.copy(),
+                'cache_size': len(self.data_cache),
+                'system_resources': {
+                    'memory_percent': psutil.virtual_memory().percent,
+                    'cpu_percent': psutil.cpu_percent(),
+                    'thread_pool_workers': self.executor._max_workers
+                },
+                'last_updated': datetime.now().isoformat()
+            }
+            
+            return summary
+            
+        except Exception as e:
+            logging.error(f"Error getting performance summary: {e}")
+            return {}
+    
+    def optimize_for_server_specs(self):
+        """Optimize for 8 vCPU / 24GB server specifications"""
+        try:
+            cpu_count = psutil.cpu_count()
+            memory_gb = psutil.virtual_memory().total / (1024**3)
+            
+            # Adjust thread pool size
+            optimal_workers = min(cpu_count * 3, 24)  # 3x CPU cores for I/O heavy operations
+            if self.executor._max_workers != optimal_workers:
+                self.executor.shutdown(wait=False)
+                self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=optimal_workers)
+            
+            # Adjust database connections for high memory systems
+            if memory_gb >= 24:
+                if self.transaction_manager.max_connections < 30:
+                    self.transaction_manager.max_connections = 30
+            
+            logging.info(f"Historical data manager optimized for {cpu_count} CPUs, {memory_gb:.1f}GB RAM")
+            
+        except Exception as e:
+            logging.error(f"Server optimization error: {e}")
+
+# Export main classes
+__all__ = ['HistoricalDataManager', 'TransactionManager', 'HistoricalDataPoint', 'DataCompressor']
+
+if __name__ == "__main__":
+    # Performance test
+    async def test_historical_data_manager():
+        manager = HistoricalDataManager()
+        manager.optimize_for_server_specs()
+        
+        # Test data storage
+        test_data = []
+        for i in range(100):
+            point = HistoricalDataPoint(
+                symbol='BTCUSDT',
+                timeframe='1h',
+                timestamp=datetime.now() - timedelta(hours=i),
+                open_price=50000 + i,
+                high_price=50100 + i,
+                low_price=49900 + i,
+                close_price=50050 + i,
+                volume=1000 + i,
+                data_source='test'
+            )
+            test_data.append(point)
+        
+        # Store data with proper commit handling
+        result = await manager.store_historical_data_async(test_data, commit_strategy='auto')
+        print(f"Storage result: {result['success']}, records: {result.get('records_affected', 0)}")
+        
+        # Query data
+        retrieved_data = await manager.get_historical_data_async('BTCUSDT', '1h', limit=50)
+        print(f"Retrieved {len(retrieved_data)} records")
+        
+        # Get performance summary
+        summary = manager.get_performance_summary()
+        print(f"Performance Summary: {json.dumps(summary, indent=2, default=str)}")
+    
+    # Run test
+    asyncio.run(test_historical_data_manager())

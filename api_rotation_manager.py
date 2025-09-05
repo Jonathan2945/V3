@@ -1,725 +1,644 @@
 #!/usr/bin/env python3
 """
-API ROTATION MANAGER - INTELLIGENT API KEY CYCLING
-==================================================
-Manages multiple API keys for each service with intelligent rotation
-Features:
-- Round-robin rotation
-- Rate limit detection and switching
-- Health monitoring for each API key
-- Only uses valid/filled API keys
-- Automatic failover and recovery
+V3 API Rotation Manager - Performance Optimized
+Enhanced with caching, connection pooling, and server optimization
 """
 
-import os
-import time
 import asyncio
+import time
 import logging
-import aiohttp
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, asdict
+import threading
 import json
-from enum import Enum
-from dotenv import load_dotenv
+import sqlite3
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Tuple, Any
+from collections import defaultdict, deque
+from functools import lru_cache, wraps
+import concurrent.futures
+import hashlib
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+import psutil
 
-# Load environment variables
-load_dotenv()
+class APICache:
+    """High-performance caching system for API responses"""
+    
+    def __init__(self, max_size: int = 2000, ttl_seconds: int = 300):
+        self.cache = {}
+        self.timestamps = {}
+        self.access_counts = {}
+        self.max_size = max_size
+        self.ttl_seconds = ttl_seconds
+        self.lock = threading.RLock()
+        
+    def _cleanup_expired(self):
+        """Remove expired cache entries"""
+        current_time = time.time()
+        expired_keys = [
+            key for key, timestamp in self.timestamps.items()
+            if current_time - timestamp > self.ttl_seconds
+        ]
+        for key in expired_keys:
+            self.cache.pop(key, None)
+            self.timestamps.pop(key, None)
+            self.access_counts.pop(key, None)
+    
+    def get(self, key: str) -> Optional[Any]:
+        """Get cached value if not expired"""
+        with self.lock:
+            self._cleanup_expired()
+            if key in self.cache:
+                self.access_counts[key] = self.access_counts.get(key, 0) + 1
+                return self.cache[key]
+            return None
+    
+    def set(self, key: str, value: Any):
+        """Set cache value with timestamp"""
+        with self.lock:
+            if len(self.cache) >= self.max_size:
+                self._cleanup_expired()
+                if len(self.cache) >= self.max_size:
+                    # Remove least accessed entries
+                    least_accessed = min(self.access_counts.keys(), key=self.access_counts.get)
+                    self.cache.pop(least_accessed, None)
+                    self.timestamps.pop(least_accessed, None)
+                    self.access_counts.pop(least_accessed, None)
+            
+            self.cache[key] = value
+            self.timestamps[key] = time.time()
+            self.access_counts[key] = 1
 
-class APIRotationStrategy(Enum):
-    ROUND_ROBIN = "ROUND_ROBIN"
-    RATE_LIMIT_TRIGGER = "RATE_LIMIT_TRIGGER"
-    LOAD_BALANCED = "LOAD_BALANCED"
+def cache_api_response(ttl_seconds: int = 300):
+    """Decorator for caching API responses"""
+    def decorator(func):
+        cache = APICache(ttl_seconds=ttl_seconds)
+        
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Create cache key from function name and arguments
+            cache_key = f"{func.__name__}_{hashlib.md5(str(args).encode() + str(kwargs).encode()).hexdigest()}"
+            
+            # Try to get from cache first
+            cached_result = cache.get(cache_key)
+            if cached_result is not None:
+                return cached_result
+            
+            # If not in cache, execute function and cache result
+            result = func(*args, **kwargs)
+            if result is not None:  # Only cache successful responses
+                cache.set(cache_key, result)
+            return result
+        
+        return wrapper
+    return decorator
 
-@dataclass
-class APIKeyStatus:
-    """Status of individual API key"""
-    key_id: str
-    service: str
-    is_active: bool
-    last_used: datetime
-    requests_count: int
-    rate_limit_hit: bool
-    rate_limit_reset: Optional[datetime]
-    health_score: float
-    consecutive_failures: int
-    avg_response_time: float
-
-@dataclass
-class APIServiceConfig:
-    """Configuration for API service"""
-    service_name: str
-    keys: List[str]
-    current_index: int
-    rate_limit_threshold: int
-    cooldown_period: int
-    health_check_interval: int
+class ConnectionPool:
+    """Optimized connection pool for API requests"""
+    
+    def __init__(self, max_connections: int = 20, max_retries: int = 3):
+        self.session = requests.Session()
+        
+        # Configure retry strategy
+        retry_strategy = Retry(
+            total=max_retries,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        
+        adapter = HTTPAdapter(
+            pool_connections=max_connections,
+            pool_maxsize=max_connections,
+            max_retries=retry_strategy
+        )
+        
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
+        
+        # Default headers
+        self.session.headers.update({
+            'User-Agent': 'V3TradingSystem/1.0',
+            'Connection': 'keep-alive'
+        })
+    
+    def get(self, url: str, headers: Dict = None, timeout: int = 30) -> requests.Response:
+        """Make GET request with connection pooling"""
+        try:
+            response = self.session.get(url, headers=headers, timeout=timeout)
+            response.raise_for_status()
+            return response
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Request failed: {e}")
+            raise
+    
+    def post(self, url: str, data: Dict = None, headers: Dict = None, timeout: int = 30) -> requests.Response:
+        """Make POST request with connection pooling"""
+        try:
+            response = self.session.post(url, json=data, headers=headers, timeout=timeout)
+            response.raise_for_status()
+            return response
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Request failed: {e}")
+            raise
 
 class APIRotationManager:
-    """Intelligent API key rotation and management system"""
+    """
+    Enhanced API Rotation Manager with Performance Optimization
+    Optimized for 8 vCPU / 24GB server specifications
+    """
     
-    def __init__(self):
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, config_manager=None):
+        self.config = config_manager
         
-        # Configuration from .env
-        self.rotation_enabled = os.getenv('API_ROTATION_ENABLED', 'true').lower() == 'true'
-        self.rotation_strategy = APIRotationStrategy(os.getenv('API_ROTATION_STRATEGY', 'ROUND_ROBIN'))
-        self.rate_limit_threshold = int(os.getenv('API_RATE_LIMIT_THRESHOLD', '80'))
-        self.cooldown_period = int(os.getenv('API_COOLDOWN_PERIOD', '300'))
-        self.health_check_interval = int(os.getenv('API_HEALTH_CHECK_INTERVAL', '60'))
+        # Performance optimization
+        self.api_cache = APICache(max_size=3000, ttl_seconds=300)
+        self.connection_pool = ConnectionPool(max_connections=25)
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=8)
         
-        # API services configuration
-        self.services: Dict[str, APIServiceConfig] = {}
-        self.key_status: Dict[str, APIKeyStatus] = {}
+        # API rotation state
+        self.api_keys = self._load_api_keys()
+        self.api_status = {}
+        self.rotation_strategy = 'ROUND_ROBIN'
+        self.rate_limits = defaultdict(dict)
+        self.current_api_index = defaultdict(int)
         
-        # Usage tracking
-        self.usage_stats = {}
-        self.last_health_check = datetime.now()
+        # Performance tracking
+        self.api_performance = defaultdict(lambda: {
+            'total_requests': 0,
+            'successful_requests': 0,
+            'failed_requests': 0,
+            'avg_response_time': 0.0,
+            'last_used': None,
+            'error_rate': 0.0
+        })
         
-        # HTTP session for health checks
-        self.session: Optional[aiohttp.ClientSession] = None
+        # Rate limiting
+        self.request_history = defaultdict(lambda: deque(maxlen=1000))
+        self.cooldown_periods = defaultdict(float)
         
-        # Initialize API services
-        self._initialize_api_services()
+        # Database connection pool for metrics
+        self.db_pool = self._create_db_pool()
         
-        self.logger.info(f"[API_ROTATION] Manager initialized with {len(self.services)} services")
-        self.logger.info(f"[API_ROTATION] Strategy: {self.rotation_strategy.value}")
+        # Start background monitoring
+        self._start_background_monitoring()
     
-    def _initialize_api_services(self):
-        """Initialize all API services with their keys"""
-        
-        # Alpha Vantage API
-        alpha_vantage_keys = self._get_valid_keys('ALPHA_VANTAGE_API_KEY')
-        if alpha_vantage_keys:
-            self.services['alpha_vantage'] = APIServiceConfig(
-                service_name='alpha_vantage',
-                keys=alpha_vantage_keys,
-                current_index=0,
-                rate_limit_threshold=5,  # 5 calls per minute
-                cooldown_period=60,
-                health_check_interval=300
-            )
-            self._initialize_key_status('alpha_vantage', alpha_vantage_keys)
-        
-        # News API
-        news_api_keys = self._get_valid_keys('NEWS_API_KEY')
-        if news_api_keys:
-            self.services['news_api'] = APIServiceConfig(
-                service_name='news_api',
-                keys=news_api_keys,
-                current_index=0,
-                rate_limit_threshold=1000,  # 1000 calls per day
-                cooldown_period=3600,
-                health_check_interval=1800
-            )
-            self._initialize_key_status('news_api', news_api_keys)
-        
-        # FRED API
-        fred_api_keys = self._get_valid_keys('FRED_API_KEY')
-        if fred_api_keys:
-            self.services['fred'] = APIServiceConfig(
-                service_name='fred',
-                keys=fred_api_keys,
-                current_index=0,
-                rate_limit_threshold=100,  # 100 calls per day
-                cooldown_period=3600,
-                health_check_interval=3600
-            )
-            self._initialize_key_status('fred', fred_api_keys)
-        
-        # Twitter API
-        twitter_keys = self._get_valid_keys('TWITTER_BEARER_TOKEN')
-        if twitter_keys:
-            self.services['twitter'] = APIServiceConfig(
-                service_name='twitter',
-                keys=twitter_keys,
-                current_index=0,
-                rate_limit_threshold=300,  # 300 calls per 15 minutes
-                cooldown_period=900,
-                health_check_interval=600
-            )
-            self._initialize_key_status('twitter', twitter_keys)
-        
-        # Reddit API (pairs of client_id and client_secret)
-        reddit_keys = self._get_reddit_key_pairs()
-        if reddit_keys:
-            self.services['reddit'] = APIServiceConfig(
-                service_name='reddit',
-                keys=reddit_keys,
-                current_index=0,
-                rate_limit_threshold=60,  # 60 calls per minute
-                cooldown_period=60,
-                health_check_interval=300
-            )
-            self._initialize_key_status('reddit', reddit_keys)
-        
-        # Binance API
-        binance_keys = self._get_binance_key_pairs()
-        if binance_keys:
-            self.services['binance'] = APIServiceConfig(
-                service_name='binance',
-                keys=binance_keys,
-                current_index=0,
-                rate_limit_threshold=1200,  # 1200 calls per minute
-                cooldown_period=60,
-                health_check_interval=120
-            )
-            self._initialize_key_status('binance', binance_keys)
-        
-        # Binance Live API
-        binance_live_keys = self._get_binance_live_key_pairs()
-        if binance_live_keys:
-            self.services['binance_live'] = APIServiceConfig(
-                service_name='binance_live',
-                keys=binance_live_keys,
-                current_index=0,
-                rate_limit_threshold=1200,
-                cooldown_period=60,
-                health_check_interval=120
-            )
-            self._initialize_key_status('binance_live', binance_live_keys)
+    def _create_db_pool(self):
+        """Create database connection pool"""
+        try:
+            # Simple connection pool implementation
+            pool = []
+            for _ in range(5):  # 5 connections in pool
+                conn = sqlite3.connect('api_metrics.db', check_same_thread=False)
+                conn.execute('''
+                    CREATE TABLE IF NOT EXISTS api_metrics (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        api_service TEXT,
+                        api_key_hash TEXT,
+                        timestamp DATETIME,
+                        response_time REAL,
+                        status_code INTEGER,
+                        success BOOLEAN
+                    )
+                ''')
+                conn.commit()
+                pool.append(conn)
+            return pool
+        except Exception as e:
+            logging.error(f"Database pool creation error: {e}")
+            return []
     
-    def _get_valid_keys(self, base_key_name: str) -> List[str]:
-        """Get valid API keys for a service (only non-empty keys)"""
-        valid_keys = []
-        
-        # Check individual numbered keys
-        for i in range(1, 4):  # Support up to 3 keys
-            key = os.getenv(f'{base_key_name}_{i}', '').strip()
-            if key and key != '':
-                valid_keys.append(key)
-                self.logger.info(f"[API_ROTATION] Found valid {base_key_name}_{i}")
-        
-        # Fallback to legacy single key if no numbered keys found
-        if not valid_keys:
-            legacy_key = os.getenv(base_key_name, '').strip()
-            if legacy_key and legacy_key != '':
-                valid_keys.append(legacy_key)
-                self.logger.info(f"[API_ROTATION] Found legacy {base_key_name}")
-        
-        return valid_keys
-    
-    def _get_reddit_key_pairs(self) -> List[Dict[str, str]]:
-        """Get valid Reddit API key pairs"""
-        valid_pairs = []
-        
-        for i in range(1, 4):
-            client_id = os.getenv(f'REDDIT_CLIENT_ID_{i}', '').strip()
-            client_secret = os.getenv(f'REDDIT_CLIENT_SECRET_{i}', '').strip()
-            
-            if client_id and client_secret and client_id != '' and client_secret != '':
-                valid_pairs.append({
-                    'client_id': client_id,
-                    'client_secret': client_secret,
-                    'key_id': f'reddit_{i}'
-                })
-                self.logger.info(f"[API_ROTATION] Found valid Reddit credentials {i}")
-        
-        return valid_pairs
-    
-    def _get_binance_key_pairs(self) -> List[Dict[str, str]]:
-        """Get valid Binance API key pairs"""
-        valid_pairs = []
-        
-        for i in range(1, 4):
-            api_key = os.getenv(f'BINANCE_API_KEY_{i}', '').strip()
-            api_secret = os.getenv(f'BINANCE_API_SECRET_{i}', '').strip()
-            
-            if api_key and api_secret and api_key != '' and api_secret != '':
-                valid_pairs.append({
-                    'api_key': api_key,
-                    'api_secret': api_secret,
-                    'key_id': f'binance_{i}'
-                })
-                self.logger.info(f"[API_ROTATION] Found valid Binance credentials {i}")
-        
-        return valid_pairs
-    
-    def _get_binance_live_key_pairs(self) -> List[Dict[str, str]]:
-        """Get valid Binance Live API key pairs"""
-        valid_pairs = []
-        
-        for i in range(1, 4):
-            api_key = os.getenv(f'BINANCE_LIVE_API_KEY_{i}', '').strip()
-            api_secret = os.getenv(f'BINANCE_LIVE_API_SECRET_{i}', '').strip()
-            
-            if api_key and api_secret and api_key != '' and api_secret != '':
-                valid_pairs.append({
-                    'api_key': api_key,
-                    'api_secret': api_secret,
-                    'key_id': f'binance_live_{i}'
-                })
-                self.logger.info(f"[API_ROTATION] Found valid Binance Live credentials {i}")
-        
-        return valid_pairs
-    
-    def _initialize_key_status(self, service_name: str, keys: List):
-        """Initialize status tracking for API keys"""
-        for i, key in enumerate(keys):
-            if isinstance(key, dict):
-                key_id = key.get('key_id', f"{service_name}_{i}")
-            else:
-                key_id = f"{service_name}_{i}"
-            
-            self.key_status[key_id] = APIKeyStatus(
-                key_id=key_id,
-                service=service_name,
-                is_active=True,
-                last_used=datetime.now() - timedelta(days=1),
-                requests_count=0,
-                rate_limit_hit=False,
-                rate_limit_reset=None,
-                health_score=1.0,
-                consecutive_failures=0,
-                avg_response_time=0.0
-            )
-    
-    def get_api_key(self, service_name: str) -> Optional[Any]:
-        """Get the current API key for a service"""
-        if not self.rotation_enabled or service_name not in self.services:
-            return self._get_legacy_key(service_name)
-        
-        service = self.services[service_name]
-        
-        if not service.keys:
-            self.logger.warning(f"[API_ROTATION] No valid keys for {service_name}")
-            return None
-        
-        # Apply rotation strategy
-        if self.rotation_strategy == APIRotationStrategy.ROUND_ROBIN:
-            return self._get_round_robin_key(service)
-        elif self.rotation_strategy == APIRotationStrategy.RATE_LIMIT_TRIGGER:
-            return self._get_rate_limit_aware_key(service)
-        elif self.rotation_strategy == APIRotationStrategy.LOAD_BALANCED:
-            return self._get_load_balanced_key(service)
-        
-        return service.keys[service.current_index] if service.keys else None
-    
-    def _get_round_robin_key(self, service: APIServiceConfig) -> Any:
-        """Get key using round-robin strategy"""
-        if not service.keys:
-            return None
-        
-        current_key = service.keys[service.current_index]
-        
-        # Check if current key is healthy
-        if isinstance(current_key, dict):
-            key_id = current_key.get('key_id', f"{service.service_name}_{service.current_index}")
-        else:
-            key_id = f"{service.service_name}_{service.current_index}"
-        
-        status = self.key_status.get(key_id)
-        
-        # Rotate to next key if current is unhealthy or hit rate limit
-        if status and (status.rate_limit_hit or status.health_score < 0.5):
-            service.current_index = (service.current_index + 1) % len(service.keys)
-            return service.keys[service.current_index]
-        
-        return current_key
-    
-    def _get_rate_limit_aware_key(self, service: APIServiceConfig) -> Any:
-        """Get key with rate limit awareness"""
-        if not service.keys:
-            return None
-        
-        # Find a key that hasn't hit rate limit
-        for _ in range(len(service.keys)):
-            current_key = service.keys[service.current_index]
-            
-            if isinstance(current_key, dict):
-                key_id = current_key.get('key_id', f"{service.service_name}_{service.current_index}")
-            else:
-                key_id = f"{service.service_name}_{service.current_index}"
-            
-            status = self.key_status.get(key_id)
-            
-            if not status or not status.rate_limit_hit:
-                return current_key
-            
-            # Check if rate limit has reset
-            if status.rate_limit_reset and datetime.now() > status.rate_limit_reset:
-                status.rate_limit_hit = False
-                status.rate_limit_reset = None
-                return current_key
-            
-            # Move to next key
-            service.current_index = (service.current_index + 1) % len(service.keys)
-        
-        # If all keys are rate limited, return current anyway (with warning)
-        self.logger.warning(f"[API_ROTATION] All keys rate limited for {service.service_name}")
-        return service.keys[service.current_index]
-    
-    def _get_load_balanced_key(self, service: APIServiceConfig) -> Any:
-        """Get key using load balancing (least used)"""
-        if not service.keys:
-            return None
-        
-        # Find key with lowest usage
-        best_key_index = 0
-        best_score = float('inf')
-        
-        for i, key in enumerate(service.keys):
-            if isinstance(key, dict):
-                key_id = key.get('key_id', f"{service.service_name}_{i}")
-            else:
-                key_id = f"{service.service_name}_{i}"
-            
-            status = self.key_status.get(key_id)
-            if not status:
-                continue
-            
-            # Skip if rate limited
-            if status.rate_limit_hit:
-                continue
-            
-            # Score based on usage and health
-            score = status.requests_count * (2 - status.health_score)
-            
-            if score < best_score:
-                best_score = score
-                best_key_index = i
-        
-        service.current_index = best_key_index
-        return service.keys[best_key_index]
-    
-    def _get_legacy_key(self, service_name: str) -> Optional[str]:
-        """Get legacy API key for backward compatibility"""
-        legacy_map = {
-            'alpha_vantage': 'ALPHA_VANTAGE_API_KEY',
-            'news_api': 'NEWS_API_KEY',
-            'fred': 'FRED_API_KEY',
-            'twitter': 'TWITTER_BEARER_TOKEN'
-        }
-        
-        if service_name in legacy_map:
-            return os.getenv(legacy_map[service_name])
-        
+    def _get_db_connection(self):
+        """Get database connection from pool"""
+        if self.db_pool:
+            return self.db_pool.pop()
         return None
     
-    def report_api_call_result(self, service_name: str, success: bool, 
-                              response_time: float = 0.0, rate_limited: bool = False,
-                              error_code: Optional[str] = None):
-        """Report the result of an API call for tracking"""
-        if service_name not in self.services:
-            return
-        
-        service = self.services[service_name]
-        
-        if isinstance(service.keys[service.current_index], dict):
-            key_id = service.keys[service.current_index].get('key_id', 
-                    f"{service_name}_{service.current_index}")
-        else:
-            key_id = f"{service_name}_{service.current_index}"
-        
-        status = self.key_status.get(key_id)
-        if not status:
-            return
-        
-        # Update status
-        status.last_used = datetime.now()
-        status.requests_count += 1
-        
-        # Update response time
-        if response_time > 0:
-            if status.avg_response_time == 0:
-                status.avg_response_time = response_time
-            else:
-                status.avg_response_time = (status.avg_response_time * 0.8) + (response_time * 0.2)
-        
-        # Handle success/failure
-        if success:
-            status.consecutive_failures = 0
-            status.health_score = min(1.0, status.health_score + 0.1)
-        else:
-            status.consecutive_failures += 1
-            status.health_score = max(0.0, status.health_score - 0.2)
-        
-        # Handle rate limiting
-        if rate_limited:
-            status.rate_limit_hit = True
-            status.rate_limit_reset = datetime.now() + timedelta(seconds=service.cooldown_period)
-            self.logger.warning(f"[API_ROTATION] Rate limit hit for {key_id}")
-            
-            # Auto-rotate to next key
-            if self.rotation_strategy != APIRotationStrategy.ROUND_ROBIN:
-                service.current_index = (service.current_index + 1) % len(service.keys)
-                self.logger.info(f"[API_ROTATION] Rotated to next key for {service_name}")
+    def _return_db_connection(self, conn):
+        """Return database connection to pool"""
+        if conn and len(self.db_pool) < 5:
+            self.db_pool.append(conn)
     
-    def get_service_status(self, service_name: str) -> Dict[str, Any]:
-        """Get detailed status for a service"""
-        if service_name not in self.services:
-            return {'error': 'Service not found'}
-        
-        service = self.services[service_name]
-        service_status = {
-            'service_name': service_name,
-            'total_keys': len(service.keys),
-            'current_key_index': service.current_index,
-            'rotation_strategy': self.rotation_strategy.value,
-            'keys_status': []
-        }
-        
-        # Add individual key status
-        for i, key in enumerate(service.keys):
-            if isinstance(key, dict):
-                key_id = key.get('key_id', f"{service_name}_{i}")
-            else:
-                key_id = f"{service_name}_{i}"
-            
-            status = self.key_status.get(key_id)
-            if status:
-                service_status['keys_status'].append({
-                    'key_index': i,
-                    'key_id': key_id,
-                    'is_active': status.is_active,
-                    'health_score': status.health_score,
-                    'requests_count': status.requests_count,
-                    'rate_limit_hit': status.rate_limit_hit,
-                    'consecutive_failures': status.consecutive_failures,
-                    'avg_response_time': status.avg_response_time,
-                    'last_used': status.last_used.isoformat()
-                })
-        
-        return service_status
-    
-    def get_all_services_status(self) -> Dict[str, Dict[str, Any]]:
-        """Get status for all services"""
-        return {
-            service_name: self.get_service_status(service_name)
-            for service_name in self.services.keys()
-        }
-    
-    async def health_check_all_services(self):
-        """Perform health checks on all API services"""
-        if not self.session:
-            self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
-        
-        self.logger.info("[API_ROTATION] Starting health checks for all services")
-        
-        tasks = []
-        for service_name in self.services.keys():
-            if service_name in ['alpha_vantage', 'news_api', 'fred']:
-                tasks.append(self._health_check_service(service_name))
-        
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
-        
-        self.last_health_check = datetime.now()
-        self.logger.info("[API_ROTATION] Health checks completed")
-    
-    async def _health_check_service(self, service_name: str):
-        """Perform health check for a specific service"""
+    def _load_api_keys(self) -> Dict[str, List[Dict]]:
+        """Load API keys from configuration with caching"""
         try:
-            service = self.services.get(service_name)
-            if not service:
-                return
-            
-            # Test endpoints for different services
-            test_urls = {
-                'alpha_vantage': 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=1min&outputsize=compact&apikey=',
-                'news_api': 'https://newsapi.org/v2/everything?q=test&pageSize=1&apiKey=',
-                'fred': 'https://api.stlouisfed.org/fred/series?series_id=GDP&api_key='
+            api_keys = {
+                'binance': [],
+                'alpha_vantage': [],
+                'news_api': [],
+                'fred': [],
+                'twitter': [],
+                'reddit': []
             }
             
-            if service_name not in test_urls:
-                return
-            
-            base_url = test_urls[service_name]
-            
-            # Test each key
-            for i, key in enumerate(service.keys):
-                if isinstance(key, dict):
-                    api_key = key.get('api_key', '')
-                    key_id = key.get('key_id', f"{service_name}_{i}")
-                else:
-                    api_key = key
-                    key_id = f"{service_name}_{i}"
+            if self.config:
+                # Binance keys
+                for i in range(1, 4):
+                    key = self.config.get(f'BINANCE_API_KEY_{i}')
+                    secret = self.config.get(f'BINANCE_API_SECRET_{i}')
+                    if key and secret:
+                        api_keys['binance'].append({
+                            'key': key,
+                            'secret': secret,
+                            'index': i,
+                            'weight_limit': 1200,
+                            'requests_per_minute': 1200
+                        })
                 
-                if not api_key:
+                # Alpha Vantage keys
+                for i in range(1, 4):
+                    key = self.config.get(f'ALPHA_VANTAGE_API_KEY_{i}')
+                    if key:
+                        api_keys['alpha_vantage'].append({
+                            'key': key,
+                            'index': i,
+                            'requests_per_minute': 5
+                        })
+                
+                # News API keys
+                for i in range(1, 4):
+                    key = self.config.get(f'NEWS_API_KEY_{i}')
+                    if key:
+                        api_keys['news_api'].append({
+                            'key': key,
+                            'index': i,
+                            'requests_per_hour': 1000
+                        })
+            
+            logging.info(f"Loaded API keys: {sum(len(keys) for keys in api_keys.values())} total")
+            return api_keys
+            
+        except Exception as e:
+            logging.error(f"Error loading API keys: {e}")
+            return {}
+    
+    @cache_api_response(ttl_seconds=60)
+    def get_optimal_api_key(self, service: str) -> Optional[Dict]:
+        """Get optimal API key for service with caching"""
+        try:
+            if service not in self.api_keys or not self.api_keys[service]:
+                return None
+            
+            available_keys = []
+            current_time = time.time()
+            
+            for api_key_info in self.api_keys[service]:
+                key_id = f"{service}_{api_key_info['index']}"
+                
+                # Check if key is in cooldown
+                if key_id in self.cooldown_periods and current_time < self.cooldown_periods[key_id]:
                     continue
                 
+                # Check rate limits
+                if self._is_rate_limited(key_id, api_key_info):
+                    continue
+                
+                available_keys.append(api_key_info)
+            
+            if not available_keys:
+                return None
+            
+            # Select best key based on performance
+            best_key = self._select_best_performing_key(service, available_keys)
+            return best_key
+            
+        except Exception as e:
+            logging.error(f"Error getting optimal API key: {e}")
+            return None
+    
+    @cache_api_response(ttl_seconds=30)
+    def _is_rate_limited(self, key_id: str, api_key_info: Dict) -> bool:
+        """Check if API key is rate limited with caching"""
+        try:
+            current_time = time.time()
+            
+            # Get request history for this key
+            history = self.request_history[key_id]
+            
+            # Remove old requests (older than rate limit window)
+            rate_limit_window = 60  # 1 minute default
+            if 'requests_per_minute' in api_key_info:
+                limit = api_key_info['requests_per_minute']
+                recent_requests = sum(1 for timestamp in history if current_time - timestamp < rate_limit_window)
+                return recent_requests >= limit
+            
+            if 'requests_per_hour' in api_key_info:
+                rate_limit_window = 3600  # 1 hour
+                limit = api_key_info['requests_per_hour']
+                recent_requests = sum(1 for timestamp in history if current_time - timestamp < rate_limit_window)
+                return recent_requests >= limit
+            
+            return False
+            
+        except Exception as e:
+            logging.error(f"Error checking rate limit: {e}")
+            return True  # Conservative approach
+    
+    def _select_best_performing_key(self, service: str, available_keys: List[Dict]) -> Dict:
+        """Select the best performing API key"""
+        try:
+            if len(available_keys) == 1:
+                return available_keys[0]
+            
+            # Score keys based on performance metrics
+            scored_keys = []
+            for key_info in available_keys:
+                key_id = f"{service}_{key_info['index']}"
+                perf = self.api_performance[key_id]
+                
+                # Calculate score (higher is better)
+                success_rate = perf['successful_requests'] / max(perf['total_requests'], 1)
+                response_time_score = 1.0 / (perf['avg_response_time'] + 0.1)  # Avoid division by zero
+                
+                score = success_rate * 0.7 + response_time_score * 0.3
+                scored_keys.append((score, key_info))
+            
+            # Sort by score and return best
+            scored_keys.sort(reverse=True)
+            return scored_keys[0][1]
+            
+        except Exception as e:
+            logging.error(f"Error selecting best key: {e}")
+            return available_keys[0]  # Fallback to first available
+    
+    async def make_api_request_async(self, service: str, endpoint: str, method: str = 'GET', 
+                                   params: Dict = None, data: Dict = None) -> Optional[Dict]:
+        """Make asynchronous API request with optimization"""
+        try:
+            # Get optimal API key
+            api_key_info = self.get_optimal_api_key(service)
+            if not api_key_info:
+                raise Exception(f"No available API keys for {service}")
+            
+            key_id = f"{service}_{api_key_info['index']}"
+            
+            # Prepare request
+            url, headers = self._prepare_request(service, endpoint, api_key_info, params)
+            
+            # Execute request asynchronously
+            loop = asyncio.get_event_loop()
+            start_time = time.time()
+            
+            if method.upper() == 'GET':
+                response = await loop.run_in_executor(
+                    self.executor,
+                    self.connection_pool.get,
+                    url,
+                    headers
+                )
+            else:
+                response = await loop.run_in_executor(
+                    self.executor,
+                    self.connection_pool.post,
+                    url,
+                    data,
+                    headers
+                )
+            
+            response_time = time.time() - start_time
+            
+            # Update metrics
+            self._update_api_metrics(key_id, response_time, response.status_code, True)
+            
+            # Update request history
+            self.request_history[key_id].append(time.time())
+            
+            return response.json()
+            
+        except Exception as e:
+            if 'key_id' in locals():
+                self._update_api_metrics(key_id, 0, 0, False)
+            logging.error(f"API request failed: {e}")
+            return None
+    
+    @cache_api_response(ttl_seconds=60)
+    def _prepare_request(self, service: str, endpoint: str, api_key_info: Dict, params: Dict = None) -> Tuple[str, Dict]:
+        """Prepare API request URL and headers with caching"""
+        try:
+            headers = {'Content-Type': 'application/json'}
+            
+            if service == 'binance':
+                base_url = 'https://api.binance.com'
+                headers['X-MBX-APIKEY'] = api_key_info['key']
+                url = f"{base_url}{endpoint}"
+                
+            elif service == 'alpha_vantage':
+                base_url = 'https://www.alphavantage.co/query'
+                if params:
+                    params['apikey'] = api_key_info['key']
+                else:
+                    params = {'apikey': api_key_info['key']}
+                url = f"{base_url}?{self._build_query_string(params)}"
+                
+            elif service == 'news_api':
+                base_url = 'https://newsapi.org/v2'
+                headers['X-API-Key'] = api_key_info['key']
+                url = f"{base_url}{endpoint}"
+                
+            else:
+                raise Exception(f"Unknown service: {service}")
+            
+            return url, headers
+            
+        except Exception as e:
+            logging.error(f"Error preparing request: {e}")
+            raise
+    
+    def _build_query_string(self, params: Dict) -> str:
+        """Build query string from parameters"""
+        if not params:
+            return ""
+        return "&".join([f"{k}={v}" for k, v in params.items()])
+    
+    def _update_api_metrics(self, key_id: str, response_time: float, status_code: int, success: bool):
+        """Update API performance metrics"""
+        try:
+            perf = self.api_performance[key_id]
+            perf['total_requests'] += 1
+            perf['last_used'] = datetime.now()
+            
+            if success:
+                perf['successful_requests'] += 1
+                # Update rolling average response time
+                if perf['avg_response_time'] == 0:
+                    perf['avg_response_time'] = response_time
+                else:
+                    perf['avg_response_time'] = (perf['avg_response_time'] * 0.9) + (response_time * 0.1)
+            else:
+                perf['failed_requests'] += 1
+            
+            perf['error_rate'] = perf['failed_requests'] / perf['total_requests']
+            
+            # Store in database asynchronously
+            self._store_metrics_async(key_id, response_time, status_code, success)
+            
+        except Exception as e:
+            logging.error(f"Error updating metrics: {e}")
+    
+    def _store_metrics_async(self, key_id: str, response_time: float, status_code: int, success: bool):
+        """Store metrics in database asynchronously"""
+        def store_metrics():
+            conn = self._get_db_connection()
+            if conn:
                 try:
-                    start_time = time.time()
-                    
-                    # Special handling for different APIs
-                    if service_name == 'fred':
-                        test_url = f"{base_url}{api_key}&file_type=json&limit=1"
-                    else:
-                        test_url = f"{base_url}{api_key}"
-                    
-                    async with self.session.get(test_url) as response:
-                        response_time = time.time() - start_time
-                        
-                        # Update key status based on response
-                        status = self.key_status.get(key_id)
-                        if status:
-                            if response.status == 200:
-                                status.health_score = min(1.0, status.health_score + 0.1)
-                                status.consecutive_failures = 0
-                            elif response.status == 429:  # Rate limited
-                                status.rate_limit_hit = True
-                                status.rate_limit_reset = datetime.now() + timedelta(seconds=service.cooldown_period)
-                            else:
-                                status.consecutive_failures += 1
-                                status.health_score = max(0.0, status.health_score - 0.1)
-                            
-                            status.avg_response_time = response_time
-                
-                except asyncio.TimeoutError:
-                    status = self.key_status.get(key_id)
-                    if status:
-                        status.consecutive_failures += 1
-                        status.health_score = max(0.0, status.health_score - 0.2)
-                
+                    conn.execute('''
+                        INSERT INTO api_metrics (api_service, api_key_hash, timestamp, response_time, status_code, success)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (key_id, hashlib.md5(key_id.encode()).hexdigest()[:8], datetime.now(), response_time, status_code, success))
+                    conn.commit()
                 except Exception as e:
-                    self.logger.warning(f"[API_ROTATION] Health check failed for {key_id}: {e}")
+                    logging.error(f"Database storage error: {e}")
+                finally:
+                    self._return_db_connection(conn)
+        
+        self.executor.submit(store_metrics)
+    
+    def _start_background_monitoring(self):
+        """Start background monitoring and optimization"""
+        def monitor_worker():
+            while True:
+                try:
+                    self._monitor_api_health()
+                    self._optimize_rotation_strategy()
+                    self._cleanup_old_data()
+                    time.sleep(60)  # Run every minute
+                except Exception as e:
+                    logging.error(f"Background monitoring error: {e}")
+                    time.sleep(30)
+        
+        thread = threading.Thread(target=monitor_worker, daemon=True)
+        thread.start()
+    
+    def _monitor_api_health(self):
+        """Monitor API health and adjust cooldowns"""
+        try:
+            current_time = time.time()
+            
+            for key_id, perf in self.api_performance.items():
+                # Put poorly performing keys in cooldown
+                if perf['error_rate'] > 0.5 and perf['total_requests'] > 10:
+                    cooldown_duration = 300  # 5 minutes
+                    self.cooldown_periods[key_id] = current_time + cooldown_duration
+                    logging.warning(f"API key {key_id} put in cooldown due to high error rate")
+                
+                # Remove expired cooldowns
+                if key_id in self.cooldown_periods and current_time > self.cooldown_periods[key_id]:
+                    del self.cooldown_periods[key_id]
+                    logging.info(f"API key {key_id} cooldown expired")
         
         except Exception as e:
-            self.logger.error(f"[API_ROTATION] Health check error for {service_name}: {e}")
+            logging.error(f"API health monitoring error: {e}")
     
-    def rotate_service_key(self, service_name: str):
-        """Manually rotate to next key for a service"""
-        if service_name not in self.services:
-            return False
-        
-        service = self.services[service_name]
-        if len(service.keys) <= 1:
-            return False
-        
-        old_index = service.current_index
-        service.current_index = (service.current_index + 1) % len(service.keys)
-        
-        self.logger.info(f"[API_ROTATION] Manually rotated {service_name} from key {old_index} to {service.current_index}")
-        return True
-    
-    def reset_rate_limits(self, service_name: Optional[str] = None):
-        """Reset rate limit flags for a service or all services"""
-        if service_name:
-            services_to_reset = [service_name] if service_name in self.services else []
-        else:
-            services_to_reset = list(self.services.keys())
-        
-        reset_count = 0
-        for svc_name in services_to_reset:
-            for key_id, status in self.key_status.items():
-                if status.service == svc_name and status.rate_limit_hit:
-                    status.rate_limit_hit = False
-                    status.rate_limit_reset = None
-                    reset_count += 1
-        
-        self.logger.info(f"[API_ROTATION] Reset rate limits for {reset_count} keys")
-        return reset_count
-    
-    def get_rotation_statistics(self) -> Dict[str, Any]:
-        """Get comprehensive rotation statistics"""
-        stats = {
-            'rotation_enabled': self.rotation_enabled,
-            'rotation_strategy': self.rotation_strategy.value,
-            'total_services': len(self.services),
-            'total_keys': len(self.key_status),
-            'last_health_check': self.last_health_check.isoformat(),
-            'services_summary': {},
-            'overall_health': 0.0
-        }
-        
-        total_health = 0.0
-        total_keys = 0
-        
-        for service_name, service in self.services.items():
-            service_health_scores = []
-            rate_limited_keys = 0
-            total_requests = 0
+    def _optimize_rotation_strategy(self):
+        """Optimize rotation strategy based on performance"""
+        try:
+            # Analyze performance patterns and adjust strategy if needed
+            total_requests = sum(perf['total_requests'] for perf in self.api_performance.values())
             
-            for key in service.keys:
-                if isinstance(key, dict):
-                    key_id = key.get('key_id', f"{service_name}_{len(service_health_scores)}")
-                else:
-                    key_id = f"{service_name}_{len(service_health_scores)}"
+            if total_requests > 1000:  # Only optimize after sufficient data
+                # Calculate overall performance metrics
+                avg_success_rate = sum(
+                    perf['successful_requests'] / max(perf['total_requests'], 1) 
+                    for perf in self.api_performance.values()
+                ) / max(len(self.api_performance), 1)
                 
-                status = self.key_status.get(key_id)
-                if status:
-                    service_health_scores.append(status.health_score)
-                    if status.rate_limit_hit:
-                        rate_limited_keys += 1
-                    total_requests += status.requests_count
-                    total_health += status.health_score
-                    total_keys += 1
-            
-            avg_health = sum(service_health_scores) / len(service_health_scores) if service_health_scores else 0.0
-            
-            stats['services_summary'][service_name] = {
-                'total_keys': len(service.keys),
-                'current_key_index': service.current_index,
-                'average_health': avg_health,
-                'rate_limited_keys': rate_limited_keys,
-                'total_requests': total_requests
-            }
+                if avg_success_rate < 0.9:  # Less than 90% success
+                    logging.warning(f"Low overall success rate: {avg_success_rate:.2%}")
+                    # Could implement strategy changes here
         
-        stats['overall_health'] = total_health / total_keys if total_keys > 0 else 0.0
-        
-        return stats
+        except Exception as e:
+            logging.error(f"Strategy optimization error: {e}")
     
-    async def cleanup(self):
-        """Clean up resources"""
-        if self.session and not self.session.closed:
-            await self.session.close()
+    def _cleanup_old_data(self):
+        """Clean up old performance data"""
+        try:
+            current_time = time.time()
+            cutoff_time = current_time - 3600  # 1 hour ago
+            
+            # Clean up request history
+            for key_id in self.request_history:
+                self.request_history[key_id] = deque(
+                    [ts for ts in self.request_history[key_id] if ts > cutoff_time],
+                    maxlen=1000
+                )
         
-        self.logger.info("[API_ROTATION] Cleanup completed")
+        except Exception as e:
+            logging.error(f"Data cleanup error: {e}")
+    
+    def get_rotation_status(self) -> Dict[str, Any]:
+        """Get current rotation status and performance metrics"""
+        try:
+            status = {
+                'total_api_keys': sum(len(keys) for keys in self.api_keys.values()),
+                'active_keys': len([k for k, p in self.api_performance.items() if p['total_requests'] > 0]),
+                'keys_in_cooldown': len(self.cooldown_periods),
+                'rotation_strategy': self.rotation_strategy,
+                'performance_summary': {}
+            }
+            
+            # Add performance summary
+            for service, keys in self.api_keys.items():
+                service_perf = {
+                    'total_keys': len(keys),
+                    'avg_success_rate': 0.0,
+                    'avg_response_time': 0.0,
+                    'total_requests': 0
+                }
+                
+                service_requests = 0
+                service_success = 0
+                service_response_time = 0
+                
+                for key_info in keys:
+                    key_id = f"{service}_{key_info['index']}"
+                    perf = self.api_performance[key_id]
+                    service_requests += perf['total_requests']
+                    service_success += perf['successful_requests']
+                    service_response_time += perf['avg_response_time']
+                
+                if service_requests > 0:
+                    service_perf['avg_success_rate'] = service_success / service_requests
+                    service_perf['avg_response_time'] = service_response_time / len(keys)
+                    service_perf['total_requests'] = service_requests
+                
+                status['performance_summary'][service] = service_perf
+            
+            return status
+            
+        except Exception as e:
+            logging.error(f"Error getting rotation status: {e}")
+            return {}
+    
+    def optimize_for_server_specs(self):
+        """Optimize for 8 vCPU / 24GB server specifications"""
+        try:
+            # Adjust thread pool size
+            cpu_count = psutil.cpu_count()
+            optimal_workers = min(cpu_count, 10)
+            
+            if self.executor._max_workers != optimal_workers:
+                self.executor.shutdown(wait=False)
+                self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=optimal_workers)
+            
+            # Adjust cache sizes based on available memory
+            memory_gb = psutil.virtual_memory().total / (1024**3)
+            if memory_gb >= 24:
+                self.api_cache.max_size = 5000
+                # Increase connection pool size
+                self.connection_pool = ConnectionPool(max_connections=50)
+            
+            logging.info(f"API rotation optimized for {cpu_count} CPUs, {memory_gb:.1f}GB RAM")
+            
+        except Exception as e:
+            logging.error(f"Server optimization error: {e}")
 
-# Global instance for easy access
-api_rotation_manager = APIRotationManager()
-
-# Convenience functions for easy integration
-def get_api_key(service_name: str) -> Optional[Any]:
-    """Get API key for service"""
-    return api_rotation_manager.get_api_key(service_name)
-
-def report_api_result(service_name: str, success: bool, **kwargs):
-    """Report API call result"""
-    api_rotation_manager.report_api_call_result(service_name, success, **kwargs)
-
-def get_service_status(service_name: str) -> Dict[str, Any]:
-    """Get service status"""
-    return api_rotation_manager.get_service_status(service_name)
+# Export main class
+__all__ = ['APIRotationManager', 'APICache', 'ConnectionPool']
 
 if __name__ == "__main__":
-    # Test the rotation manager
-    import asyncio
+    # Performance test
+    manager = APIRotationManager()
+    manager.optimize_for_server_specs()
     
-    async def test_rotation():
-        print("Testing API Rotation Manager")
-        print("=" * 40)
-        
-        # Test getting keys for different services
-        services = ['alpha_vantage', 'news_api', 'fred', 'twitter', 'binance']
-        
-        for service in services:
-            key = get_api_key(service)
-            if key:
-                print(f"✓ {service}: Key available")
-                
-                # Simulate some API calls
-                for i in range(3):
-                    report_api_result(service, success=True, response_time=0.5)
-                
-                # Get status
-                status = get_service_status(service)
-                print(f"  Keys: {status.get('total_keys', 0)}")
-            else:
-                print(f"⚠ {service}: No valid keys configured")
-        
-        print("\nOverall Statistics:")
-        stats = api_rotation_manager.get_rotation_statistics()
-        print(f"Total Services: {stats['total_services']}")
-        print(f"Total Keys: {stats['total_keys']}")
-        print(f"Overall Health: {stats['overall_health']:.2f}")
-        
-        # Test health checks
-        print("\nRunning health checks...")
-        await api_rotation_manager.health_check_all_services()
-        print("Health checks completed")
-        
-        # Cleanup
-        await api_rotation_manager.cleanup()
-    
-    asyncio.run(test_rotation())
+    # Test API rotation
+    status = manager.get_rotation_status()
+    print(f"API Rotation Status: {json.dumps(status, indent=2)}")
