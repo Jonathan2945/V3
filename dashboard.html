@@ -3,325 +3,224 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V3 Trading Dashboard - Professional Interface</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-adapter-date-fns/2.0.0/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>V3 Trading System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         :root {
-            --bg-primary: #0f0f0f;
-            --bg-secondary: #1a1a1a;
-            --bg-tertiary: #262626;
-            --bg-card: #1e1e1e;
-            --border-color: #333333;
+            --bg-primary: #0a0e27;
+            --bg-secondary: #1a1f3a;
+            --bg-tertiary: #252b4a;
+            --bg-card: #1e2344;
+            --accent-blue: #00d4ff;
+            --accent-green: #00ff88;
+            --accent-red: #ff4757;
+            --accent-orange: #ffa502;
             --text-primary: #ffffff;
-            --text-secondary: #b3b3b3;
-            --text-muted: #666666;
-            --accent-primary: #00d4ff;
-            --accent-secondary: #7c3aed;
-            --success: #10b981;
-            --danger: #ef4444;
-            --warning: #f59e0b;
-            --info: #3b82f6;
-            --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            --gradient-warning: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            --gradient-card: linear-gradient(145deg, #1e1e1e 0%, #2a2a2a 100%);
-            --glow: 0 0 20px rgba(0, 212, 255, 0.3);
-            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
-            --shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.6);
+            --text-secondary: #a0a6c1;
+            --text-muted: #6c7293;
+            --border-color: #2d3561;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --gradient-2: linear-gradient(135deg, #00d4ff 0%, #0066ff 100%);
+            --gradient-3: linear-gradient(135deg, #00ff88 0%, #00cc44 100%);
         }
-        
+
         body {
-            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
             overflow-x: hidden;
         }
-        
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 15px;
-        }
-        
-        /* Header */
-        .header {
-            background: var(--gradient-primary);
-            padding: 20px 0;
-            margin-bottom: 25px;
-            border-radius: 12px;
-            box-shadow: var(--shadow-lg);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .header::before {
-            content: '';
-            position: absolute;
+
+        /* Navigation */
+        .nav {
+            background: var(--bg-secondary);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
             top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
-            animation: shimmer 3s infinite;
+            z-index: 100;
+            backdrop-filter: blur(10px);
         }
-        
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-        
-        .header-content {
+
+        .nav-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1600px;
+            max-width: 1400px;
             margin: 0 auto;
-            padding: 0 20px;
-            position: relative;
-            z-index: 1;
         }
-        
-        .header-left h1 {
-            font-size: 28px;
+
+        .nav-brand {
+            font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 5px;
+            background: var(--gradient-2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
-        
-        .header-left .subtitle {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        
-        .header-right {
+
+        .nav-status {
             display: flex;
             align-items: center;
-            gap: 20px;
+            gap: 1rem;
         }
-        
-        .connection-status {
+
+        .status-indicator {
             display: flex;
             align-items: center;
-            gap: 8px;
-            background: rgba(255,255,255,0.1);
-            padding: 8px 16px;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
             border-radius: 20px;
-            backdrop-filter: blur(10px);
+            font-size: 0.875rem;
+            border: 1px solid var(--border-color);
         }
-        
+
         .status-dot {
-            width: 12px;
-            height: 12px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: var(--success);
+            background: var(--accent-green);
             animation: pulse 2s infinite;
-            box-shadow: 0 0 10px var(--success);
         }
-        
-        .status-dot.error {
-            background: var(--danger);
-            box-shadow: 0 0 10px var(--danger);
-        }
-        
-        .status-dot.warning {
-            background: var(--warning);
-            box-shadow: 0 0 10px var(--warning);
-        }
-        
+
         @keyframes pulse {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.2); opacity: 0.7; }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
-        
-        /* Grid Layouts */
+
+        /* Main Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
         .grid {
             display: grid;
-            gap: 20px;
-            margin-bottom: 20px;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
         }
-        
-        .grid-1 { grid-template-columns: 1fr; }
-        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
-        .grid-3 { grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); }
-        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
-        .grid-6 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-        
+
+        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
         /* Cards */
         .card {
-            background: var(--gradient-card);
+            background: var(--bg-card);
             border-radius: 16px;
-            padding: 24px;
-            box-shadow: var(--shadow-lg);
+            padding: 1.5rem;
             border: 1px solid var(--border-color);
-            position: relative;
+            box-shadow: var(--shadow);
             transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
         }
-        
+
         .card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-xl);
-            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            border-color: var(--accent-blue);
         }
-        
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: var(--gradient-primary);
-            border-radius: 16px 16px 0 0;
-        }
-        
+
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1rem;
         }
-        
+
         .card-title {
-            font-size: 18px;
+            font-size: 1.1rem;
             font-weight: 600;
             color: var(--text-primary);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 0.5rem;
         }
-        
-        .card-title i {
-            color: var(--accent-primary);
-            font-size: 20px;
+
+        .card-icon {
+            width: 20px;
+            height: 20px;
+            color: var(--accent-blue);
         }
-        
-        .card-action {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 6px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 12px;
-        }
-        
-        .card-action:hover {
-            background: var(--accent-primary);
-            color: var(--text-primary);
-            border-color: var(--accent-primary);
-        }
-        
-        /* Metric Cards */
-        .metric-card {
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .metric-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--gradient-primary);
-        }
-        
-        .metric-icon {
-            width: 60px;
-            height: 60px;
-            margin: 0 auto 15px;
-            background: var(--gradient-primary);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: white;
-            box-shadow: var(--glow);
-        }
-        
-        .metric-label {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
+
         .metric-value {
-            font-size: 32px;
+            font-size: 2rem;
             font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 0.5rem;
         }
-        
-        .metric-value.positive {
-            color: var(--success);
-            text-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
         }
-        
-        .metric-value.negative {
-            color: var(--danger);
-            text-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
-        }
-        
+
         .metric-change {
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 5px;
-            padding: 4px 8px;
-            border-radius: 12px;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(5px);
+            font-size: 0.875rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-weight: 500;
         }
-        
-        .metric-change.positive {
-            color: var(--success);
-            background: rgba(16, 185, 129, 0.2);
+
+        .positive { 
+            color: var(--accent-green);
+            background: rgba(0, 255, 136, 0.1);
         }
-        
-        .metric-change.negative {
-            color: var(--danger);
-            background: rgba(239, 68, 68, 0.2);
+
+        .negative { 
+            color: var(--accent-red);
+            background: rgba(255, 71, 87, 0.1);
         }
-        
-        /* Buttons */
+
+        .neutral { 
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+        }
+
+        /* Trading Controls */
+        .controls-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
         .btn {
-            padding: 12px 24px;
+            padding: 0.875rem 1.5rem;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
+            font-size: 0.9rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            display: inline-flex;
+            display: flex;
             align-items: center;
-            gap: 8px;
-            text-decoration: none;
-            font-size: 14px;
+            justify-content: center;
+            gap: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
             position: relative;
             overflow: hidden;
-            backdrop-filter: blur(10px);
         }
-        
+
         .btn::before {
             content: '';
             position: absolute;
@@ -329,137 +228,104 @@
             left: -100%;
             width: 100%;
             height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
         }
-        
+
         .btn:hover::before {
             left: 100%;
         }
-        
+
         .btn-primary {
-            background: var(--gradient-primary);
+            background: var(--gradient-2);
             color: white;
-            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
         }
-        
+
         .btn-success {
-            background: var(--gradient-success);
+            background: var(--gradient-3);
             color: white;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
         }
-        
+
         .btn-danger {
-            background: var(--gradient-danger);
+            background: linear-gradient(135deg, var(--accent-red), #c44569);
             color: white;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
         }
-        
+
         .btn-warning {
-            background: var(--gradient-warning);
+            background: linear-gradient(135deg, var(--accent-orange), #ff6b35);
             color: white;
-            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
         }
-        
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
         .btn:disabled {
-            opacity: 0.5;
+            opacity: 0.6;
             cursor: not-allowed;
-            transform: none !important;
+            transform: none;
         }
-        
-        /* Tables */
-        .table-container {
-            overflow-x: auto;
-            border-radius: 12px;
-            background: var(--bg-secondary);
+
+        /* Progress Section */
+        .progress-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
             border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
         }
-        
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            background: transparent;
+
+        .progress-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
-        
-        .table th,
-        .table td {
-            padding: 15px 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 14px;
+
+        .progress-info {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+            flex-wrap: wrap;
         }
-        
-        .table th {
+
+        .progress-stat {
+            text-align: center;
+        }
+
+        .progress-stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+        }
+
+        .progress-stat-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .progress-bar-container {
             background: var(--bg-tertiary);
-            font-weight: 600;
-            color: var(--text-primary);
-            position: sticky;
-            top: 0;
-            z-index: 10;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 12px;
-        }
-        
-        .table tr:hover {
-            background: rgba(255,255,255,0.05);
-        }
-        
-        .table tr:last-child td {
-            border-bottom: none;
-        }
-        
-        /* Status Badges */
-        .badge {
-            padding: 4px 10px;
             border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .badge-success {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--success);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        
-        .badge-danger {
-            background: rgba(239, 68, 68, 0.2);
-            color: var(--danger);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        
-        .badge-warning {
-            background: rgba(245, 158, 11, 0.2);
-            color: var(--warning);
-            border: 1px solid rgba(245, 158, 11, 0.3);
-        }
-        
-        .badge-info {
-            background: rgba(59, 130, 246, 0.2);
-            color: var(--info);
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-        
-        /* Progress Bars */
-        .progress {
-            background: var(--bg-tertiary);
-            border-radius: 10px;
-            height: 8px;
+            height: 24px;
             overflow: hidden;
             position: relative;
+            margin: 1rem 0;
         }
-        
+
         .progress-bar {
             height: 100%;
-            background: var(--gradient-primary);
-            transition: width 0.5s ease;
+            background: var(--gradient-2);
+            border-radius: 12px;
+            transition: width 0.8s ease;
             position: relative;
-            border-radius: 10px;
+            overflow: hidden;
         }
-        
+
         .progress-bar::after {
             content: '';
             position: absolute;
@@ -467,383 +333,506 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%);
-            animation: progress-shimmer 2s infinite;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
         }
-        
-        @keyframes progress-shimmer {
+
+        @keyframes shimmer {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
         }
-        
-        /* Control Grid */
-        .control-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-            gap: 15px;
+
+        .progress-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
         }
-        
-        /* Status Grid */
-        .status-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 15px;
+
+        /* Trades Section */
+        .trades-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+            margin-bottom: 2rem;
         }
-        
-        .status-item {
+
+        .trades-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .trades-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .trades-table th {
+            text-align: left;
+            padding: 1rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.875rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .trades-table td {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(45, 53, 97, 0.3);
+            font-size: 0.9rem;
+        }
+
+        .trades-table tr:hover {
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        .trade-symbol {
+            font-weight: 600;
+            color: var(--accent-blue);
+        }
+
+        .trade-side {
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .trade-buy {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--accent-green);
+        }
+
+        .trade-sell {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--accent-red);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            padding: 1rem;
+            height: 200px;
+            margin-top: 1rem;
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px;
-            background: var(--bg-tertiary);
-            border-radius: 10px;
-            border: 1px solid var(--border-color);
-            transition: all 0.2s ease;
-        }
-        
-        .status-item:hover {
-            background: var(--bg-secondary);
-            border-color: var(--accent-primary);
-        }
-        
-        .status-indicator {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
+            justify-content: center;
             position: relative;
+            overflow: hidden;
         }
-        
-        .status-indicator::after {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            animation: ping 2s infinite;
+
+        .chart-placeholder {
+            color: var(--text-muted);
+            text-align: center;
         }
-        
-        .status-indicator.online {
-            background: var(--success);
+
+        /* System Log */
+        .log-section {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
         }
-        
-        .status-indicator.online::after {
-            background: var(--success);
+
+        .log-container {
+            background: var(--bg-primary);
+            border-radius: 12px;
+            padding: 1rem;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            border: 1px solid var(--border-color);
         }
-        
-        .status-indicator.offline {
-            background: var(--danger);
+
+        .log-container::-webkit-scrollbar {
+            width: 8px;
         }
-        
-        .status-indicator.offline::after {
-            background: var(--danger);
+
+        .log-container::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
         }
-        
-        @keyframes ping {
-            75%, 100% {
-                transform: scale(2);
-                opacity: 0;
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: var(--accent-blue);
+            border-radius: 4px;
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            padding: 0.25rem 0;
+        }
+
+        .log-time {
+            color: var(--text-muted);
+        }
+
+        .log-level-info { color: var(--accent-blue); }
+        .log-level-success { color: var(--accent-green); }
+        .log-level-warning { color: var(--accent-orange); }
+        .log-level-error { color: var(--accent-red); }
+
+        /* Connection Status */
+        .connection-status {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .connection-online {
+            background: rgba(0, 255, 136, 0.2);
+            color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .connection-offline {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--accent-red);
+            border-color: var(--accent-red);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+
+            .nav {
+                padding: 1rem;
+            }
+
+            .nav-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .grid-2, .grid-3, .grid-4 {
+                grid-template-columns: 1fr;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .progress-info {
+                justify-content: center;
+            }
+
+            .trades-table {
+                font-size: 0.8rem;
+            }
+
+            .trades-table th,
+            .trades-table td {
+                padding: 0.5rem;
             }
         }
-        
-        /* Resource Usage */
-        .resource-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            padding: 10px 0;
-        }
-        
-        .resource-label {
-            font-size: 14px;
-            color: var(--text-secondary);
-            min-width: 100px;
-        }
-        
-        .resource-bar {
-            flex: 1;
-            margin: 0 15px;
-        }
-        
-        .resource-value {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-            min-width: 60px;
-            text-align: right;
-        }
-        
+
         /* Loading Animation */
         .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid var(--bg-tertiary);
-            border-top: 3px solid var(--accent-primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+            animation: fadeInOut 2s infinite;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
-        
-        /* Quick Stats */
-        .quick-stat {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .quick-stat:last-child {
-            border-bottom: none;
-        }
-        
-        .quick-stat-label {
-            font-size: 13px;
-            color: var(--text-secondary);
-        }
-        
-        .quick-stat-value {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        
-        /* Scrollbars */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: var(--bg-secondary);
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--accent-primary);
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 1200px) {
-            .container {
-                max-width: 100%;
-                padding: 10px;
-            }
-            
-            .grid-6 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-            .grid-4 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
-        }
-        
-        @media (max-width: 768px) {
-            .header-content {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-            
-            .grid-2,
-            .grid-3,
-            .grid-4,
-            .grid-6 {
-                grid-template-columns: 1fr;
-            }
-            
-            .metric-value {
-                font-size: 24px;
-            }
-            
-            .card {
-                padding: 16px;
-            }
-            
-            .control-grid {
-                grid-template-columns: 1fr;
-            }
-        }
+
+        /* Success/Error States */
+        .success { color: var(--accent-green); }
+        .error { color: var(--accent-red); }
+        .warning { color: var(--accent-orange); }
+        .info { color: var(--accent-blue); }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .mb-0 { margin-bottom: 0; }
+        .mb-1 { margin-bottom: 0.5rem; }
+        .mb-2 { margin-bottom: 1rem; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="header-content">
-            <div class="header-left">
-                <h1><i class="fas fa-chart-line"></i> V3 Trading Dashboard</h1>
-                <div class="subtitle">Professional Trading System - Real-time Analytics - ML-Powered Strategies</div>
+    <!-- Connection Status -->
+    <div id="connection-status" class="connection-status">
+        <i class="fas fa-wifi"></i> Connecting...
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <div class="nav-content">
+            <div class="nav-brand">
+                <i class="fas fa-chart-line"></i> V3 Trading System
             </div>
-            <div class="header-right">
-                <div class="connection-status">
-                    <div class="status-dot" id="connectionDot"></div>
-                    <span id="connectionStatus">Connecting...</span>
+            <div class="nav-status">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span id="system-status">System Online</span>
                 </div>
-                <div style="font-size: 14px; background: rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px;">
-                    <i class="fas fa-clock"></i> <span id="currentTime"></span>
+                <div class="status-indicator">
+                    <i class="fas fa-server"></i>
+                    <span id="cpu-display">CPU: --</span>
+                </div>
+                <div class="status-indicator">
+                    <i class="fas fa-memory"></i>
+                    <span id="memory-display">RAM: --</span>
                 </div>
             </div>
         </div>
-    </header>
+    </nav>
 
     <div class="container">
-        <!-- Key Performance Metrics -->
-        <div class="grid grid-6">
-            <div class="card metric-card">
-                <div class="metric-icon">
-                    <i class="fas fa-dollar-sign"></i>
+        <!-- Trading Metrics -->
+        <div class="grid grid-4">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-dollar-sign card-icon"></i>
+                        Total P&L
+                    </div>
                 </div>
-                <div class="metric-label">Total P&L</div>
-                <div class="metric-value" id="totalPnl">$0.00</div>
-                <div class="metric-change" id="dailyPnl">$0.00 today</div>
+                <div class="metric-value" id="total-pnl">$0.00</div>
+                <div class="metric-label">All-time Performance</div>
+                <div class="metric-change neutral" id="pnl-change">+0.00%</div>
             </div>
-            
-            <div class="card metric-card">
-                <div class="metric-icon">
-                    <i class="fas fa-percentage"></i>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-exchange-alt card-icon"></i>
+                        Total Trades
+                    </div>
                 </div>
-                <div class="metric-label">Win Rate</div>
-                <div class="metric-value" id="winRate">0.0%</div>
-                <div class="metric-change" id="totalTrades">0 trades</div>
+                <div class="metric-value" id="total-trades">0</div>
+                <div class="metric-label">Executed Orders</div>
+                <div class="metric-change neutral" id="trades-today">0 today</div>
             </div>
-            
-            <div class="card metric-card">
-                <div class="metric-icon">
-                    <i class="fas fa-chart-bar"></i>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-percentage card-icon"></i>
+                        Win Rate
+                    </div>
                 </div>
-                <div class="metric-label">Active Positions</div>
-                <div class="metric-value" id="activePositions">0</div>
-                <div class="metric-change" id="opportunities">0 opportunities</div>
+                <div class="metric-value" id="win-rate">0%</div>
+                <div class="metric-label">Success Ratio</div>
+                <div class="metric-change neutral" id="win-rate-change">--</div>
             </div>
-            
-            <div class="card metric-card">
-                <div class="metric-icon">
-                    <i class="fas fa-brain"></i>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-robot card-icon"></i>
+                        AI Strategies
+                    </div>
                 </div>
-                <div class="metric-label">ML Models</div>
-                <div class="metric-value" id="mlModels">0</div>
-                <div class="metric-change" id="mlStatus">Training...</div>
-            </div>
-            
-            <div class="card metric-card">
-                <div class="metric-icon">
-                    <i class="fas fa-search-dollar"></i>
-                </div>
-                <div class="metric-label">Scanner</div>
-                <div class="metric-value" id="scannerPairs">0</div>
-                <div class="metric-change" id="scannerStatus">Scanning...</div>
-            </div>
-            
-            <div class="card metric-card">
-                <div class="metric-icon">
-                    <i class="fas fa-server"></i>
-                </div>
-                <div class="metric-label">System</div>
-                <div class="metric-value" id="systemStatus">Offline</div>
-                <div class="metric-change" id="systemUptime">0m uptime</div>
+                <div class="metric-value" id="ai-strategies">0</div>
+                <div class="metric-label">Active Models</div>
+                <div class="metric-change neutral" id="strategy-status">Ready</div>
             </div>
         </div>
 
-        <!-- Trading Control Panel -->
-        <div class="grid grid-2">
+        <!-- Trading Controls -->
+        <div class="controls-section">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-gamepad card-icon"></i>
+                    Trading Controls
+                </div>
+                <div class="status-indicator">
+                    <div id="trading-status-dot" class="status-dot" style="background: var(--accent-red);"></div>
+                    <span id="trading-status-text">Stopped</span>
+                </div>
+            </div>
+            <div class="controls-grid">
+                <button id="start-trading" class="btn btn-success" onclick="startTrading()">
+                    <i class="fas fa-play"></i> Start Trading
+                </button>
+                <button id="stop-trading" class="btn btn-danger" onclick="stopTrading()">
+                    <i class="fas fa-stop"></i> Stop Trading
+                </button>
+                <button id="start-backtest" class="btn btn-warning" onclick="startBacktest()">
+                    <i class="fas fa-chart-bar"></i> Run Backtest
+                </button>
+                <button id="refresh-data" class="btn btn-primary" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+            </div>
+        </div>
+
+        <!-- Backtest Progress -->
+        <div class="progress-section">
+            <div class="progress-header">
+                <div class="card-title">
+                    <i class="fas fa-chart-area card-icon"></i>
+                    Backtest Progress
+                </div>
+                <div class="progress-info">
+                    <div class="progress-stat">
+                        <div class="progress-stat-value" id="backtest-progress">0%</div>
+                        <div class="progress-stat-label">Complete</div>
+                    </div>
+                    <div class="progress-stat">
+                        <div class="progress-stat-value" id="backtest-eta">--</div>
+                        <div class="progress-stat-label">ETA</div>
+                    </div>
+                    <div class="progress-stat">
+                        <div class="progress-stat-value" id="backtest-status">Ready</div>
+                        <div class="progress-stat-label">Status</div>
+                    </div>
+                </div>
+            </div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progress-bar" style="width: 0%;">
+                    <div class="progress-text" id="progress-text">0% Complete</div>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 1rem; flex-wrap: wrap; gap: 1rem;">
+                <span><strong>Current:</strong> <span id="current-symbol">--</span></span>
+                <span><strong>Strategy:</strong> <span id="current-strategy">--</span></span>
+                <span><strong>Completed:</strong> <span id="completed-count">0</span> / <span id="total-count">0</span></span>
+            </div>
+        </div>
+
+        <!-- System Metrics -->
+        <div class="grid grid-3">
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
-                        <i class="fas fa-controls"></i> Trading Control Panel
-                    </div>
-                    <div class="card-action" onclick="refreshData()">
-                        <i class="fas fa-sync-alt"></i> Refresh
+                        <i class="fas fa-tachometer-alt card-icon"></i>
+                        Performance
                     </div>
                 </div>
-                <div class="control-grid">
-                    <button class="btn btn-success" id="toggleTradingBtn" onclick="toggleTrading()">
-                        <i class="fas fa-play" id="tradingIcon"></i>
-                        <span id="tradingBtnText">Start Trading</span>
-                    </button>
-                    <button class="btn btn-primary" id="backtestBtn" onclick="startBacktest()">
-                        <i class="fas fa-history"></i>
-                        <span id="backtestBtnText">Start Backtest</span>
-                    </button>
-                    <button class="btn btn-warning" onclick="resetMLData()">
-                        <i class="fas fa-brain"></i>
-                        Reset ML Data
-                    </button>
-                    <button class="btn btn-primary" onclick="saveMetrics()">
-                        <i class="fas fa-save"></i>
-                        Save Metrics
-                    </button>
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>CPU Usage</span>
+                        <span id="cpu-usage">--</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Memory Usage</span>
+                        <span id="memory-usage">--</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Available RAM</span>
+                        <span id="memory-available">--</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-placeholder">
+                        <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                        <div>Performance Chart</div>
+                    </div>
                 </div>
             </div>
 
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
-                        <i class="fas fa-tachometer-alt"></i> System Performance
+                        <i class="fas fa-network-wired card-icon"></i>
+                        API Status
                     </div>
-                    <div class="card-action">Real-time</div>
                 </div>
-                <div id="resourceUsage">
-                    <div class="resource-item">
-                        <div class="resource-label">CPU Usage</div>
-                        <div class="resource-bar">
-                            <div class="progress">
-                                <div class="progress-bar" id="cpuProgress" style="width: 0%;"></div>
-                            </div>
-                        </div>
-                        <div class="resource-value" id="cpuValue">0%</div>
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Binance</span>
+                        <span id="binance-status" class="success">? Connected</span>
                     </div>
-                    <div class="resource-item">
-                        <div class="resource-label">Memory</div>
-                        <div class="resource-bar">
-                            <div class="progress">
-                                <div class="progress-bar" id="memoryProgress" style="width: 0%;"></div>
-                            </div>
-                        </div>
-                        <div class="resource-value" id="memoryValue">0%</div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Alpha Vantage</span>
+                        <span id="alpha-vantage-status">-- --</span>
                     </div>
-                    <div class="resource-item">
-                        <div class="resource-label">API Calls</div>
-                        <div class="resource-bar">
-                            <div class="progress">
-                                <div class="progress-bar" id="apiProgress" style="width: 0%;"></div>
-                            </div>
-                        </div>
-                        <div class="resource-value" id="apiValue">0/1000</div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>News API</span>
+                        <span id="news-api-status">-- --</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-placeholder">
+                        <i class="fas fa-wifi" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                        <div>API Health Monitor</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fas fa-brain card-icon"></i>
+                        ML Engine
+                    </div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>Top Strategies</span>
+                        <span id="top-strategies-count">--</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <span>ML Trained</span>
+                        <span id="ml-strategies-count">--</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Best Model</span>
+                        <span id="best-strategy">--</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <div class="chart-placeholder">
+                        <i class="fas fa-brain" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
+                        <div>Strategy Performance</div>
                     </div>
                 </div>
             </div>
         </div>
 
         <!-- Recent Trades -->
-        <div class="card">
-            <div class="card-header">
+        <div class="trades-section">
+            <div class="trades-header">
                 <div class="card-title">
-                    <i class="fas fa-exchange-alt"></i> Recent Trades
+                    <i class="fas fa-history card-icon"></i>
+                    Recent Trades
                 </div>
-                <div class="card-action">Live</div>
+                <div class="status-indicator">
+                    <span id="trades-count">0 trades</span>
+                </div>
             </div>
-            <div class="table-container">
-                <table class="table">
+            <div style="overflow-x: auto;">
+                <table class="trades-table">
                     <thead>
                         <tr>
-                            <th>Time</th>
                             <th>Symbol</th>
                             <th>Side</th>
                             <th>P&L</th>
-                            <th>Confidence</th>
+                            <th>Return %</th>
+                            <th>Time</th>
+                            <th>Strategy</th>
                         </tr>
                     </thead>
-                    <tbody id="tradesTable">
+                    <tbody id="trades-tbody">
                         <tr>
-                            <td colspan="5" style="text-align: center; color: var(--text-muted);">
-                                <div class="loading"></div> Loading trades...
+                            <td colspan="6" class="text-center" style="color: var(--text-muted); padding: 2rem;">
+                                <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                                No trades executed yet
                             </td>
                         </tr>
                     </tbody>
@@ -851,508 +840,413 @@
             </div>
         </div>
 
-        <!-- System Status and API Connections -->
-        <div class="grid grid-2">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fas fa-plug"></i> API Connections
-                    </div>
-                    <div class="card-action">
-                        <span id="workingApis">0</span>/<span id="totalApis">6</span> Online
-                    </div>
+        <!-- System Log -->
+        <div class="log-section">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-terminal card-icon"></i>
+                    System Log
                 </div>
-                <div class="status-grid" id="apiStatus">
-                    <!-- API status items will be populated here -->
-                </div>
+                <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;" onclick="clearLog()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
             </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fas fa-search"></i> Market Scanner
-                    </div>
-                    <div class="card-action">Real-time</div>
-                </div>
-                <div id="scannerData">
-                    <div class="quick-stat">
-                        <span class="quick-stat-label">Active Pairs</span>
-                        <span class="quick-stat-value" id="activePairs">0</span>
-                    </div>
-                    <div class="quick-stat">
-                        <span class="quick-stat-label">Opportunities Found</span>
-                        <span class="quick-stat-value" id="opportunitiesFound">0</span>
-                    </div>
-                    <div class="quick-stat">
-                        <span class="quick-stat-label">Best Opportunity</span>
-                        <span class="quick-stat-value" id="bestOpportunity">None</span>
-                    </div>
-                    <div class="quick-stat">
-                        <span class="quick-stat-label">Confidence</span>
-                        <span class="quick-stat-value" id="bestConfidence">0%</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="text-align: center; color: var(--text-muted); font-size: 14px; margin-top: 40px; padding: 20px; border-top: 1px solid var(--border-color);">
-            <div style="margin-bottom: 10px;">
-                <i class="fas fa-rocket"></i> V3 Trading System • 
-                <i class="fas fa-brain"></i> ML-Powered Strategies • 
-                <i class="fas fa-shield-alt"></i> Risk Managed • 
-                <i class="fas fa-bolt"></i> Real-time Performance
-            </div>
-            <div>
-                API Middleware Active • Professional Grade Trading Platform
-            </div>
+            <div class="log-container" id="log-container"></div>
         </div>
     </div>
 
     <script>
-        // Global state and configuration
-        let socket = null;
-        let isConnected = false;
-        let tradingActive = false;
-        let backtestStatus = 'not_started';
-        let actionInProgress = {};
-
-        // API Service
-        class APIService {
-            constructor(baseURL = 'http://localhost:8102') {
-                this.baseURL = baseURL;
-            }
-
-            async request(endpoint, options = {}) {
-                try {
-                    const response = await fetch(`${this.baseURL}${endpoint}`, {
-                        headers: { 'Content-Type': 'application/json' },
-                        ...options
-                    });
-                    
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    return await response.json();
-                } catch (error) {
-                    console.error(`API request failed: ${endpoint}`, error);
-                    throw error;
-                }
-            }
-
-            async get(endpoint) {
-                return this.request(endpoint);
-            }
-
-            async post(endpoint, data) {
-                return this.request(endpoint, {
-                    method: 'POST',
-                    body: JSON.stringify(data)
-                });
-            }
-        }
-
-        const api = new APIService();
+        // Global variables
+        let logMessages = [];
+        let isOnline = false;
+        let refreshInterval;
+        let backtestInterval;
 
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
-            initializeDashboard();
+            log('Trading system dashboard initialized', 'info');
+            log('Connecting to V3 trading engine...', 'info');
+            
+            initializeSystem();
+            startPeriodicRefresh();
         });
 
-        function initializeDashboard() {
-            updateTime();
-            setInterval(updateTime, 1000);
-            
-            initializeWebSocket();
-            loadInitialData();
-            
-            // Fallback data refresh every 30 seconds
-            setInterval(loadInitialData, 30000);
-            
-            console.log('V3 Dashboard Initialized');
+        function initializeSystem() {
+            updateConnectionStatus(false);
+            refreshData();
         }
 
-        function updateTime() {
-            document.getElementById('currentTime').textContent = new Date().toLocaleTimeString();
-        }
-
-        function initializeWebSocket() {
-            if (typeof io === 'undefined') {
-                console.warn('Socket.IO not available, using polling only');
-                updateConnectionStatus('warning', 'Polling Mode');
-                return;
-            }
-
-            try {
-                socket = io('http://localhost:8102');
-                
-                socket.on('connect', function() {
-                    isConnected = true;
-                    updateConnectionStatus('connected', 'Connected');
-                    console.log('WebSocket connected');
-                });
-
-                socket.on('disconnect', function() {
-                    isConnected = false;
-                    updateConnectionStatus('error', 'Disconnected');
-                    console.log('WebSocket disconnected');
-                });
-
-                socket.on('dashboard_update', function(data) {
-                    updateDashboard(data);
-                });
-
-            } catch (error) {
-                console.error('WebSocket initialization failed:', error);
-                updateConnectionStatus('error', 'Connection Error');
-            }
-        }
-
-        function updateConnectionStatus(status, text) {
-            const dot = document.getElementById('connectionDot');
-            const statusText = document.getElementById('connectionStatus');
-            
-            dot.className = 'status-dot';
-            if (status === 'error') {
-                dot.classList.add('error');
-            } else if (status === 'warning') {
-                dot.classList.add('warning');
-            }
-            
-            statusText.textContent = text;
-        }
-
-        async function loadInitialData() {
-            try {
-                updateConnectionStatus('connected', 'Loading...');
-                
-                const [overview, metrics, trades, system] = await Promise.allSettled([
-                    api.get('/api/dashboard/overview'),
-                    api.get('/api/trading/metrics'),
-                    api.get('/api/trading/recent-trades'),
-                    api.get('/api/system/status')
-                ]);
-
-                const data = {
-                    overview: overview.status === 'fulfilled' ? overview.value : {},
-                    metrics: metrics.status === 'fulfilled' ? metrics.value : {},
-                    trades: trades.status === 'fulfilled' ? (trades.value.trades || []) : [],
-                    system: system.status === 'fulfilled' ? system.value : {}
-                };
-
-                updateDashboard(data);
-                updateConnectionStatus('connected', 'Connected');
-
-            } catch (error) {
-                console.error('Failed to load initial data:', error);
-                updateConnectionStatus('error', 'API Error');
-            }
-        }
-
-        function updateDashboard(data) {
-            // Update main metrics
-            if (data.overview && data.overview.trading) {
-                const trading = data.overview.trading;
-                const system = data.overview.system || {};
-                const scanner = data.overview.scanner || {};
-                
-                // Main metrics
-                updateMetric('totalPnl', trading.total_pnl || 0, '$', 2);
-                updateMetric('dailyPnl', trading.daily_pnl || 0, '$', 2, 'today');
-                updateMetric('winRate', trading.win_rate || 0, '%', 1);
-                updateMetric('totalTrades', trading.total_trades || 0, '', 0, 'trades');
-                updateMetric('activePositions', trading.active_positions || 0);
-                updateMetric('opportunities', scanner.opportunities || 0, '', 0, 'opportunities');
-                
-                // ML Models
-                document.getElementById('mlModels').textContent = (system.ml_models_count || 0);
-                document.getElementById('mlStatus').textContent = system.ml_training_completed ? 'Ready' : 'Training...';
-                
-                // Scanner
-                document.getElementById('scannerPairs').textContent = scanner.active_pairs || 0;
-                document.getElementById('scannerStatus').textContent = scanner.opportunities > 0 ? 'Found signals' : 'Scanning...';
-                
-                // System status
-                document.getElementById('systemStatus').textContent = system.controller_connected ? 'Online' : 'Offline';
-                document.getElementById('systemUptime').textContent = Math.floor((system.uptime_hours || 0) * 60) + 'm uptime';
-                
-                tradingActive = trading.is_running;
-                updateTradingButton();
-            }
-
-            // Update tables
-            if (data.trades) {
-                updateTradesTable(data.trades);
-            }
-
-            // Update system status
-            if (data.system) {
-                updateSystemStatus(data.system);
-            }
-
-            // Update scanner data
-            updateScannerData(data.overview?.scanner || {});
-        }
-
-        function updateMetric(elementId, value, prefix = '', decimals = 0, suffix = '') {
-            const element = document.getElementById(elementId);
-            if (element) {
-                const formattedValue = prefix + (typeof value === 'number' ? value.toFixed(decimals) : value) + (suffix ? ' ' + suffix : '');
-                element.textContent = formattedValue;
-                
-                // Update colors for P&L
-                if (elementId.includes('Pnl') && typeof value === 'number') {
-                    element.className = 'metric-value ' + (value >= 0 ? 'positive' : 'negative');
+        function startPeriodicRefresh() {
+            refreshInterval = setInterval(() => {
+                if (isOnline) {
+                    refreshData();
                 }
+            }, 5000);
+        }
+
+        // Enhanced logging with color coding
+        function log(message, level = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = {
+                timestamp,
+                level,
+                message,
+                id: Date.now()
+            };
+            
+            logMessages.push(logEntry);
+            if (logMessages.length > 100) {
+                logMessages.shift();
+            }
+            
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            const container = document.getElementById('log-container');
+            const html = logMessages.map(entry => `
+                <div class="log-entry">
+                    <span class="log-time">[${entry.timestamp}]</span>
+                    <span class="log-level-${entry.level}">[${entry.level.toUpperCase()}]</span>
+                    <span>${entry.message}</span>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function clearLog() {
+            logMessages = [];
+            updateLogDisplay();
+            log('System log cleared', 'info');
+        }
+
+        // API communication
+        async function fetchAPI(endpoint, options = {}) {
+            try {
+                const controller = new AbortController();
+                setTimeout(() => controller.abort(), 8000);
+                
+                const response = await fetch(`/api${endpoint}`, {
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: controller.signal,
+                    ...options
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                updateConnectionStatus(true);
+                return await response.json();
+                
+            } catch (error) {
+                updateConnectionStatus(false);
+                if (error.name !== 'AbortError') {
+                    log(`API Error: ${error.message}`, 'error');
+                }
+                throw error;
             }
         }
 
-        function updateTradesTable(trades) {
-            const tbody = document.getElementById('tradesTable');
+        function updateConnectionStatus(online) {
+            isOnline = online;
+            const statusEl = document.getElementById('connection-status');
+            
+            if (online) {
+                statusEl.textContent = '?? Connected';
+                statusEl.className = 'connection-status connection-online';
+            } else {
+                statusEl.textContent = '?? Disconnected';
+                statusEl.className = 'connection-status connection-offline';
+            }
+        }
+
+        // Data refresh
+        async function refreshData() {
+            try {
+                log('Refreshing system data...', 'info');
+                
+                const [status, strategies, trades] = await Promise.allSettled([
+                    fetchAPI('/system/status'),
+                    fetchAPI('/strategies/top').catch(() => ({ top_strategies: [], ml_trained_strategies: [] })),
+                    fetchAPI('/trades/recent').catch(() => ({ trades: [] }))
+                ]);
+                
+                if (status.status === 'fulfilled') {
+                    updateSystemStatus(status.value);
+                }
+                
+                if (strategies.status === 'fulfilled') {
+                    updateStrategiesData(strategies.value);
+                }
+                
+                if (trades.status === 'fulfilled') {
+                    updateTradesData(trades.value.trades || []);
+                }
+                
+                log('Data refresh completed', 'success');
+                
+            } catch (error) {
+                log(`Data refresh failed: ${error.message}`, 'error');
+            }
+        }
+
+        function updateSystemStatus(data) {
+            // System metrics
+            document.getElementById('cpu-usage').textContent = `${data.system.cpu_usage.toFixed(1)}%`;
+            document.getElementById('memory-usage').textContent = `${data.system.memory_usage.toFixed(1)}%`;
+            document.getElementById('memory-available').textContent = `${data.system.memory_available_gb.toFixed(1)}GB`;
+            
+            // Navigation status
+            document.getElementById('cpu-display').textContent = `CPU: ${data.system.cpu_usage.toFixed(0)}%`;
+            document.getElementById('memory-display').textContent = `RAM: ${data.system.memory_usage.toFixed(0)}%`;
+            
+            // Trading metrics
+            document.getElementById('total-pnl').textContent = `$${data.trading.total_pnl.toFixed(2)}`;
+            document.getElementById('total-trades').textContent = data.trading.total_trades;
+            document.getElementById('win-rate').textContent = `${data.trading.win_rate.toFixed(1)}%`;
+            
+            // Trading status
+            const isRunning = data.trading.is_running;
+            const statusDot = document.getElementById('trading-status-dot');
+            const statusText = document.getElementById('trading-status-text');
+            
+            if (isRunning) {
+                statusDot.style.background = 'var(--accent-green)';
+                statusText.textContent = 'Active';
+            } else {
+                statusDot.style.background = 'var(--accent-red)';
+                statusText.textContent = 'Stopped';
+            }
+            
+            // Backtest progress
+            updateBacktestProgress(data.backtest);
+            
+            // API status
+            if (data.external_data) {
+                updateAPIStatus(data.external_data);
+            }
+        }
+
+        function updateBacktestProgress(backtest) {
+            const progress = backtest.progress || 0;
+            
+            document.getElementById('backtest-progress').textContent = `${progress}%`;
+            document.getElementById('backtest-status').textContent = backtest.status || 'Ready';
+            document.getElementById('backtest-eta').textContent = backtest.eta_minutes ? `${backtest.eta_minutes.toFixed(1)}m` : '--';
+            document.getElementById('current-symbol').textContent = backtest.current_symbol || '--';
+            document.getElementById('current-strategy').textContent = backtest.current_strategy || '--';
+            document.getElementById('completed-count').textContent = backtest.completed || 0;
+            document.getElementById('total-count').textContent = backtest.total || 0;
+            
+            // Update progress bar
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            
+            progressBar.style.width = `${progress}%`;
+            progressText.textContent = `${progress}% Complete`;
+            
+            // Update status color
+            const statusEl = document.getElementById('backtest-status');
+            if (backtest.status === 'completed') {
+                statusEl.className = 'progress-stat-value success';
+            } else if (backtest.status === 'error') {
+                statusEl.className = 'progress-stat-value error';
+            } else if (backtest.status === 'in_progress') {
+                statusEl.className = 'progress-stat-value warning';
+            } else {
+                statusEl.className = 'progress-stat-value';
+            }
+        }
+
+        function updateAPIStatus(apiData) {
+            const binanceEl = document.getElementById('binance-status');
+            const alphaEl = document.getElementById('alpha-vantage-status');
+            const newsEl = document.getElementById('news-api-status');
+            
+            binanceEl.textContent = apiData.api_status.binance ? '? Connected' : '? Offline';
+            binanceEl.className = apiData.api_status.binance ? 'success' : 'error';
+            
+            alphaEl.textContent = apiData.api_status.alpha_vantage ? '? Connected' : '? Offline';
+            alphaEl.className = apiData.api_status.alpha_vantage ? 'success' : 'error';
+            
+            newsEl.textContent = apiData.api_status.news_api ? '? Connected' : '? Offline';
+            newsEl.className = apiData.api_status.news_api ? 'success' : 'error';
+        }
+
+        function updateStrategiesData(data) {
+            document.getElementById('top-strategies-count').textContent = data.top_strategies?.length || 0;
+            document.getElementById('ml-strategies-count').textContent = data.ml_trained_strategies?.length || 0;
+            document.getElementById('ai-strategies').textContent = data.ml_trained_strategies?.length || 0;
+            
+            if (data.top_strategies && data.top_strategies.length > 0) {
+                const best = data.top_strategies[0];
+                document.getElementById('best-strategy').textContent = best.strategy_type || '--';
+            }
+        }
+
+        function updateTradesData(trades) {
+            const tbody = document.getElementById('trades-tbody');
+            const countEl = document.getElementById('trades-count');
+            
+            countEl.textContent = `${trades.length} trades`;
             
             if (trades.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" style="text-align: center; color: var(--text-muted);">
-                            <i class="fas fa-chart-line" style="font-size: 24px; margin-bottom: 10px;"></i><br>
-                            No trades yet
+                        <td colspan="6" class="text-center" style="color: var(--text-muted); padding: 2rem;">
+                            <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                            No trades executed yet
                         </td>
-                    </tr>`;
+                    </tr>
+                `;
                 return;
             }
-
-            const recentTrades = trades.slice(-20).reverse();
-            tbody.innerHTML = recentTrades.map(trade => `
+            
+            const tradesHTML = trades.slice(-10).reverse().map(trade => `
                 <tr>
-                    <td style="font-size: 12px;">${new Date(trade.timestamp || Date.now()).toLocaleTimeString()}</td>
-                    <td style="font-weight: 600;">${trade.symbol}</td>
+                    <td class="trade-symbol">${trade.symbol}</td>
                     <td>
-                        <span class="badge ${trade.side === 'BUY' ? 'badge-success' : 'badge-danger'}">
+                        <span class="trade-side ${trade.side.toLowerCase() === 'buy' ? 'trade-buy' : 'trade-sell'}">
                             ${trade.side}
                         </span>
                     </td>
-                    <td style="font-weight: 600; color: ${trade.profit_loss > 0 ? 'var(--success)' : 'var(--danger)'};">
-                        $${trade.profit_loss?.toFixed(2) || 'N/A'}
+                    <td class="${trade.is_win ? 'success' : 'error'}">
+                        $${trade.profit_loss?.toFixed(2) || '0.00'}
                     </td>
-                    <td>
-                        <span class="badge badge-info">
-                            ${trade.confidence?.toFixed(1) || 'N/A'}%
-                        </span>
+                    <td class="${trade.is_win ? 'success' : 'error'}">
+                        ${trade.profit_pct?.toFixed(2) || '0.00'}%
+                    </td>
+                    <td style="color: var(--text-secondary);">
+                        ${new Date(trade.timestamp).toLocaleTimeString()}
+                    </td>
+                    <td style="color: var(--text-secondary);">
+                        ${trade.source || '--'}
                     </td>
                 </tr>
             `).join('');
+            
+            tbody.innerHTML = tradesHTML;
         }
 
-        function updateSystemStatus(system) {
-            // Update API status
-            const apiStatus = system.external_data?.api_status || {};
-            const apiContainer = document.getElementById('apiStatus');
-            
-            const workingApis = Object.values(apiStatus).filter(Boolean).length;
-            const totalApis = Object.keys(apiStatus).length;
-            
-            document.getElementById('workingApis').textContent = workingApis;
-            document.getElementById('totalApis').textContent = totalApis;
-            
-            apiContainer.innerHTML = Object.entries(apiStatus).map(([api, connected]) => `
-                <div class="status-item">
-                    <div class="status-indicator ${connected ? 'online' : 'offline'}"></div>
-                    <div>
-                        <div style="font-weight: 600; text-transform: capitalize; font-size: 13px;">${api}</div>
-                        <div style="font-size: 11px; color: var(--text-muted);">${connected ? 'Connected' : 'Offline'}</div>
-                    </div>
-                </div>
-            `).join('');
-
-            // Update resource usage
-            const resources = system.resources || {};
-            updateResourceBar('cpu', resources.cpu_usage || 0);
-            updateResourceBar('memory', resources.memory_usage || 0);
-            updateResourceBar('api', (resources.api_calls_today || 0) / 1000 * 100);
-            
-            // Update resource values
-            document.getElementById('cpuValue').textContent = (resources.cpu_usage || 0).toFixed(1) + '%';
-            document.getElementById('memoryValue').textContent = (resources.memory_usage || 0).toFixed(1) + '%';
-            document.getElementById('apiValue').textContent = (resources.api_calls_today || 0) + '/1000';
-        }
-
-        function updateResourceBar(type, percentage) {
-            const progressBar = document.getElementById(type + 'Progress');
-            if (progressBar) {
-                progressBar.style.width = Math.min(percentage, 100) + '%';
-                
-                // Change color based on usage
-                if (percentage > 80) {
-                    progressBar.style.background = 'var(--gradient-danger)';
-                } else if (percentage > 60) {
-                    progressBar.style.background = 'var(--gradient-warning)';
-                } else {
-                    progressBar.style.background = 'var(--gradient-primary)';
-                }
-            }
-        }
-
-        function updateScannerData(scanner) {
-            document.getElementById('activePairs').textContent = scanner.active_pairs || 0;
-            document.getElementById('opportunitiesFound').textContent = scanner.opportunities || 0;
-            document.getElementById('bestOpportunity').textContent = scanner.best_opportunity || 'None';
-            document.getElementById('bestConfidence').textContent = (scanner.confidence || 0).toFixed(1) + '%';
-        }
-
-        function updateTradingButton() {
-            const btn = document.getElementById('toggleTradingBtn');
-            const text = document.getElementById('tradingBtnText');
-            const icon = document.getElementById('tradingIcon');
-            
-            if (tradingActive) {
-                btn.className = 'btn btn-danger';
-                text.textContent = 'Stop Trading';
-                icon.className = 'fas fa-stop';
-            } else {
-                btn.className = 'btn btn-success';
-                text.textContent = 'Start Trading';
-                icon.className = 'fas fa-play';
-            }
-        }
-
-        // Control Functions
-        async function toggleTrading() {
-            if (actionInProgress.trading) return;
-            
-            const action = tradingActive ? 'stop_trading' : 'start_trading';
-            actionInProgress.trading = true;
-            
-            const btn = document.getElementById('toggleTradingBtn');
+        // Trading controls
+        async function startTrading() {
+            const btn = document.getElementById('start-trading');
             btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
             
             try {
-                const result = await api.post(`/api/control/${action}`);
+                log('Starting trading system...', 'warning');
+                const result = await fetchAPI('/trading/start', { method: 'POST' });
+                
                 if (result.success) {
-                    tradingActive = !tradingActive;
-                    updateTradingButton();
-                    showNotification(result.message, 'success');
+                    log('Trading started successfully', 'success');
                 } else {
-                    showNotification('Action failed: ' + result.error, 'error');
+                    log(`Failed to start trading: ${result.error}`, 'error');
                 }
+                
             } catch (error) {
-                showNotification('Action failed: ' + error.message, 'error');
+                log(`Error starting trading: ${error.message}`, 'error');
             } finally {
-                actionInProgress.trading = false;
                 btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-play"></i> Start Trading';
+                refreshData();
+            }
+        }
+
+        async function stopTrading() {
+            const btn = document.getElementById('stop-trading');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
+            
+            try {
+                log('Stopping trading system...', 'warning');
+                const result = await fetchAPI('/trading/stop', { method: 'POST' });
+                
+                if (result.success) {
+                    log('Trading stopped successfully', 'success');
+                } else {
+                    log(`Failed to stop trading: ${result.error}`, 'error');
+                }
+                
+            } catch (error) {
+                log(`Error stopping trading: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-stop"></i> Stop Trading';
+                refreshData();
             }
         }
 
         async function startBacktest() {
-            if (actionInProgress.backtest) return;
-            
-            actionInProgress.backtest = true;
-            const btn = document.getElementById('backtestBtn');
-            const text = document.getElementById('backtestBtnText');
-            
+            const btn = document.getElementById('start-backtest');
             btn.disabled = true;
-            text.textContent = 'Starting...';
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
             
             try {
-                const result = await api.post('/api/control/start_backtest');
+                log('Starting comprehensive backtest...', 'warning');
+                const result = await fetchAPI('/backtest/start', { method: 'POST' });
+                
                 if (result.success) {
-                    showNotification('Backtest started successfully', 'success');
+                    log('Backtest started successfully', 'success');
+                    startBacktestMonitoring();
                 } else {
-                    showNotification('Backtest failed: ' + result.error, 'error');
-                    btn.disabled = false;
-                    text.textContent = 'Start Backtest';
+                    log(`Failed to start backtest: ${result.error}`, 'error');
                 }
+                
             } catch (error) {
-                showNotification('Backtest failed: ' + error.message, 'error');
-                btn.disabled = false;
-                text.textContent = 'Start Backtest';
+                log(`Error starting backtest: ${error.message}`, 'error');
             } finally {
-                actionInProgress.backtest = false;
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-chart-bar"></i> Run Backtest';
+                refreshData();
             }
         }
 
-        async function resetMLData() {
-            if (!confirm('Reset ML training data? This will clear all trained models.')) return;
+        function startBacktestMonitoring() {
+            if (backtestInterval) {
+                clearInterval(backtestInterval);
+            }
             
-            try {
-                const result = await api.post('/api/control/reset_ml_data');
-                if (result.success) {
-                    showNotification('ML data reset successfully', 'warning');
-                } else {
-                    showNotification('Reset failed: ' + result.error, 'error');
+            backtestInterval = setInterval(async () => {
+                try {
+                    const progress = await fetchAPI('/backtest/progress');
+                    updateBacktestProgress(progress);
+                    
+                    if (progress.status === 'completed') {
+                        clearInterval(backtestInterval);
+                        log('Backtest completed successfully!', 'success');
+                        refreshData();
+                    } else if (progress.status === 'error') {
+                        clearInterval(backtestInterval);
+                        log(`Backtest failed: ${progress.error || 'Unknown error'}`, 'error');
+                        refreshData();
+                    }
+                } catch (error) {
+                    log(`Progress check error: ${error.message}`, 'warning');
                 }
-            } catch (error) {
-                showNotification('Reset failed: ' + error.message, 'error');
-            }
+            }, 2000);
         }
 
-        async function saveMetrics() {
-            try {
-                const result = await api.post('/api/control/save_metrics');
-                if (result.success) {
-                    showNotification('Metrics saved successfully', 'success');
-                } else {
-                    showNotification('Save failed: ' + result.error, 'error');
-                }
-            } catch (error) {
-                showNotification('Save failed: ' + error.message, 'error');
-            }
-        }
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', () => {
+            if (refreshInterval) clearInterval(refreshInterval);
+            if (backtestInterval) clearInterval(backtestInterval);
+        });
 
-        async function refreshData() {
-            showNotification('Refreshing data...', 'info');
-            await loadInitialData();
-            showNotification('Data refreshed', 'success');
-        }
+        // Network status handling
+        window.addEventListener('online', () => {
+            log('Network connection restored', 'success');
+            updateConnectionStatus(true);
+            refreshData();
+        });
 
-        // Notification system
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 15px 20px;
-                border-radius: 10px;
-                color: white;
-                font-weight: 600;
-                z-index: 10000;
-                box-shadow: var(--shadow-lg);
-                backdrop-filter: blur(10px);
-                animation: slideIn 0.3s ease;
-            `;
-            
-            const colors = {
-                success: 'var(--gradient-success)',
-                error: 'var(--gradient-danger)',
-                warning: 'var(--gradient-warning)',
-                info: 'var(--gradient-primary)'
-            };
-            
-            notification.style.background = colors[type] || colors.info;
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => notification.remove(), 300);
-            }, 4000);
-        }
-
-        // Add CSS for notification animations
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
+        window.addEventListener('offline', () => {
+            log('Network connection lost', 'warning');
+            updateConnectionStatus(false);
+        });
     </script>
 </body>
 </html>
