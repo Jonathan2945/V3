@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-V3 API MIDDLEWARE SERVICE - SERVES YOUR DASHBOARD.HTML
-=====================================================
-Complete middleware that serves your existing dashboard.html
-All web functionality handled here - main_controller has NO Flask
+V3 API MIDDLEWARE SERVICE
+========================
+Middle-man service that sits between dashboard and main controller
+Handles data formatting, caching, API management, and real-time updates
+Never changes - provides stable interface for dashboard connectivity
 """
 import asyncio
 import json
@@ -14,7 +15,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
-from flask import Flask, request, jsonify, send_from_directory, send_file
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from threading import Lock
@@ -23,8 +24,7 @@ import traceback
 from contextlib import contextmanager
 import queue
 import psutil
-import werkzeug
-from pathlib import Path
+
 
 class DataCache:
     """Thread-safe data cache with TTL"""
@@ -57,6 +57,7 @@ class DataCache:
         with self._lock:
             self._cache.clear()
             self._timestamps.clear()
+
 
 class DatabaseInterface:
     """Simplified database interface for middleware"""
@@ -120,6 +121,7 @@ class DatabaseInterface:
             cursor.execute(query, params)
             return cursor.rowcount
 
+
 class ControllerInterface:
     """Interface to communicate with main controller"""
     
@@ -169,10 +171,6 @@ class ControllerInterface:
                 return getattr(controller, 'system_resources', {})
             elif data_type == "external_data_status":
                 return getattr(controller, 'external_data_status', {})
-            elif data_type == "comprehensive_dashboard":
-                if hasattr(controller, 'get_comprehensive_dashboard_data'):
-                    return controller.get_comprehensive_dashboard_data()
-                return {}
             else:
                 return None
         except Exception as e:
@@ -187,34 +185,23 @@ class ControllerInterface:
         
         try:
             if action == "start_trading":
-                # Run async method in new event loop
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                result = loop.run_until_complete(controller.start_trading())
-                loop.close()
-                return result
+                controller.is_running = True
+                return {"success": True, "message": "Trading started"}
             
             elif action == "stop_trading":
-                # Run async method in new event loop
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                result = loop.run_until_complete(controller.stop_trading())
-                loop.close()
-                return result
+                controller.is_running = False
+                return {"success": True, "message": "Trading stopped"}
             
             elif action == "start_backtest":
                 if hasattr(controller, 'comprehensive_backtester') and controller.comprehensive_backtester:
                     # Start backtest in background
                     def run_backtest():
                         try:
-                            loop = asyncio.new_event_loop()
-                            asyncio.set_event_loop(loop)
-                            loop.run_until_complete(controller.comprehensive_backtester.run_comprehensive_backtest())
-                            loop.close()
+                            asyncio.run(controller.comprehensive_backtester.run_comprehensive_backtest())
                         except Exception as e:
                             self.logger.error(f"Backtest error: {e}")
                     
-                    thread = threading.Thread(target=run_backtest, daemon=True)
+                    thread = threading.Thread(target=run_backtest)
                     thread.start()
                     return {"success": True, "message": "Comprehensive backtest started"}
                 else:
@@ -237,8 +224,9 @@ class ControllerInterface:
             self.logger.error(f"Error executing {action}: {e}")
             return {"success": False, "error": str(e)}
 
+
 class APIMiddleware:
-    """Main API Middleware Service - Serves your dashboard.html"""
+    """Main API Middleware Service"""
     
     def __init__(self, host=None, port=None):
         # Load from environment variables
@@ -264,11 +252,6 @@ class APIMiddleware:
         self.app = Flask(__name__)
         self.app.config['SECRET_KEY'] = 'v3-api-middleware-secret'
         CORS(self.app)
-        
-        # Suppress Flask logging
-        werkzeug_logger = logging.getLogger('werkzeug')
-        werkzeug_logger.setLevel(logging.ERROR)
-        
         self.socketio = SocketIO(
             self.app, 
             cors_allowed_origins="*",
@@ -285,7 +268,25 @@ class APIMiddleware:
         self.logger.info("API Middleware initialized - will serve your dashboard.html")
     
     def _setup_routes(self):
-        """Setup all API routes and serve dashboard.html"""
+        """Setup all API routes"""
+        
+        @self.app.route('/', methods=['GET'])
+        def serve_dashboard():
+            """Serve the dashboard HTML file"""
+            try:
+                if os.path.exists('dashboard.html'):
+                    with open('dashboard.html', 'r', encoding='utf-8') as f:
+                        return f.read()
+                else:
+                    return """
+                    <html><body>
+                    <h1>V3 Trading System Dashboard</h1>
+                    <p>Dashboard file not found. Please ensure dashboard.html exists in the current directory.</p>
+                    </body></html>
+                    """, 404
+            except Exception as e:
+                self.logger.error(f"Error serving dashboard: {e}")
+                return f"Error loading dashboard: {str(e)}", 500
         
         @self.app.route('/health', methods=['GET'])
         def health_check():
@@ -295,13 +296,12 @@ class APIMiddleware:
                 "timestamp": datetime.now().isoformat(),
                 "controller_connected": self.controller_interface.is_controller_available(),
                 "cache_size": len(self.cache._cache),
-                "uptime": time.time(),
-                "real_data_mode": True
+                "uptime": time.time()
             })
         
         @self.app.route('/api/dashboard/overview', methods=['GET'])
         def get_dashboard_overview():
-            """Get dashboard overview data for your dashboard.html"""
+            """Get dashboard overview data"""
             try:
                 # Try cache first
                 cached = self.cache.get('dashboard_overview', ttl=2)
@@ -420,9 +420,34 @@ class APIMiddleware:
         
         @self.app.route('/api/control/<action>', methods=['POST'])
         def execute_action(action):
-            """Execute control action"""
+            """Execute control action - FIXED to handle form data and JSON"""
             try:
-                params = request.get_json() or {}
+                params = {}
+                
+                # Try to get JSON data safely
+                try:
+                    if request.is_json and request.content_length and request.content_length > 0:
+                        params = request.get_json(force=False, silent=True) or {}
+                except Exception:
+                    pass
+                
+                # If no JSON, try form data
+                if not params and request.form:
+                    params = dict(request.form)
+                
+                # If still no params, try raw data as JSON
+                if not params and request.data:
+                    try:
+                        data_str = request.data.decode('utf-8').strip()
+                        if data_str:
+                            params = json.loads(data_str)
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        pass
+                
+                # Log the action
+                self.logger.info(f"Executing action: {action} with params: {params}")
+                
+                # Execute the action
                 result = self.controller_interface.execute_controller_action(action, params)
                 
                 # Clear relevant caches
@@ -432,81 +457,31 @@ class APIMiddleware:
                 
             except Exception as e:
                 self.logger.error(f"Action {action} error: {e}")
-                return jsonify({"success": False, "error": str(e)}), 500
-        
-        # New comprehensive dashboard endpoint for your dashboard.html
-        @self.app.route('/api/dashboard/complete', methods=['GET'])
-        def get_complete_dashboard():
-            """Get complete dashboard data for your dashboard.html"""
-            try:
-                dashboard_data = self.controller_interface.get_controller_data('comprehensive_dashboard')
-                if dashboard_data:
-                    return jsonify(dashboard_data)
-                else:
-                    # Build fallback data for your dashboard
-                    return jsonify(self._build_dashboard_data())
-                
-            except Exception as e:
-                self.logger.error(f"Complete dashboard error: {e}")
-                return jsonify({"error": str(e)}), 500
+                traceback.print_exc()
+                return jsonify({"success": False, "error": str(e)}), 400
         
         @self.socketio.on('connect')
         def handle_connect():
             """Handle client connection"""
             self.logger.info('Client connected to real-time updates')
-            emit('status', {'connected': True, 'real_data_mode': True})
+            emit('status', {'connected': True})
         
         @self.socketio.on('disconnect')
         def handle_disconnect():
-            """Handle client disconnected from real-time updates"""
+            """Handle client disconnection"""
             self.logger.info('Client disconnected from real-time updates')
-        
-        # Serve your existing dashboard.html
-        @self.app.route('/')
-        def serve_dashboard():
-            """Serve your existing dashboard.html file"""
-            try:
-                dashboard_path = Path('dashboard.html')
-                if dashboard_path.exists():
-                    return send_file(dashboard_path.absolute())
-                else:
-                    # Return simple message if dashboard.html not found
-                    return '''
-                    <html>
-                    <head><title>V3 Trading System</title></head>
-                    <body>
-                        <h1>V3 Trading System - Real Data Only</h1>
-                        <p>Dashboard file not found. Please ensure dashboard.html is in the root directory.</p>
-                        <p><a href="/api/dashboard/complete">View API Data</a></p>
-                    </body>
-                    </html>
-                    ''', 200
-            except Exception as e:
-                self.logger.error(f"Error serving dashboard: {e}")
-                return f"Error loading dashboard: {e}", 500
-        
-        # Static file serving for dashboard assets
-        @self.app.route('/static/<path:filename>')
-        def serve_static(filename):
-            """Serve static files for dashboard"""
-            try:
-                static_path = Path('static')
-                if static_path.exists():
-                    return send_from_directory(static_path, filename)
-                else:
-                    return "Static file not found", 404
-            except Exception as e:
-                return f"Error serving static file: {e}", 500
     
     def _get_dashboard_overview(self) -> Dict:
-        """Get comprehensive dashboard overview for your dashboard.html"""
+        """Get comprehensive dashboard overview"""
         try:
-            # Try to get data from controller first
-            dashboard_data = self.controller_interface.get_controller_data('comprehensive_dashboard')
-            if dashboard_data and 'overview' in dashboard_data:
-                return dashboard_data['overview']
+            controller = self.controller_interface.get_controller()
+            if controller and hasattr(controller, 'get_comprehensive_dashboard_data'):
+                try:
+                    return controller.get_comprehensive_dashboard_data()['overview']
+                except Exception as e:
+                    self.logger.error(f"Failed to get comprehensive data: {e}")
             
-            # Fallback to individual components
+            # Fallback to basic data
             metrics = self.controller_interface.get_controller_data('metrics') or {}
             scanner = self.controller_interface.get_controller_data('scanner_data') or {}
             external = self.controller_interface.get_controller_data('external_data_status') or {}
@@ -525,11 +500,19 @@ class APIMiddleware:
                     "controller_connected": self.controller_interface.is_controller_available(),
                     "ml_training_completed": metrics.get('ml_training_completed', False),
                     "backtest_completed": metrics.get('comprehensive_backtest_completed', False),
-                    "api_rotation_active": metrics.get('api_rotation_active', True),
-                    "real_data_mode": True
+                    "api_rotation_active": metrics.get('api_rotation_active', True)
                 },
-                "scanner": scanner,
-                "external_data": external,
+                "scanner": {
+                    "active_pairs": scanner.get('active_pairs', 0),
+                    "opportunities": scanner.get('opportunities', 0),
+                    "best_opportunity": scanner.get('best_opportunity', 'None'),
+                    "confidence": scanner.get('confidence', 0)
+                },
+                "external_data": {
+                    "working_apis": external.get('working_apis', 0),
+                    "total_apis": external.get('total_apis', 6),
+                    "api_status": external.get('api_status', {})
+                },
                 "timestamp": datetime.now().isoformat()
             }
             
@@ -599,51 +582,31 @@ class APIMiddleware:
             self.logger.error(f"System status error: {e}")
             return {"error": str(e)}
     
-    def _build_dashboard_data(self) -> Dict:
-        """Build comprehensive dashboard data for your dashboard.html"""
-        try:
-            # Get all data needed for your dashboard
-            overview = self._get_dashboard_overview()
-            metrics = self._get_trading_metrics()
-            system_status = self._get_system_status()
-            recent_trades = self.controller_interface.get_controller_data('recent_trades') or []
-            backtest_progress = self.controller_interface.get_controller_data('backtest_progress') or {}
-            top_strategies = self.controller_interface.get_controller_data('top_strategies') or []
-            
-            return {
-                "overview": overview,
-                "metrics": metrics,
-                "system_status": system_status,
-                "recent_trades": recent_trades,
-                "backtest_progress": backtest_progress,
-                "top_strategies": top_strategies[:5],  # Top 5
-                "timestamp": datetime.now().isoformat()
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error building dashboard data: {e}")
-            return {"error": str(e)}
-    
     def start_real_time_updates(self):
         """Start real-time update thread"""
         if self._update_thread and self._update_thread.is_alive():
             return
         
         self._stop_updates.clear()
-        self._update_thread = threading.Thread(target=self._real_time_update_loop, daemon=True)
+        self._update_thread = threading.Thread(target=self._real_time_update_loop)
+        self._update_thread.daemon = True
         self._update_thread.start()
         self.logger.info("Real-time updates started")
     
     def _real_time_update_loop(self):
         """Real-time update loop for WebSocket"""
-        while not self._stop_updates.wait(3):  # Update every 3 seconds
+        while not self._stop_updates.wait(2):  # Update every 2 seconds
             try:
-                # Get fresh data for your dashboard
-                dashboard_data = self._build_dashboard_data()
+                # Get fresh data
+                overview = self._get_dashboard_overview()
+                metrics = self._get_trading_metrics()
+                system_status = self._get_system_status()
                 
                 # Emit to all connected clients
                 self.socketio.emit('dashboard_update', {
-                    'data': dashboard_data,
+                    'overview': overview,
+                    'metrics': metrics,
+                    'system': system_status,
                     'timestamp': datetime.now().isoformat()
                 })
                 
@@ -707,7 +670,7 @@ if __name__ == "__main__":
     host = os.getenv('HOST', '127.0.0.1')
     
     print("Starting V3 API Middleware Service")
-    print(f"Your dashboard.html will be served at: http://{host}:{port}")
-    print(f"API endpoints available at: http://{host}:{port}/api")
+    print(f"Dashboard will be available at: http://{host}:{port}")
+    print(f"API endpoints available at: http://{host}:{port}")
     
     run_middleware_service(host=host, port=port)
