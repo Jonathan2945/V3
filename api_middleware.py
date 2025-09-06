@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-V3 API MIDDLEWARE - PURE REAL DATA ONLY
-======================================
-Zero mock data, zero placeholders, zero fake content
-Only displays actual data from real APIs
+V3 API MIDDLEWARE SERVICE - SERVES YOUR DASHBOARD.HTML
+=====================================================
+Complete middleware that serves your existing dashboard.html
+All web functionality handled here - main_controller has NO Flask
 """
 import asyncio
 import json
@@ -15,7 +14,7 @@ import threading
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit
 from threading import Lock
@@ -24,16 +23,17 @@ import traceback
 from contextlib import contextmanager
 import queue
 import psutil
-
+import werkzeug
+from pathlib import Path
 
 class DataCache:
-    """Cache for real data only"""
+    """Thread-safe data cache with TTL"""
     
     def __init__(self):
         self._cache = {}
         self._timestamps = {}
         self._lock = Lock()
-        self._default_ttl = 5
+        self._default_ttl = 5  # 5 seconds default TTL
     
     def get(self, key: str, ttl: int = None) -> Optional[Any]:
         with self._lock:
@@ -58,9 +58,8 @@ class DataCache:
             self._cache.clear()
             self._timestamps.clear()
 
-
 class DatabaseInterface:
-    """Database interface for real data only"""
+    """Simplified database interface for middleware"""
     
     def __init__(self, db_paths: Dict[str, str]):
         self.db_paths = db_paths
@@ -69,7 +68,7 @@ class DatabaseInterface:
     
     @contextmanager
     def get_connection(self, db_name: str):
-        """Get database connection"""
+        """Get database connection with automatic cleanup"""
         conn = None
         try:
             with self._lock:
@@ -79,6 +78,7 @@ class DatabaseInterface:
                     
                     db_path = self.db_paths[db_name]
                     if not os.path.exists(db_path):
+                        # Create empty database if it doesn't exist
                         conn = sqlite3.connect(db_path)
                         conn.close()
                     
@@ -101,24 +101,27 @@ class DatabaseInterface:
                 conn.commit()
     
     def query(self, db_name: str, query: str, params: tuple = ()) -> List[Dict]:
-        """Execute query and return real results only"""
-        try:
-            with self.get_connection(db_name) as conn:
-                cursor = conn.cursor()
-                cursor.execute(query, params)
-                
-                columns = [description[0] for description in cursor.description]
-                results = []
-                for row in cursor.fetchall():
-                    results.append(dict(zip(columns, row)))
-                
-                return results
-        except Exception:
-            return []
-
+        """Execute query and return results as list of dictionaries"""
+        with self.get_connection(db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            
+            columns = [description[0] for description in cursor.description]
+            results = []
+            for row in cursor.fetchall():
+                results.append(dict(zip(columns, row)))
+            
+            return results
+    
+    def execute(self, db_name: str, query: str, params: tuple = ()) -> int:
+        """Execute query and return affected rows"""
+        with self.get_connection(db_name) as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, params)
+            return cursor.rowcount
 
 class ControllerInterface:
-    """Interface to main controller - real data only"""
+    """Interface to communicate with main controller"""
     
     def __init__(self):
         self.controller_ref = None
@@ -143,29 +146,33 @@ class ControllerInterface:
         return self.get_controller() is not None
     
     def get_controller_data(self, data_type: str) -> Optional[Dict]:
-        """Get real data from controller - NO FAKE DATA"""
+        """Get data from controller safely"""
         controller = self.get_controller()
         if not controller:
-            return None  # Return None instead of fake data
+            return None
         
         try:
             if data_type == "metrics":
-                return getattr(controller, 'metrics', None)
+                return getattr(controller, 'metrics', {})
             elif data_type == "positions":
-                return getattr(controller, 'open_positions', None)
+                return getattr(controller, 'open_positions', {})
             elif data_type == "recent_trades":
-                trades = getattr(controller, 'recent_trades', None)
-                return list(trades) if trades and hasattr(trades, '__iter__') else None
+                trades = getattr(controller, 'recent_trades', [])
+                return list(trades) if hasattr(trades, '__iter__') else []
             elif data_type == "backtest_progress":
-                return getattr(controller, 'backtest_progress', None)
+                return getattr(controller, 'backtest_progress', {})
             elif data_type == "top_strategies":
-                return getattr(controller, 'top_strategies', None)
+                return getattr(controller, 'top_strategies', [])
             elif data_type == "scanner_data":
-                return getattr(controller, 'scanner_data', None)
+                return getattr(controller, 'scanner_data', {})
             elif data_type == "system_resources":
-                return getattr(controller, 'system_resources', None)
+                return getattr(controller, 'system_resources', {})
             elif data_type == "external_data_status":
-                return getattr(controller, 'external_data_status', None)
+                return getattr(controller, 'external_data_status', {})
+            elif data_type == "comprehensive_dashboard":
+                if hasattr(controller, 'get_comprehensive_dashboard_data'):
+                    return controller.get_comprehensive_dashboard_data()
+                return {}
             else:
                 return None
         except Exception as e:
@@ -173,67 +180,77 @@ class ControllerInterface:
             return None
     
     def execute_controller_action(self, action: str, params: Dict = None) -> Dict:
-        """Execute real action on controller"""
+        """Execute action on controller"""
         controller = self.get_controller()
         if not controller:
             return {"success": False, "error": "Controller not available"}
         
         try:
             if action == "start_trading":
-                controller.is_running = True
-                return {"success": True, "message": "Trading started"}
+                # Run async method in new event loop
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(controller.start_trading())
+                loop.close()
+                return result
             
             elif action == "stop_trading":
-                controller.is_running = False
-                return {"success": True, "message": "Trading stopped"}
+                # Run async method in new event loop
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                result = loop.run_until_complete(controller.stop_trading())
+                loop.close()
+                return result
             
             elif action == "start_backtest":
                 if hasattr(controller, 'comprehensive_backtester') and controller.comprehensive_backtester:
+                    # Start backtest in background
                     def run_backtest():
                         try:
-                            import asyncio
-                            asyncio.run(controller.comprehensive_backtester.run_comprehensive_backtest())
+                            loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(loop)
+                            loop.run_until_complete(controller.comprehensive_backtester.run_comprehensive_backtest())
+                            loop.close()
                         except Exception as e:
                             self.logger.error(f"Backtest error: {e}")
                     
                     thread = threading.Thread(target=run_backtest, daemon=True)
                     thread.start()
-                    return {"success": True, "message": "Backtest started"}
+                    return {"success": True, "message": "Comprehensive backtest started"}
                 else:
                     return {"success": False, "error": "Backtester not available"}
             
             elif action == "reset_ml_data":
-                if hasattr(controller, 'metrics'):
-                    controller.metrics['ml_training_completed'] = False
-                if hasattr(controller, 'ml_trained_strategies'):
-                    controller.ml_trained_strategies = []
+                # Reset ML data
+                controller.metrics['ml_training_completed'] = False
+                controller.ml_trained_strategies = []
                 return {"success": True, "message": "ML data reset"}
             
             elif action == "save_metrics":
-                if hasattr(controller, 'save_current_metrics'):
-                    controller.save_current_metrics()
+                controller.save_current_metrics()
                 return {"success": True, "message": "Metrics saved"}
             
             else:
                 return {"success": False, "error": f"Unknown action: {action}"}
                 
         except Exception as e:
-            self.logger.error(f"Error executing action {action}: {e}")
+            self.logger.error(f"Error executing {action}: {e}")
             return {"success": False, "error": str(e)}
 
-
-class RealDataAPIMiddleware:
-    """API Middleware that only serves real data - NO MOCK DATA"""
+class APIMiddleware:
+    """Main API Middleware Service - Serves your dashboard.html"""
     
     def __init__(self, host=None, port=None):
+        # Load from environment variables
         if host is None:
-            host = os.getenv('HOST', '0.0.0.0')
+            host = os.getenv('HOST', '127.0.0.1')
         if port is None:
             port = int(os.getenv('FLASK_PORT', os.getenv('MAIN_SYSTEM_PORT', '8102')))
         self.host = host
         self.port = port
         self.logger = logging.getLogger(__name__)
         
+        # Initialize components
         self.cache = DataCache()
         self.db_interface = DatabaseInterface({
             "trading_metrics": "data/trading_metrics.db",
@@ -245,50 +262,57 @@ class RealDataAPIMiddleware:
         
         # Initialize Flask app
         self.app = Flask(__name__)
-        self.app.config['SECRET_KEY'] = 'v3-real-data-middleware'
+        self.app.config['SECRET_KEY'] = 'v3-api-middleware-secret'
         CORS(self.app)
         
-        # Initialize SocketIO
+        # Suppress Flask logging
+        werkzeug_logger = logging.getLogger('werkzeug')
+        werkzeug_logger.setLevel(logging.ERROR)
+        
         self.socketio = SocketIO(
             self.app, 
             cors_allowed_origins="*",
-            async_mode='threading',
-            logger=False,
-            engineio_logger=False
+            async_mode='threading'
         )
         
+        # Setup routes
         self._setup_routes()
         
         # Real-time update thread
         self._update_thread = None
         self._stop_updates = threading.Event()
         
-        self.logger.info("Real Data API Middleware initialized")
+        self.logger.info("API Middleware initialized - will serve your dashboard.html")
     
     def _setup_routes(self):
-        """Setup API routes that only serve real data"""
-        
-        @self.app.route('/', methods=['GET'])
-        def dashboard():
-            """Serve dashboard that only shows real data"""
-            return self._get_real_data_dashboard_html()
+        """Setup all API routes and serve dashboard.html"""
         
         @self.app.route('/health', methods=['GET'])
         def health_check():
-            """Health check"""
+            """Health check endpoint"""
             return jsonify({
                 "status": "healthy",
-                "data_mode": "REAL_ONLY",
                 "timestamp": datetime.now().isoformat(),
-                "controller_connected": self.controller_interface.is_controller_available()
+                "controller_connected": self.controller_interface.is_controller_available(),
+                "cache_size": len(self.cache._cache),
+                "uptime": time.time(),
+                "real_data_mode": True
             })
         
         @self.app.route('/api/dashboard/overview', methods=['GET'])
         def get_dashboard_overview():
-            """Get real dashboard overview - empty if no real data"""
+            """Get dashboard overview data for your dashboard.html"""
             try:
-                overview = self._get_real_dashboard_overview()
-                return jsonify(overview) if overview else jsonify({})
+                # Try cache first
+                cached = self.cache.get('dashboard_overview', ttl=2)
+                if cached:
+                    return jsonify(cached)
+                
+                # Get fresh data
+                overview = self._get_dashboard_overview()
+                self.cache.set('dashboard_overview', overview)
+                
+                return jsonify(overview)
                 
             except Exception as e:
                 self.logger.error(f"Dashboard overview error: {e}")
@@ -296,10 +320,16 @@ class RealDataAPIMiddleware:
         
         @self.app.route('/api/trading/metrics', methods=['GET'])
         def get_trading_metrics():
-            """Get real trading metrics only"""
+            """Get current trading metrics"""
             try:
-                metrics = self._get_real_trading_metrics()
-                return jsonify(metrics) if metrics else jsonify({})
+                cached = self.cache.get('trading_metrics', ttl=1)
+                if cached:
+                    return jsonify(cached)
+                
+                metrics = self._get_trading_metrics()
+                self.cache.set('trading_metrics', metrics)
+                
+                return jsonify(metrics)
                 
             except Exception as e:
                 self.logger.error(f"Trading metrics error: {e}")
@@ -307,29 +337,12 @@ class RealDataAPIMiddleware:
         
         @self.app.route('/api/trading/positions', methods=['GET'])
         def get_positions():
-            """Get real positions only"""
+            """Get current positions"""
             try:
-                positions = self.controller_interface.get_controller_data('positions')
-                
-                if not positions:
-                    return jsonify({"positions": [], "count": 0, "timestamp": datetime.now().isoformat()})
-                
-                # Convert to list format
-                position_list = []
-                for symbol, position in positions.items():
-                    if position:  # Only include real position data
-                        position_list.append({
-                            'symbol': symbol,
-                            'side': position.get('side'),
-                            'quantity': position.get('quantity'),
-                            'entry_price': position.get('entry_price'),
-                            'current_price': position.get('current_price'),
-                            'unrealized_pnl': position.get('unrealized_pnl')
-                        })
-                
+                positions = self.controller_interface.get_controller_data('positions') or {}
                 return jsonify({
-                    "positions": position_list,
-                    "count": len(position_list),
+                    "positions": positions,
+                    "count": len(positions),
                     "timestamp": datetime.now().isoformat()
                 })
                 
@@ -339,14 +352,12 @@ class RealDataAPIMiddleware:
         
         @self.app.route('/api/trading/recent-trades', methods=['GET'])
         def get_recent_trades():
-            """Get real recent trades only"""
+            """Get recent trades"""
             try:
-                limit = request.args.get('limit', 50, type=int)
-                trades = self.controller_interface.get_controller_data('recent_trades')
+                limit = request.args.get('limit', 20, type=int)
+                trades = self.controller_interface.get_controller_data('recent_trades') or []
                 
-                if not trades:
-                    return jsonify({"trades": [], "count": 0, "timestamp": datetime.now().isoformat()})
-                
+                # Limit results
                 recent_trades = trades[-limit:] if len(trades) > limit else trades
                 
                 return jsonify({
@@ -362,10 +373,10 @@ class RealDataAPIMiddleware:
         
         @self.app.route('/api/backtest/progress', methods=['GET'])
         def get_backtest_progress():
-            """Get real backtesting progress only"""
+            """Get backtesting progress"""
             try:
-                progress = self.controller_interface.get_controller_data('backtest_progress')
-                return jsonify(progress) if progress else jsonify({})
+                progress = self.controller_interface.get_controller_data('backtest_progress') or {}
+                return jsonify(progress)
                 
             except Exception as e:
                 self.logger.error(f"Backtest progress error: {e}")
@@ -373,13 +384,10 @@ class RealDataAPIMiddleware:
         
         @self.app.route('/api/strategies/top', methods=['GET'])
         def get_top_strategies():
-            """Get real top strategies only"""
+            """Get top strategies"""
             try:
                 limit = request.args.get('limit', 10, type=int)
-                strategies = self.controller_interface.get_controller_data('top_strategies')
-                
-                if not strategies:
-                    return jsonify({"strategies": [], "count": 0, "timestamp": datetime.now().isoformat()})
+                strategies = self.controller_interface.get_controller_data('top_strategies') or []
                 
                 top_strategies = strategies[:limit]
                 
@@ -395,77 +403,29 @@ class RealDataAPIMiddleware:
         
         @self.app.route('/api/system/status', methods=['GET'])
         def get_system_status():
-            """Get real system status only"""
+            """Get system status"""
             try:
-                status = self._get_real_system_status()
-                return jsonify(status) if status else jsonify({})
+                cached = self.cache.get('system_status', ttl=5)
+                if cached:
+                    return jsonify(cached)
+                
+                status = self._get_system_status()
+                self.cache.set('system_status', status)
+                
+                return jsonify(status)
                 
             except Exception as e:
                 self.logger.error(f"System status error: {e}")
-                return jsonify({"error": str(e)}), 500
-        
-        @self.app.route('/api/market/news', methods=['GET'])
-        def get_market_news():
-            """Get real market news only - empty until APIs configured"""
-            try:
-                # Check if external data collector has real news
-                external_data = self.controller_interface.get_controller_data('external_data_status')
-                
-                if not external_data or not external_data.get('latest_data'):
-                    return jsonify({"news": [], "count": 0, "timestamp": datetime.now().isoformat()})
-                
-                # Only return if we have actual news data
-                news_data = external_data.get('latest_data', {}).get('news_sentiment', {})
-                if news_data.get('articles_analyzed', 0) > 0:
-                    # Return real news data
-                    return jsonify({
-                        "news": news_data,
-                        "count": news_data.get('articles_analyzed', 0),
-                        "timestamp": datetime.now().isoformat()
-                    })
-                
-                return jsonify({"news": [], "count": 0, "timestamp": datetime.now().isoformat()})
-                
-            except Exception as e:
-                self.logger.error(f"Market news error: {e}")
-                return jsonify({"error": str(e)}), 500
-        
-        @self.app.route('/api/market/sentiment', methods=['GET'])
-        def get_market_sentiment():
-            """Get real market sentiment only"""
-            try:
-                external_data = self.controller_interface.get_controller_data('external_data_status')
-                
-                if not external_data or not external_data.get('latest_data'):
-                    return jsonify({})
-                
-                sentiment_data = external_data.get('latest_data', {})
-                
-                # Only return if we have real sentiment data
-                if sentiment_data.get('market_sentiment', {}).get('overall_sentiment') != 0:
-                    return jsonify({
-                        "sentiment": sentiment_data,
-                        "timestamp": datetime.now().isoformat()
-                    })
-                
-                return jsonify({})
-                
-            except Exception as e:
-                self.logger.error(f"Market sentiment error: {e}")
                 return jsonify({"error": str(e)}), 500
         
         @self.app.route('/api/control/<action>', methods=['POST'])
         def execute_action(action):
             """Execute control action"""
             try:
-                params = {}
-                try:
-                    if request.data:
-                        params = request.get_json() or {}
-                except Exception:
-                    params = {}
-                
+                params = request.get_json() or {}
                 result = self.controller_interface.execute_controller_action(action, params)
+                
+                # Clear relevant caches
                 self.cache.clear()
                 
                 return jsonify(result)
@@ -474,609 +434,145 @@ class RealDataAPIMiddleware:
                 self.logger.error(f"Action {action} error: {e}")
                 return jsonify({"success": False, "error": str(e)}), 500
         
-        # WebSocket events
+        # New comprehensive dashboard endpoint for your dashboard.html
+        @self.app.route('/api/dashboard/complete', methods=['GET'])
+        def get_complete_dashboard():
+            """Get complete dashboard data for your dashboard.html"""
+            try:
+                dashboard_data = self.controller_interface.get_controller_data('comprehensive_dashboard')
+                if dashboard_data:
+                    return jsonify(dashboard_data)
+                else:
+                    # Build fallback data for your dashboard
+                    return jsonify(self._build_dashboard_data())
+                
+            except Exception as e:
+                self.logger.error(f"Complete dashboard error: {e}")
+                return jsonify({"error": str(e)}), 500
+        
         @self.socketio.on('connect')
         def handle_connect():
             """Handle client connection"""
-            self.logger.info('Client connected')
-            emit('status', {'connected': True, 'data_mode': 'REAL_ONLY'})
+            self.logger.info('Client connected to real-time updates')
+            emit('status', {'connected': True, 'real_data_mode': True})
         
         @self.socketio.on('disconnect')
         def handle_disconnect():
-            """Handle client disconnection"""
-            self.logger.info('Client disconnected')
+            """Handle client disconnected from real-time updates"""
+            self.logger.info('Client disconnected from real-time updates')
+        
+        # Serve your existing dashboard.html
+        @self.app.route('/')
+        def serve_dashboard():
+            """Serve your existing dashboard.html file"""
+            try:
+                dashboard_path = Path('dashboard.html')
+                if dashboard_path.exists():
+                    return send_file(dashboard_path.absolute())
+                else:
+                    # Return simple message if dashboard.html not found
+                    return '''
+                    <html>
+                    <head><title>V3 Trading System</title></head>
+                    <body>
+                        <h1>V3 Trading System - Real Data Only</h1>
+                        <p>Dashboard file not found. Please ensure dashboard.html is in the root directory.</p>
+                        <p><a href="/api/dashboard/complete">View API Data</a></p>
+                    </body>
+                    </html>
+                    ''', 200
+            except Exception as e:
+                self.logger.error(f"Error serving dashboard: {e}")
+                return f"Error loading dashboard: {e}", 500
+        
+        # Static file serving for dashboard assets
+        @self.app.route('/static/<path:filename>')
+        def serve_static(filename):
+            """Serve static files for dashboard"""
+            try:
+                static_path = Path('static')
+                if static_path.exists():
+                    return send_from_directory(static_path, filename)
+                else:
+                    return "Static file not found", 404
+            except Exception as e:
+                return f"Error serving static file: {e}", 500
     
-    def _get_real_data_dashboard_html(self):
-        """Get dashboard HTML that only displays real data"""
-        return '''<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V3 Trading System - Real Data Only</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0f23, #1a1a2e, #16213e);
-            color: #e0e6ed;
-            min-height: 100vh;
-        }
-        
-        .header {
-            background: rgba(15, 15, 35, 0.95);
-            padding: 20px;
-            border-bottom: 2px solid #4ade80;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 2.5rem;
-            color: #4ade80;
-            margin-bottom: 5px;
-            text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
-        }
-        
-        .status-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(26, 26, 46, 0.8);
-            padding: 10px 20px;
-            margin: 20px;
-            border-radius: 10px;
-            border: 1px solid #374151;
-        }
-        
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-        
-        .status-online { background: #4ade80; }
-        .status-offline { background: #ef4444; }
-        
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-        
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            padding: 20px;
-        }
-        
-        .widget {
-            background: rgba(26, 26, 46, 0.8);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid #374151;
-            transition: all 0.3s ease;
-        }
-        
-        .widget:hover {
-            border-color: #4ade80;
-            box-shadow: 0 5px 20px rgba(74, 222, 128, 0.1);
-        }
-        
-        .widget-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #4ade80;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #374151;
-        }
-        
-        .metric-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(55, 65, 81, 0.3);
-        }
-        
-        .metric-label { opacity: 0.8; font-size: 0.9rem; }
-        .metric-value { font-weight: 600; font-size: 1.1rem; }
-        .positive { color: #4ade80; }
-        .negative { color: #ef4444; }
-        .no-data { color: #6b7280; font-style: italic; }
-        
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-        
-        .btn-primary { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; }
-        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
-        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
-        
-        .btn:hover { transform: translateY(-2px); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-        
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: #6b7280;
-            font-style: italic;
-        }
-        
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: #374151;
-            border-radius: 4px;
-            overflow: hidden;
-            margin: 10px 0;
-        }
-        
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #4ade80, #22c55e);
-            border-radius: 4px;
-            transition: width 0.3s ease;
-        }
-        
-        .api-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-        }
-        
-        .api-item {
-            background: rgba(55, 65, 81, 0.3);
-            padding: 10px;
-            border-radius: 6px;
-            text-align: center;
-            border: 2px solid transparent;
-        }
-        
-        .api-item.connected { border-color: #4ade80; }
-        .api-item.disconnected { border-color: #ef4444; }
-        
-        .scrollable {
-            max-height: 250px;
-            overflow-y: auto;
-        }
-        
-        .scrollable::-webkit-scrollbar { width: 6px; }
-        .scrollable::-webkit-scrollbar-track { background: #374151; }
-        .scrollable::-webkit-scrollbar-thumb { background: #4ade80; border-radius: 3px; }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>V3 Trading System</h1>
-        <p>Real Data Only - No Placeholders</p>
-    </div>
-    
-    <div class="status-bar">
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div class="status-indicator" id="system-status"></div>
-            <span id="system-status-text">Checking System</span>
-        </div>
-        <div>
-            <span>Last Update: <span id="last-update">Never</span></span>
-        </div>
-    </div>
-    
-    <div class="controls">
-        <button class="btn btn-success" onclick="startTrading()" id="start-btn">Start Trading</button>
-        <button class="btn btn-danger" onclick="stopTrading()" id="stop-btn">Stop Trading</button>
-        <button class="btn btn-primary" onclick="startBacktest()" id="backtest-btn">Run Backtest</button>
-        <button class="btn btn-primary" onclick="resetML()" id="reset-ml-btn">Reset ML</button>
-        <button class="btn btn-primary" onclick="saveMetrics()" id="save-btn">Save Data</button>
-    </div>
-    
-    <div class="dashboard-grid">
-        <!-- P&L Overview -->
-        <div class="widget">
-            <div class="widget-title">P&L Overview</div>
-            <div id="pnl-content">
-                <div class="empty-state">Waiting for trading data...</div>
-            </div>
-        </div>
-        
-        <!-- Trading Stats -->
-        <div class="widget">
-            <div class="widget-title">Trading Statistics</div>
-            <div id="trading-stats-content">
-                <div class="empty-state">No trading data available</div>
-            </div>
-        </div>
-        
-        <!-- System Resources -->
-        <div class="widget">
-            <div class="widget-title">System Resources</div>
-            <div id="system-resources-content">
-                <div class="empty-state">Loading system data...</div>
-            </div>
-        </div>
-        
-        <!-- Backtest Progress -->
-        <div class="widget">
-            <div class="widget-title">Backtest Progress</div>
-            <div id="backtest-content">
-                <div class="empty-state">No backtest running</div>
-            </div>
-        </div>
-        
-        <!-- API Connections -->
-        <div class="widget">
-            <div class="widget-title">API Connections</div>
-            <div class="api-grid" id="api-status">
-                <div class="api-item disconnected"><strong>Binance</strong><br>Disconnected</div>
-                <div class="api-item disconnected"><strong>Alpha Vantage</strong><br>Disconnected</div>
-                <div class="api-item disconnected"><strong>News API</strong><br>Disconnected</div>
-                <div class="api-item disconnected"><strong>FRED</strong><br>Disconnected</div>
-                <div class="api-item disconnected"><strong>Twitter</strong><br>Disconnected</div>
-                <div class="api-item disconnected"><strong>Reddit</strong><br>Disconnected</div>
-            </div>
-        </div>
-        
-        <!-- Recent Trades -->
-        <div class="widget">
-            <div class="widget-title">Recent Trades</div>
-            <div class="scrollable" id="recent-trades">
-                <div class="empty-state">No trades recorded</div>
-            </div>
-        </div>
-        
-        <!-- Market News -->
-        <div class="widget">
-            <div class="widget-title">Market News</div>
-            <div class="scrollable" id="market-news">
-                <div class="empty-state">Configure news APIs for real updates</div>
-            </div>
-        </div>
-        
-        <!-- Active Positions -->
-        <div class="widget">
-            <div class="widget-title">Active Positions</div>
-            <div class="scrollable" id="active-positions">
-                <div class="empty-state">No active positions</div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        let updateInterval;
-        
-        function updateSystemStatus(isOnline) {
-            const statusEl = document.getElementById('system-status');
-            const statusTextEl = document.getElementById('system-status-text');
-            
-            if (isOnline) {
-                statusEl.className = 'status-indicator status-online';
-                statusTextEl.textContent = 'System Online';
-            } else {
-                statusEl.className = 'status-indicator status-offline';
-                statusTextEl.textContent = 'System Offline';
-            }
-        }
-        
-        function updateLastUpdate() {
-            document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
-        }
-        
-        async function fetchData(endpoint) {
-            try {
-                const response = await fetch(`/api/${endpoint}`);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const data = await response.json();
-                return Object.keys(data).length > 0 ? data : null;
-            } catch (error) {
-                console.error(`Failed to fetch ${endpoint}:`, error);
-                return null;
-            }
-        }
-        
-        function updatePnLOverview(data) {
-            const container = document.getElementById('pnl-content');
-            if (!data || !data.trading) {
-                container.innerHTML = '<div class="empty-state">Waiting for trading data...</div>';
-                return;
-            }
-            
-            const trading = data.trading;
-            container.innerHTML = `
-                <div class="metric-row">
-                    <span class="metric-label">Total P&L</span>
-                    <span class="metric-value ${trading.total_pnl >= 0 ? 'positive' : 'negative'}">$${trading.total_pnl.toFixed(2)}</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Daily P&L</span>
-                    <span class="metric-value ${trading.daily_pnl >= 0 ? 'positive' : 'negative'}">$${trading.daily_pnl.toFixed(2)}</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Unrealized P&L</span>
-                    <span class="metric-value ${trading.unrealized_pnl >= 0 ? 'positive' : 'negative'}">$${(trading.unrealized_pnl || 0).toFixed(2)}</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Win Rate</span>
-                    <span class="metric-value">${trading.win_rate.toFixed(1)}%</span>
-                </div>
-            `;
-        }
-        
-        function updateTradingStats(data) {
-            const container = document.getElementById('trading-stats-content');
-            if (!data || !data.performance) {
-                container.innerHTML = '<div class="empty-state">No trading data available</div>';
-                return;
-            }
-            
-            const perf = data.performance;
-            container.innerHTML = `
-                <div class="metric-row">
-                    <span class="metric-label">Total Trades</span>
-                    <span class="metric-value">${perf.total_trades}</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Winning Trades</span>
-                    <span class="metric-value">${perf.winning_trades}</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Best Trade</span>
-                    <span class="metric-value positive">$${perf.best_trade.toFixed(2)}</span>
-                </div>
-            `;
-        }
-        
-        function updateSystemResources(data) {
-            const container = document.getElementById('system-resources-content');
-            if (!data || !data.resources) {
-                container.innerHTML = '<div class="empty-state">Loading system data...</div>';
-                return;
-            }
-            
-            const res = data.resources;
-            container.innerHTML = `
-                <div class="metric-row">
-                    <span class="metric-label">CPU Usage</span>
-                    <span class="metric-value">${res.cpu_usage.toFixed(1)}%</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Memory Usage</span>
-                    <span class="metric-value">${res.memory_usage.toFixed(1)}%</span>
-                </div>
-            `;
-        }
-        
-        function updateBacktestProgress(data) {
-            const container = document.getElementById('backtest-content');
-            if (!data || !data.status || data.status === 'not_started') {
-                container.innerHTML = '<div class="empty-state">No backtest running</div>';
-                return;
-            }
-            
-            container.innerHTML = `
-                <div class="metric-row">
-                    <span class="metric-label">Status</span>
-                    <span class="metric-value">${data.status}</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${data.progress_percent || 0}%"></div>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Progress</span>
-                    <span class="metric-value">${(data.progress_percent || 0).toFixed(1)}%</span>
-                </div>
-                ${data.current_symbol ? `
-                <div class="metric-row">
-                    <span class="metric-label">Current Symbol</span>
-                    <span class="metric-value">${data.current_symbol}</span>
-                </div>
-                ` : ''}
-            `;
-        }
-        
-        function updateAPIStatus(data) {
-            if (!data || !data.external_data || !data.external_data.api_status) return;
-            
-            const apiStatus = data.external_data.api_status;
-            const container = document.getElementById('api-status');
-            
-            const apiMap = {
-                'binance': 'Binance',
-                'alpha_vantage': 'Alpha Vantage', 
-                'news_api': 'News API',
-                'fred_api': 'FRED',
-                'twitter_api': 'Twitter',
-                'reddit_api': 'Reddit'
-            };
-            
-            container.innerHTML = Object.entries(apiMap).map(([key, name]) => {
-                const connected = apiStatus[key] || false;
-                return `
-                    <div class="api-item ${connected ? 'connected' : 'disconnected'}">
-                        <strong>${name}</strong><br>
-                        ${connected ? 'Connected' : 'Disconnected'}
-                    </div>
-                `;
-            }).join('');
-        }
-        
-        function updateRecentTrades(data) {
-            const container = document.getElementById('recent-trades');
-            if (!data || !data.trades || data.trades.length === 0) {
-                container.innerHTML = '<div class="empty-state">No trades recorded</div>';
-                return;
-            }
-            
-            container.innerHTML = data.trades.slice(-5).map(trade => `
-                <div style="background: rgba(55, 65, 81, 0.3); padding: 10px; margin: 5px 0; border-radius: 5px; border-left: 3px solid ${trade.profit_loss >= 0 ? '#4ade80' : '#ef4444'}">
-                    <div style="display: flex; justify-content: space-between;">
-                        <strong>${trade.symbol}</strong>
-                        <span class="${trade.profit_loss >= 0 ? 'positive' : 'negative'}">$${trade.profit_loss.toFixed(2)}</span>
-                    </div>
-                    <div style="font-size: 0.8rem; opacity: 0.8;">
-                        ${trade.side} | ${trade.quantity.toFixed(4)} | $${trade.entry_price.toFixed(2)}
-                    </div>
-                </div>
-            `).join('');
-        }
-        
-        async function updateDashboard() {
-            try {
-                const [overview, metrics, systemStatus, trades, backtest] = await Promise.all([
-                    fetchData('dashboard/overview'),
-                    fetchData('trading/metrics'),
-                    fetchData('system/status'),
-                    fetchData('trading/recent-trades'),
-                    fetchData('backtest/progress')
-                ]);
-                
-                updateSystemStatus(overview && overview.system && overview.system.controller_connected);
-                updatePnLOverview(overview);
-                updateTradingStats(metrics);
-                updateSystemResources(systemStatus);
-                updateBacktestProgress(backtest);
-                updateAPIStatus(overview);
-                updateRecentTrades(trades);
-                updateLastUpdate();
-                
-            } catch (error) {
-                console.error('Dashboard update failed:', error);
-                updateSystemStatus(false);
-            }
-        }
-        
-        async function executeAction(action, buttonId) {
-            const button = document.getElementById(buttonId);
-            const originalText = button.textContent;
-            
-            button.disabled = true;
-            button.textContent = 'Processing...';
-            
-            try {
-                const response = await fetch(`/api/control/${action}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({})
-                });
-                
-                const result = await response.json();
-                console.log(`${action}:`, result.success ? result.message : result.error);
-                setTimeout(updateDashboard, 1000);
-                
-            } catch (error) {
-                console.error(`${action} error:`, error);
-            } finally {
-                button.disabled = false;
-                button.textContent = originalText;
-            }
-        }
-        
-        function startTrading() { executeAction('start_trading', 'start-btn'); }
-        function stopTrading() { executeAction('stop_trading', 'stop-btn'); }
-        function startBacktest() { executeAction('start_backtest', 'backtest-btn'); }
-        function resetML() { executeAction('reset_ml_data', 'reset-ml-btn'); }
-        function saveMetrics() { executeAction('save_metrics', 'save-btn'); }
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('V3 Real Data Dashboard initialized');
-            updateDashboard();
-            updateInterval = setInterval(updateDashboard, 5000);
-        });
-        
-        window.addEventListener('beforeunload', function() {
-            if (updateInterval) clearInterval(updateInterval);
-        });
-    </script>
-</body>
-</html>'''
-    
-    def _get_real_dashboard_overview(self) -> Optional[Dict]:
-        """Get real dashboard overview - None if no data"""
+    def _get_dashboard_overview(self) -> Dict:
+        """Get comprehensive dashboard overview for your dashboard.html"""
         try:
-            controller = self.controller_interface.get_controller()
-            if not controller:
-                return None
+            # Try to get data from controller first
+            dashboard_data = self.controller_interface.get_controller_data('comprehensive_dashboard')
+            if dashboard_data and 'overview' in dashboard_data:
+                return dashboard_data['overview']
             
-            if hasattr(controller, 'get_comprehensive_dashboard_data'):
-                try:
-                    data = controller.get_comprehensive_dashboard_data()
-                    return data.get('overview') if data else None
-                except Exception:
-                    pass
-            
-            # Get individual data components
-            metrics = self.controller_interface.get_controller_data('metrics')
-            external = self.controller_interface.get_controller_data('external_data_status')
-            
-            if not metrics:
-                return None
+            # Fallback to individual components
+            metrics = self.controller_interface.get_controller_data('metrics') or {}
+            scanner = self.controller_interface.get_controller_data('scanner_data') or {}
+            external = self.controller_interface.get_controller_data('external_data_status') or {}
             
             return {
                 "trading": {
-                    "is_running": getattr(controller, 'is_running', False),
+                    "is_running": metrics.get('is_running', False),
                     "total_pnl": metrics.get('total_pnl', 0.0),
                     "daily_pnl": metrics.get('daily_pnl', 0.0),
-                    "unrealized_pnl": metrics.get('unrealized_pnl', 0.0),
                     "total_trades": metrics.get('total_trades', 0),
                     "win_rate": metrics.get('win_rate', 0.0),
                     "active_positions": metrics.get('active_positions', 0),
                     "best_trade": metrics.get('best_trade', 0.0)
                 },
                 "system": {
-                    "controller_connected": True,
+                    "controller_connected": self.controller_interface.is_controller_available(),
                     "ml_training_completed": metrics.get('ml_training_completed', False),
-                    "backtest_completed": metrics.get('comprehensive_backtest_completed', False)
+                    "backtest_completed": metrics.get('comprehensive_backtest_completed', False),
+                    "api_rotation_active": metrics.get('api_rotation_active', True),
+                    "real_data_mode": True
                 },
+                "scanner": scanner,
                 "external_data": external,
                 "timestamp": datetime.now().isoformat()
             }
             
         except Exception as e:
             self.logger.error(f"Dashboard overview error: {e}")
-            return None
+            return {"error": str(e)}
     
-    def _get_real_trading_metrics(self) -> Optional[Dict]:
-        """Get real trading metrics - None if no data"""
+    def _get_trading_metrics(self) -> Dict:
+        """Get detailed trading metrics"""
         try:
-            metrics = self.controller_interface.get_controller_data('metrics')
-            if not metrics:
-                return None
-            
+            metrics = self.controller_interface.get_controller_data('metrics') or {}
             return {
                 "performance": {
                     "total_pnl": metrics.get('total_pnl', 0.0),
                     "daily_pnl": metrics.get('daily_pnl', 0.0),
-                    "unrealized_pnl": metrics.get('unrealized_pnl', 0.0),
                     "total_trades": metrics.get('total_trades', 0),
+                    "daily_trades": metrics.get('daily_trades', 0),
                     "winning_trades": metrics.get('winning_trades', 0),
                     "win_rate": metrics.get('win_rate', 0.0),
                     "best_trade": metrics.get('best_trade', 0.0)
+                },
+                "positions": {
+                    "active": metrics.get('active_positions', 0),
+                    "max_allowed": 3  # From config
+                },
+                "status": {
+                    "trading_active": metrics.get('is_running', False),
+                    "ml_active": metrics.get('ml_training_completed', False),
+                    "backtest_done": metrics.get('comprehensive_backtest_completed', False)
                 },
                 "timestamp": datetime.now().isoformat()
             }
             
         except Exception as e:
             self.logger.error(f"Trading metrics error: {e}")
-            return None
+            return {"error": str(e)}
     
-    def _get_real_system_status(self) -> Optional[Dict]:
-        """Get real system status - None if no data"""
+    def _get_system_status(self) -> Dict:
+        """Get system status information"""
         try:
-            resources = self.controller_interface.get_controller_data('system_resources')
+            resources = self.controller_interface.get_controller_data('system_resources') or {}
             
-            # Get real system info
+            # Get additional system info
             cpu_usage = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory()
             
@@ -1084,19 +580,49 @@ class RealDataAPIMiddleware:
                 "resources": {
                     "cpu_usage": cpu_usage,
                     "memory_usage": memory.percent,
-                    "memory_available_gb": memory.available / (1024**3)
+                    "memory_available_gb": memory.available / (1024**3),
+                    "disk_usage": psutil.disk_usage('/').percent
                 },
                 "controller": {
                     "connected": self.controller_interface.is_controller_available(),
-                    "api_calls_today": resources.get('api_calls_today', 0) if resources else 0,
-                    "data_points_processed": resources.get('data_points_processed', 0) if resources else 0
+                    "api_calls_today": resources.get('api_calls_today', 0),
+                    "data_points_processed": resources.get('data_points_processed', 0)
+                },
+                "middleware": {
+                    "cache_size": len(self.cache._cache),
+                    "uptime": time.time()
                 },
                 "timestamp": datetime.now().isoformat()
             }
             
         except Exception as e:
             self.logger.error(f"System status error: {e}")
-            return None
+            return {"error": str(e)}
+    
+    def _build_dashboard_data(self) -> Dict:
+        """Build comprehensive dashboard data for your dashboard.html"""
+        try:
+            # Get all data needed for your dashboard
+            overview = self._get_dashboard_overview()
+            metrics = self._get_trading_metrics()
+            system_status = self._get_system_status()
+            recent_trades = self.controller_interface.get_controller_data('recent_trades') or []
+            backtest_progress = self.controller_interface.get_controller_data('backtest_progress') or {}
+            top_strategies = self.controller_interface.get_controller_data('top_strategies') or []
+            
+            return {
+                "overview": overview,
+                "metrics": metrics,
+                "system_status": system_status,
+                "recent_trades": recent_trades,
+                "backtest_progress": backtest_progress,
+                "top_strategies": top_strategies[:5],  # Top 5
+                "timestamp": datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error building dashboard data: {e}")
+            return {"error": str(e)}
     
     def start_real_time_updates(self):
         """Start real-time update thread"""
@@ -1109,54 +635,65 @@ class RealDataAPIMiddleware:
         self.logger.info("Real-time updates started")
     
     def _real_time_update_loop(self):
-        """Real-time update loop - only sends real data"""
-        while not self._stop_updates.wait(5):
+        """Real-time update loop for WebSocket"""
+        while not self._stop_updates.wait(3):  # Update every 3 seconds
             try:
-                overview = self._get_real_dashboard_overview()
-                metrics = self._get_real_trading_metrics() 
-                system_status = self._get_real_system_status()
+                # Get fresh data for your dashboard
+                dashboard_data = self._build_dashboard_data()
                 
-                # Only emit if we have real data
-                if overview or metrics or system_status:
-                    self.socketio.emit('dashboard_update', {
-                        'overview': overview,
-                        'metrics': metrics,
-                        'system': system_status,
-                        'timestamp': datetime.now().isoformat()
-                    })
+                # Emit to all connected clients
+                self.socketio.emit('dashboard_update', {
+                    'data': dashboard_data,
+                    'timestamp': datetime.now().isoformat()
+                })
                 
             except Exception as e:
                 self.logger.error(f"Real-time update error: {e}")
     
     def register_controller(self, controller):
-        """Register main controller"""
+        """Register main controller with middleware"""
         self.controller_interface.set_controller(controller)
         self.start_real_time_updates()
-        self.logger.info("Controller registered - REAL DATA ONLY")
+        self.logger.info("Main controller registered with middleware")
     
     def run(self, debug=False):
         """Run the middleware service"""
-        self.logger.info(f"Starting Real Data Middleware on {self.host}:{self.port}")
-        
-        try:
-            self.socketio.run(
-                self.app,
-                host=self.host,
-                port=self.port,
-                debug=debug,
-                use_reloader=False,
-                allow_unsafe_werkzeug=True
-            )
-        except Exception as e:
-            self.logger.error(f"Middleware run error: {e}")
-            raise
+        self.logger.info(f"Starting API Middleware on {self.host}:{self.port}")
+        self.logger.info(f"Your dashboard.html will be served at: http://{self.host}:{self.port}")
+        self.socketio.run(
+            self.app,
+            host=self.host,
+            port=self.port,
+            debug=debug,
+            use_reloader=False,
+            allow_unsafe_werkzeug=True
+        )
     
     def stop(self):
         """Stop the middleware service"""
         self._stop_updates.set()
-        if self._update_thread and self._update_thread.is_alive():
+        if self._update_thread:
             self._update_thread.join(timeout=5)
-        self.logger.info("Real Data Middleware stopped")
+        self.logger.info("API Middleware stopped")
+
+
+# Convenience functions for integration
+def create_middleware(host=None, port=None) -> APIMiddleware:
+    """Create and return configured middleware instance"""
+    if host is None:
+        host = os.getenv('HOST', '127.0.0.1')
+    if port is None:
+        port = int(os.getenv('FLASK_PORT', os.getenv('MAIN_SYSTEM_PORT', '8102')))
+    return APIMiddleware(host=host, port=port)
+
+def run_middleware_service(controller=None, host=None, port=None, debug=False):
+    """Run middleware service with optional controller"""
+    middleware = create_middleware(host=host, port=port)
+    
+    if controller:
+        middleware.register_controller(controller)
+    
+    middleware.run(debug=debug)
 
 
 if __name__ == "__main__":
@@ -1165,12 +702,12 @@ if __name__ == "__main__":
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     
+    # Get port from environment
     port = int(os.getenv('FLASK_PORT', os.getenv('MAIN_SYSTEM_PORT', '8102')))
-    host = os.getenv('HOST', '0.0.0.0')
+    host = os.getenv('HOST', '127.0.0.1')
     
-    print("Starting V3 Real Data API Middleware")
-    print(f"Dashboard: http://{host}:{port}")
-    print("REAL DATA ONLY - No mock data, no placeholders")
+    print("Starting V3 API Middleware Service")
+    print(f"Your dashboard.html will be served at: http://{host}:{port}")
+    print(f"API endpoints available at: http://{host}:{port}/api")
     
-    middleware = RealDataAPIMiddleware(host=host, port=port)
-    middleware.run()
+    run_middleware_service(host=host, port=port)
