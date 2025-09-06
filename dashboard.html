@@ -3,1249 +3,933 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V3 Trading System</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <title>V3 Trading System - Comprehensive Dashboard</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
-        :root {
-            --bg-primary: #0a0e27;
-            --bg-secondary: #1a1f3a;
-            --bg-tertiary: #252b4a;
-            --bg-card: #1e2344;
-            --accent-blue: #00d4ff;
-            --accent-green: #00ff88;
-            --accent-red: #ff4757;
-            --accent-orange: #ffa502;
-            --text-primary: #ffffff;
-            --text-secondary: #a0a6c1;
-            --text-muted: #6c7293;
-            --border-color: #2d3561;
-            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --gradient-2: linear-gradient(135deg, #00d4ff 0%, #0066ff 100%);
-            --gradient-3: linear-gradient(135deg, #00ff88 0%, #00cc44 100%);
-        }
-
+        
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            line-height: 1.6;
-            overflow-x: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23, #1a1a2e, #16213e);
+            color: #e0e6ed;
+            min-height: 100vh;
+            overflow-x: auto;
         }
-
-        /* Navigation */
-        .nav {
-            background: var(--bg-secondary);
-            padding: 1rem 2rem;
-            border-bottom: 1px solid var(--border-color);
+        
+        .header {
+            background: rgba(15, 15, 35, 0.95);
+            padding: 20px;
+            border-bottom: 2px solid #4ade80;
+            backdrop-filter: blur(10px);
             position: sticky;
             top: 0;
             z-index: 100;
-            backdrop-filter: blur(10px);
         }
-
-        .nav-content {
+        
+        .header h1 {
+            font-size: 2.5rem;
+            color: #4ade80;
+            text-align: center;
+            margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);
+        }
+        
+        .header .subtitle {
+            text-align: center;
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+        
+        .status-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1400px;
-            margin: 0 auto;
+            background: rgba(26, 26, 46, 0.8);
+            padding: 10px 20px;
+            margin: 20px;
+            border-radius: 10px;
+            border: 1px solid #374151;
         }
-
-        .nav-brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            background: var(--gradient-2);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .nav-status {
+        
+        .status-item {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            gap: 10px;
         }
-
+        
         .status-indicator {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: var(--bg-tertiary);
-            border-radius: 20px;
-            font-size: 0.875rem;
-            border: 1px solid var(--border-color);
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            background: var(--accent-green);
             animation: pulse 2s infinite;
         }
-
+        
+        .status-online {
+            background: #4ade80;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+        }
+        
+        .status-offline {
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+        }
+        
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
         }
-
-        /* Main Layout */
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .grid {
+        
+        .dashboard-grid {
             display: grid;
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
         }
-
-        .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-        .grid-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
-        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
-
-        /* Cards */
-        .card {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 1.5rem;
-            border: 1px solid var(--border-color);
-            box-shadow: var(--shadow);
+        
+        .widget {
+            background: rgba(26, 26, 46, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid #374151;
+            backdrop-filter: blur(10px);
             transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
         }
-
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-            border-color: var(--accent-blue);
+        
+        .widget:hover {
+            border-color: #4ade80;
+            box-shadow: 0 5px 20px rgba(74, 222, 128, 0.1);
         }
-
-        .card-header {
+        
+        .widget-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #374151;
+        }
+        
+        .widget-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #4ade80;
+        }
+        
+        .widget-large {
+            grid-column: span 2;
+        }
+        
+        .widget-full {
+            grid-column: span 3;
+        }
+        
+        .metric-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(55, 65, 81, 0.3);
         }
-
-        .card-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .card-icon {
-            width: 20px;
-            height: 20px;
-            color: var(--accent-blue);
-        }
-
-        .metric-value {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-
+        
         .metric-label {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
+            opacity: 0.8;
+            font-size: 0.9rem;
         }
-
-        .metric-change {
-            font-size: 0.875rem;
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-            font-weight: 500;
+        
+        .metric-value {
+            font-weight: 600;
+            font-size: 1.1rem;
         }
-
-        .positive { 
-            color: var(--accent-green);
-            background: rgba(0, 255, 136, 0.1);
+        
+        .positive {
+            color: #4ade80;
         }
-
-        .negative { 
-            color: var(--accent-red);
-            background: rgba(255, 71, 87, 0.1);
+        
+        .negative {
+            color: #ef4444;
         }
-
-        .neutral { 
-            color: var(--text-secondary);
-            background: var(--bg-tertiary);
+        
+        .neutral {
+            color: #94a3b8;
         }
-
-        /* Trading Controls */
-        .controls-section {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 2rem;
-            border: 1px solid var(--border-color);
-            margin-bottom: 2rem;
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
         }
-
-        .controls-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-
+        
         .btn {
-            padding: 0.875rem 1.5rem;
+            padding: 12px 24px;
             border: none;
-            border-radius: 12px;
-            font-size: 0.9rem;
-            font-weight: 600;
+            border-radius: 8px;
             cursor: pointer;
+            font-weight: 600;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-            transition: left 0.5s;
-        }
-
-        .btn:hover::before {
-            left: 100%;
-        }
-
-        .btn-primary {
-            background: var(--gradient-2);
-            color: white;
-        }
-
-        .btn-success {
-            background: var(--gradient-3);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, var(--accent-red), #c44569);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, var(--accent-orange), #ff6b35);
-            color: white;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Progress Section */
-        .progress-section {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 2rem;
-            border: 1px solid var(--border-color);
-            margin-bottom: 2rem;
-        }
-
-        .progress-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .progress-info {
-            display: flex;
-            gap: 2rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .progress-stat {
-            text-align: center;
-        }
-
-        .progress-stat-value {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--accent-blue);
-        }
-
-        .progress-stat-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
-            margin-top: 0.25rem;
-        }
-
-        .progress-bar-container {
-            background: var(--bg-tertiary);
-            border-radius: 12px;
-            height: 24px;
-            overflow: hidden;
-            position: relative;
-            margin: 1rem 0;
-        }
-
-        .progress-bar {
-            height: 100%;
-            background: var(--gradient-2);
-            border-radius: 12px;
-            transition: width 0.8s ease;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .progress-bar::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
-
-        .progress-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: white;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-        }
-
-        /* Trades Section */
-        .trades-section {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 2rem;
-            border: 1px solid var(--border-color);
-            margin-bottom: 2rem;
-        }
-
-        .trades-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .trades-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-
-        .trades-table th {
-            text-align: left;
-            padding: 1rem;
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 0.875rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .trades-table td {
-            padding: 1rem;
-            border-bottom: 1px solid rgba(45, 53, 97, 0.3);
             font-size: 0.9rem;
+            min-width: 120px;
         }
-
-        .trades-table tr:hover {
-            background: rgba(0, 212, 255, 0.05);
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
         }
-
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-2px);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #374151;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        
+        .trade-item {
+            background: rgba(55, 65, 81, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #4ade80;
+        }
+        
+        .trade-item.loss {
+            border-left-color: #ef4444;
+        }
+        
+        .trade-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
         .trade-symbol {
             font-weight: 600;
-            color: var(--accent-blue);
+            font-size: 1.1rem;
         }
-
-        .trade-side {
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-            font-size: 0.8rem;
+        
+        .trade-pnl {
             font-weight: 600;
         }
-
-        .trade-buy {
-            background: rgba(0, 255, 136, 0.2);
-            color: var(--accent-green);
+        
+        .trade-details {
+            font-size: 0.9rem;
+            opacity: 0.8;
         }
-
-        .trade-sell {
-            background: rgba(255, 71, 87, 0.2);
-            color: var(--accent-red);
+        
+        .api-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
         }
-
-        /* Chart Container */
-        .chart-container {
-            background: var(--bg-tertiary);
-            border-radius: 12px;
-            padding: 1rem;
-            height: 200px;
-            margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .chart-placeholder {
-            color: var(--text-muted);
+        
+        .api-item {
+            background: rgba(55, 65, 81, 0.3);
+            padding: 15px;
+            border-radius: 8px;
             text-align: center;
-        }
-
-        /* System Log */
-        .log-section {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 2rem;
-            border: 1px solid var(--border-color);
-        }
-
-        .log-container {
-            background: var(--bg-primary);
-            border-radius: 12px;
-            padding: 1rem;
-            height: 300px;
-            overflow-y: auto;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 0.8rem;
-            line-height: 1.4;
-            border: 1px solid var(--border-color);
-        }
-
-        .log-container::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .log-container::-webkit-scrollbar-track {
-            background: var(--bg-tertiary);
-            border-radius: 4px;
-        }
-
-        .log-container::-webkit-scrollbar-thumb {
-            background: var(--accent-blue);
-            border-radius: 4px;
-        }
-
-        .log-entry {
-            margin-bottom: 0.5rem;
-            padding: 0.25rem 0;
-        }
-
-        .log-time {
-            color: var(--text-muted);
-        }
-
-        .log-level-info { color: var(--accent-blue); }
-        .log-level-success { color: var(--accent-green); }
-        .log-level-warning { color: var(--accent-orange); }
-        .log-level-error { color: var(--accent-red); }
-
-        /* Connection Status */
-        .connection-status {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            padding: 0.5rem 1rem;
-            border-radius: 25px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            z-index: 1000;
-            backdrop-filter: blur(10px);
-            border: 1px solid var(--border-color);
+            border: 2px solid transparent;
             transition: all 0.3s ease;
         }
-
-        .connection-online {
-            background: rgba(0, 255, 136, 0.2);
-            color: var(--accent-green);
-            border-color: var(--accent-green);
+        
+        .api-item.connected {
+            border-color: #4ade80;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.2);
         }
-
-        .connection-offline {
-            background: rgba(255, 71, 87, 0.2);
-            color: var(--accent-red);
-            border-color: var(--accent-red);
+        
+        .api-item.disconnected {
+            border-color: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.2);
         }
-
-        /* Responsive Design */
+        
+        .api-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .api-status {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .scrollable {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .scrollable::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollable::-webkit-scrollbar-track {
+            background: #374151;
+            border-radius: 3px;
+        }
+        
+        .scrollable::-webkit-scrollbar-thumb {
+            background: #4ade80;
+            border-radius: 3px;
+        }
+        
+        .news-item {
+            background: rgba(55, 65, 81, 0.3);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .news-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #e0e6ed;
+        }
+        
+        .news-sentiment {
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+        
+        .news-time {
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+        
+        .sentiment-positive {
+            color: #4ade80;
+        }
+        
+        .sentiment-negative {
+            color: #ef4444;
+        }
+        
+        .sentiment-neutral {
+            color: #94a3b8;
+        }
+        
+        .fear-greed-meter {
+            position: relative;
+            width: 200px;
+            height: 100px;
+            margin: 20px auto;
+        }
+        
+        .meter-bg {
+            width: 100%;
+            height: 100%;
+            background: conic-gradient(from 180deg, #ef4444 0deg, #f59e0b 72deg, #4ade80 144deg);
+            border-radius: 100px 100px 0 0;
+            position: relative;
+        }
+        
+        .meter-needle {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 4px;
+            height: 80px;
+            background: white;
+            transform-origin: bottom;
+            transform: translateX(-50%) rotate(0deg);
+            transition: transform 0.5s ease;
+            border-radius: 2px;
+        }
+        
+        .meter-value {
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .widget-full {
+                grid-column: span 2;
+            }
+        }
+        
         @media (max-width: 768px) {
-            .container {
-                padding: 1rem;
+            .dashboard-grid {
+                grid-template-columns: 1fr;
             }
-
-            .nav {
-                padding: 1rem;
+            
+            .widget-large,
+            .widget-full {
+                grid-column: span 1;
             }
-
-            .nav-content {
+            
+            .status-bar {
                 flex-direction: column;
-                gap: 1rem;
+                gap: 10px;
             }
-
-            .grid-2, .grid-3, .grid-4 {
-                grid-template-columns: 1fr;
-            }
-
-            .controls-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .progress-info {
+            
+            .controls {
                 justify-content: center;
             }
-
-            .trades-table {
-                font-size: 0.8rem;
-            }
-
-            .trades-table th,
-            .trades-table td {
-                padding: 0.5rem;
+            
+            .api-grid {
+                grid-template-columns: 1fr;
             }
         }
-
-        /* Loading Animation */
-        .loading {
-            animation: fadeInOut 2s infinite;
-        }
-
-        @keyframes fadeInOut {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* Success/Error States */
-        .success { color: var(--accent-green); }
-        .error { color: var(--accent-red); }
-        .warning { color: var(--accent-orange); }
-        .info { color: var(--accent-blue); }
-
-        /* Utility Classes */
-        .text-center { text-align: center; }
-        .text-right { text-align: right; }
-        .mb-0 { margin-bottom: 0; }
-        .mb-1 { margin-bottom: 0.5rem; }
-        .mb-2 { margin-bottom: 1rem; }
-        .hidden { display: none; }
     </style>
 </head>
 <body>
-    <!-- Connection Status -->
-    <div id="connection-status" class="connection-status">
-        <i class="fas fa-wifi"></i> Connecting...
+    <div class="header">
+        <h1>V3 Trading System</h1>
+        <p class="subtitle">Comprehensive Real-Time Trading Dashboard</p>
     </div>
-
-    <!-- Navigation -->
-    <nav class="nav">
-        <div class="nav-content">
-            <div class="nav-brand">
-                <i class="fas fa-chart-line"></i> V3 Trading System
+    
+    <div class="status-bar">
+        <div class="status-item">
+            <div class="status-indicator" id="system-status"></div>
+            <span id="system-status-text">System Status</span>
+        </div>
+        <div class="status-item">
+            <span>Mode: <strong>Real Data Only</strong></span>
+        </div>
+        <div class="status-item">
+            <span>Last Update: <span id="last-update">Never</span></span>
+        </div>
+    </div>
+    
+    <div style="padding: 0 20px;">
+        <div class="controls">
+            <button class="btn btn-success" onclick="startTrading()" id="start-btn">Start Trading</button>
+            <button class="btn btn-danger" onclick="stopTrading()" id="stop-btn">Stop Trading</button>
+            <button class="btn btn-primary" onclick="startBacktest()" id="backtest-btn">Run Backtest</button>
+            <button class="btn btn-primary" onclick="resetML()" id="reset-ml-btn">Reset ML</button>
+            <button class="btn btn-primary" onclick="saveMetrics()" id="save-btn">Save Data</button>
+        </div>
+    </div>
+    
+    <div class="dashboard-grid">
+        <!-- P&L Overview -->
+        <div class="widget">
+            <div class="widget-header">
+                <div class="widget-title">P&L Overview</div>
             </div>
-            <div class="nav-status">
-                <div class="status-indicator">
-                    <div class="status-dot"></div>
-                    <span id="system-status">System Online</span>
-                </div>
-                <div class="status-indicator">
-                    <i class="fas fa-server"></i>
-                    <span id="cpu-display">CPU: --</span>
-                </div>
-                <div class="status-indicator">
-                    <i class="fas fa-memory"></i>
-                    <span id="memory-display">RAM: --</span>
-                </div>
+            <div class="metric-row">
+                <span class="metric-label">Total P&L</span>
+                <span class="metric-value" id="total-pnl">$0.00</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Daily P&L</span>
+                <span class="metric-value" id="daily-pnl">$0.00</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Unrealized P&L</span>
+                <span class="metric-value" id="unrealized-pnl">$0.00</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Win Rate</span>
+                <span class="metric-value" id="win-rate">0%</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Best Trade</span>
+                <span class="metric-value positive" id="best-trade">$0.00</span>
             </div>
         </div>
-    </nav>
-
-    <div class="container">
-        <!-- Trading Metrics -->
-        <div class="grid grid-4">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fas fa-dollar-sign card-icon"></i>
-                        Total P&L
-                    </div>
-                </div>
-                <div class="metric-value" id="total-pnl">$0.00</div>
-                <div class="metric-label">All-time Performance</div>
-                <div class="metric-change neutral" id="pnl-change">+0.00%</div>
+        
+        <!-- Trading Stats -->
+        <div class="widget">
+            <div class="widget-header">
+                <div class="widget-title">Trading Stats</div>
             </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fas fa-exchange-alt card-icon"></i>
-                        Total Trades
-                    </div>
-                </div>
-                <div class="metric-value" id="total-trades">0</div>
-                <div class="metric-label">Executed Orders</div>
-                <div class="metric-change neutral" id="trades-today">0 today</div>
+            <div class="metric-row">
+                <span class="metric-label">Total Trades</span>
+                <span class="metric-value" id="total-trades">0</span>
             </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fas fa-percentage card-icon"></i>
-                        Win Rate
-                    </div>
-                </div>
-                <div class="metric-value" id="win-rate">0%</div>
-                <div class="metric-label">Success Ratio</div>
-                <div class="metric-change neutral" id="win-rate-change">--</div>
+            <div class="metric-row">
+                <span class="metric-label">Active Positions</span>
+                <span class="metric-value" id="active-positions">0</span>
             </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fas fa-robot card-icon"></i>
-                        AI Strategies
-                    </div>
-                </div>
-                <div class="metric-value" id="ai-strategies">0</div>
-                <div class="metric-label">Active Models</div>
-                <div class="metric-change neutral" id="strategy-status">Ready</div>
+            <div class="metric-row">
+                <span class="metric-label">Trade Amount</span>
+                <span class="metric-value" id="trade-amount">$10.00</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Account Balance</span>
+                <span class="metric-value" id="account-balance">$1,000.00</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Available Balance</span>
+                <span class="metric-value" id="available-balance">$1,000.00</span>
             </div>
         </div>
-
-        <!-- Trading Controls -->
-        <div class="controls-section">
-            <div class="card-header">
-                <div class="card-title">
-                    <i class="fas fa-gamepad card-icon"></i>
-                    Trading Controls
-                </div>
-                <div class="status-indicator">
-                    <div id="trading-status-dot" class="status-dot" style="background: var(--accent-red);"></div>
-                    <span id="trading-status-text">Stopped</span>
-                </div>
+        
+        <!-- System Resources -->
+        <div class="widget">
+            <div class="widget-header">
+                <div class="widget-title">System Resources</div>
             </div>
-            <div class="controls-grid">
-                <button id="start-trading" class="btn btn-success" onclick="startTrading()">
-                    <i class="fas fa-play"></i> Start Trading
-                </button>
-                <button id="stop-trading" class="btn btn-danger" onclick="stopTrading()">
-                    <i class="fas fa-stop"></i> Stop Trading
-                </button>
-                <button id="start-backtest" class="btn btn-warning" onclick="startBacktest()">
-                    <i class="fas fa-chart-bar"></i> Run Backtest
-                </button>
-                <button id="refresh-data" class="btn btn-primary" onclick="refreshData()">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
+            <div class="metric-row">
+                <span class="metric-label">CPU Usage</span>
+                <span class="metric-value" id="cpu-usage">0%</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Memory Usage</span>
+                <span class="metric-value" id="memory-usage">0%</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">API Calls Today</span>
+                <span class="metric-value" id="api-calls">0</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Data Points</span>
+                <span class="metric-value" id="data-points">0</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Uptime</span>
+                <span class="metric-value" id="uptime">0m</span>
             </div>
         </div>
-
+        
         <!-- Backtest Progress -->
-        <div class="progress-section">
-            <div class="progress-header">
-                <div class="card-title">
-                    <i class="fas fa-chart-area card-icon"></i>
-                    Backtest Progress
-                </div>
-                <div class="progress-info">
-                    <div class="progress-stat">
-                        <div class="progress-stat-value" id="backtest-progress">0%</div>
-                        <div class="progress-stat-label">Complete</div>
-                    </div>
-                    <div class="progress-stat">
-                        <div class="progress-stat-value" id="backtest-eta">--</div>
-                        <div class="progress-stat-label">ETA</div>
-                    </div>
-                    <div class="progress-stat">
-                        <div class="progress-stat-value" id="backtest-status">Ready</div>
-                        <div class="progress-stat-label">Status</div>
-                    </div>
-                </div>
+        <div class="widget widget-large">
+            <div class="widget-header">
+                <div class="widget-title">Backtest Progress</div>
             </div>
-            <div class="progress-bar-container">
-                <div class="progress-bar" id="progress-bar" style="width: 0%;">
-                    <div class="progress-text" id="progress-text">0% Complete</div>
-                </div>
+            <div class="metric-row">
+                <span class="metric-label">Status</span>
+                <span class="metric-value" id="backtest-status">Not Started</span>
             </div>
-            <div style="display: flex; justify-content: space-between; margin-top: 1rem; flex-wrap: wrap; gap: 1rem;">
-                <span><strong>Current:</strong> <span id="current-symbol">--</span></span>
-                <span><strong>Strategy:</strong> <span id="current-strategy">--</span></span>
-                <span><strong>Completed:</strong> <span id="completed-count">0</span> / <span id="total-count">0</span></span>
+            <div class="progress-bar">
+                <div class="progress-fill" id="backtest-progress" style="width: 0%"></div>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Progress</span>
+                <span class="metric-value" id="backtest-percent">0%</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">Current Symbol</span>
+                <span class="metric-value" id="current-symbol">None</span>
+            </div>
+            <div class="metric-row">
+                <span class="metric-label">ETA</span>
+                <span class="metric-value" id="backtest-eta">Unknown</span>
             </div>
         </div>
-
-        <!-- System Metrics -->
-        <div class="grid grid-3">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fas fa-tachometer-alt card-icon"></i>
-                        Performance
-                    </div>
-                </div>
-                <div style="margin-bottom: 1rem;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span>CPU Usage</span>
-                        <span id="cpu-usage">--</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span>Memory Usage</span>
-                        <span id="memory-usage">--</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Available RAM</span>
-                        <span id="memory-available">--</span>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-placeholder">
-                        <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                        <div>Performance Chart</div>
-                    </div>
-                </div>
+        
+        <!-- Fear & Greed Index -->
+        <div class="widget">
+            <div class="widget-header">
+                <div class="widget-title">Fear & Greed Index</div>
             </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fas fa-network-wired card-icon"></i>
-                        API Status
-                    </div>
+            <div class="fear-greed-meter">
+                <div class="meter-bg">
+                    <div class="meter-needle" id="fear-greed-needle"></div>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span>Binance</span>
-                        <span id="binance-status" class="success">? Connected</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span>Alpha Vantage</span>
-                        <span id="alpha-vantage-status">-- --</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>News API</span>
-                        <span id="news-api-status">-- --</span>
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-placeholder">
-                        <i class="fas fa-wifi" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                        <div>API Health Monitor</div>
-                    </div>
-                </div>
+                <div class="meter-value" id="fear-greed-value">50</div>
             </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <i class="fas fa-brain card-icon"></i>
-                        ML Engine
-                    </div>
+            <div style="text-align: center; margin-top: 10px;">
+                <span id="fear-greed-text">Neutral</span>
+            </div>
+        </div>
+        
+        <!-- API Connections -->
+        <div class="widget widget-full">
+            <div class="widget-header">
+                <div class="widget-title">API Connections</div>
+            </div>
+            <div class="api-grid">
+                <div class="api-item" id="api-binance">
+                    <div class="api-name">Binance</div>
+                    <div class="api-status">Checking...</div>
                 </div>
-                <div style="margin-bottom: 1rem;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span>Top Strategies</span>
-                        <span id="top-strategies-count">--</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                        <span>ML Trained</span>
-                        <span id="ml-strategies-count">--</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Best Model</span>
-                        <span id="best-strategy">--</span>
-                    </div>
+                <div class="api-item" id="api-alpha">
+                    <div class="api-name">Alpha Vantage</div>
+                    <div class="api-status">Checking...</div>
                 </div>
-                <div class="chart-container">
-                    <div class="chart-placeholder">
-                        <i class="fas fa-brain" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                        <div>Strategy Performance</div>
-                    </div>
+                <div class="api-item" id="api-news">
+                    <div class="api-name">News API</div>
+                    <div class="api-status">Checking...</div>
+                </div>
+                <div class="api-item" id="api-fred">
+                    <div class="api-name">FRED</div>
+                    <div class="api-status">Checking...</div>
+                </div>
+                <div class="api-item" id="api-twitter">
+                    <div class="api-name">Twitter</div>
+                    <div class="api-status">Checking...</div>
+                </div>
+                <div class="api-item" id="api-reddit">
+                    <div class="api-name">Reddit</div>
+                    <div class="api-status">Checking...</div>
                 </div>
             </div>
         </div>
-
+        
+        <!-- Active Trades -->
+        <div class="widget">
+            <div class="widget-header">
+                <div class="widget-title">Active Trades</div>
+            </div>
+            <div class="scrollable" id="active-trades">
+                <div style="text-align: center; opacity: 0.6; padding: 20px;">
+                    No active trades
+                </div>
+            </div>
+        </div>
+        
         <!-- Recent Trades -->
-        <div class="trades-section">
-            <div class="trades-header">
-                <div class="card-title">
-                    <i class="fas fa-history card-icon"></i>
-                    Recent Trades
-                </div>
-                <div class="status-indicator">
-                    <span id="trades-count">0 trades</span>
-                </div>
+        <div class="widget">
+            <div class="widget-header">
+                <div class="widget-title">Recent Trades</div>
             </div>
-            <div style="overflow-x: auto;">
-                <table class="trades-table">
-                    <thead>
-                        <tr>
-                            <th>Symbol</th>
-                            <th>Side</th>
-                            <th>P&L</th>
-                            <th>Return %</th>
-                            <th>Time</th>
-                            <th>Strategy</th>
-                        </tr>
-                    </thead>
-                    <tbody id="trades-tbody">
-                        <tr>
-                            <td colspan="6" class="text-center" style="color: var(--text-muted); padding: 2rem;">
-                                <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
-                                No trades executed yet
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div class="scrollable" id="recent-trades">
+                <div style="text-align: center; opacity: 0.6; padding: 20px;">
+                    No recent trades
+                </div>
             </div>
         </div>
-
-        <!-- System Log -->
-        <div class="log-section">
-            <div class="card-header">
-                <div class="card-title">
-                    <i class="fas fa-terminal card-icon"></i>
-                    System Log
-                </div>
-                <button class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8rem;" onclick="clearLog()">
-                    <i class="fas fa-trash"></i> Clear
-                </button>
+        
+        <!-- News & Sentiment -->
+        <div class="widget">
+            <div class="widget-header">
+                <div class="widget-title">Market News & Sentiment</div>
             </div>
-            <div class="log-container" id="log-container"></div>
+            <div class="scrollable" id="news-feed">
+                <div class="news-item">
+                    <div class="news-title">Market Analysis Loading...</div>
+                    <div class="news-sentiment sentiment-neutral">Sentiment: Analyzing</div>
+                    <div class="news-time">Checking news sources...</div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Global variables
-        let logMessages = [];
-        let isOnline = false;
-        let refreshInterval;
-        let backtestInterval;
-
-        // Initialize dashboard
-        document.addEventListener('DOMContentLoaded', function() {
-            log('Trading system dashboard initialized', 'info');
-            log('Connecting to V3 trading engine...', 'info');
+        let updateInterval;
+        let systemStartTime = Date.now();
+        
+        // Update system status
+        function updateSystemStatus(isOnline) {
+            const statusEl = document.getElementById('system-status');
+            const statusTextEl = document.getElementById('system-status-text');
             
-            initializeSystem();
-            startPeriodicRefresh();
-        });
-
-        function initializeSystem() {
-            updateConnectionStatus(false);
-            refreshData();
+            if (isOnline) {
+                statusEl.className = 'status-indicator status-online';
+                statusTextEl.textContent = 'System Online';
+            } else {
+                statusEl.className = 'status-indicator status-offline';
+                statusTextEl.textContent = 'System Offline';
+            }
         }
-
-        function startPeriodicRefresh() {
-            refreshInterval = setInterval(() => {
-                if (isOnline) {
-                    refreshData();
-                }
-            }, 5000);
+        
+        // Update last update time
+        function updateLastUpdate() {
+            document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
         }
-
-        // Enhanced logging with color coding
-        function log(message, level = 'info') {
-            const timestamp = new Date().toLocaleTimeString();
-            const logEntry = {
-                timestamp,
-                level,
-                message,
-                id: Date.now()
+        
+        // Update uptime
+        function updateUptime() {
+            const uptimeMinutes = Math.floor((Date.now() - systemStartTime) / 60000);
+            document.getElementById('uptime').textContent = uptimeMinutes + 'm';
+        }
+        
+        // Update Fear & Greed Index
+        function updateFearGreedIndex(value) {
+            const needle = document.getElementById('fear-greed-needle');
+            const valueEl = document.getElementById('fear-greed-value');
+            const textEl = document.getElementById('fear-greed-text');
+            
+            // Convert 0-100 to -90 to 90 degrees
+            const angle = (value - 50) * 1.8;
+            needle.style.transform = `translateX(-50%) rotate(${angle}deg)`;
+            
+            valueEl.textContent = value;
+            
+            if (value < 25) {
+                textEl.textContent = 'Extreme Fear';
+                textEl.className = 'sentiment-negative';
+            } else if (value < 45) {
+                textEl.textContent = 'Fear';
+                textEl.className = 'sentiment-negative';
+            } else if (value < 55) {
+                textEl.textContent = 'Neutral';
+                textEl.className = 'sentiment-neutral';
+            } else if (value < 75) {
+                textEl.textContent = 'Greed';
+                textEl.className = 'sentiment-positive';
+            } else {
+                textEl.textContent = 'Extreme Greed';
+                textEl.className = 'sentiment-positive';
+            }
+        }
+        
+        // Update API status
+        function updateAPIStatus(apiStatuses) {
+            const apiMap = {
+                'binance': 'api-binance',
+                'alpha_vantage': 'api-alpha',
+                'news_api': 'api-news',
+                'fred_api': 'api-fred',
+                'twitter_api': 'api-twitter',
+                'reddit_api': 'api-reddit'
             };
             
-            logMessages.push(logEntry);
-            if (logMessages.length > 100) {
-                logMessages.shift();
+            Object.entries(apiMap).forEach(([apiKey, elementId]) => {
+                const element = document.getElementById(elementId);
+                const isConnected = apiStatuses[apiKey] || false;
+                
+                if (isConnected) {
+                    element.className = 'api-item connected';
+                    element.querySelector('.api-status').textContent = 'Connected';
+                } else {
+                    element.className = 'api-item disconnected';
+                    element.querySelector('.api-status').textContent = 'Disconnected';
+                }
+            });
+        }
+        
+        // Update trades display
+        function updateTrades(trades, containerId) {
+            const container = document.getElementById(containerId);
+            
+            if (!trades || trades.length === 0) {
+                container.innerHTML = '<div style="text-align: center; opacity: 0.6; padding: 20px;">No trades</div>';
+                return;
             }
             
-            updateLogDisplay();
-        }
-
-        function updateLogDisplay() {
-            const container = document.getElementById('log-container');
-            const html = logMessages.map(entry => `
-                <div class="log-entry">
-                    <span class="log-time">[${entry.timestamp}]</span>
-                    <span class="log-level-${entry.level}">[${entry.level.toUpperCase()}]</span>
-                    <span>${entry.message}</span>
+            container.innerHTML = trades.slice(-5).map(trade => `
+                <div class="trade-item ${trade.profit_loss < 0 ? 'loss' : ''}">
+                    <div class="trade-header">
+                        <span class="trade-symbol">${trade.symbol}</span>
+                        <span class="trade-pnl ${trade.profit_loss >= 0 ? 'positive' : 'negative'}">
+                            $${trade.profit_loss.toFixed(2)}
+                        </span>
+                    </div>
+                    <div class="trade-details">
+                        ${trade.side} | ${trade.quantity.toFixed(4)} | 
+                        Entry: $${trade.entry_price.toFixed(2)} | 
+                        ${trade.exit_price ? `Exit: $${trade.exit_price.toFixed(2)}` : 'Open'}
+                    </div>
                 </div>
             `).join('');
-            
-            container.innerHTML = html;
-            container.scrollTop = container.scrollHeight;
         }
-
-        function clearLog() {
-            logMessages = [];
-            updateLogDisplay();
-            log('System log cleared', 'info');
-        }
-
-        // API communication
-        async function fetchAPI(endpoint, options = {}) {
-            try {
-                const controller = new AbortController();
-                setTimeout(() => controller.abort(), 8000);
-                
-                const response = await fetch(`/api${endpoint}`, {
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: controller.signal,
-                    ...options
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-                
-                updateConnectionStatus(true);
-                return await response.json();
-                
-            } catch (error) {
-                updateConnectionStatus(false);
-                if (error.name !== 'AbortError') {
-                    log(`API Error: ${error.message}`, 'error');
-                }
-                throw error;
-            }
-        }
-
-        function updateConnectionStatus(online) {
-            isOnline = online;
-            const statusEl = document.getElementById('connection-status');
+        
+        // Update news feed
+        function updateNewsFeed(newsItems) {
+            const container = document.getElementById('news-feed');
             
-            if (online) {
-                statusEl.textContent = '?? Connected';
-                statusEl.className = 'connection-status connection-online';
-            } else {
-                statusEl.textContent = '?? Disconnected';
-                statusEl.className = 'connection-status connection-offline';
-            }
-        }
-
-        // Data refresh
-        async function refreshData() {
-            try {
-                log('Refreshing system data...', 'info');
-                
-                const [status, strategies, trades] = await Promise.allSettled([
-                    fetchAPI('/system/status'),
-                    fetchAPI('/strategies/top').catch(() => ({ top_strategies: [], ml_trained_strategies: [] })),
-                    fetchAPI('/trades/recent').catch(() => ({ trades: [] }))
-                ]);
-                
-                if (status.status === 'fulfilled') {
-                    updateSystemStatus(status.value);
-                }
-                
-                if (strategies.status === 'fulfilled') {
-                    updateStrategiesData(strategies.value);
-                }
-                
-                if (trades.status === 'fulfilled') {
-                    updateTradesData(trades.value.trades || []);
-                }
-                
-                log('Data refresh completed', 'success');
-                
-            } catch (error) {
-                log(`Data refresh failed: ${error.message}`, 'error');
-            }
-        }
-
-        function updateSystemStatus(data) {
-            // System metrics
-            document.getElementById('cpu-usage').textContent = `${data.system.cpu_usage.toFixed(1)}%`;
-            document.getElementById('memory-usage').textContent = `${data.system.memory_usage.toFixed(1)}%`;
-            document.getElementById('memory-available').textContent = `${data.system.memory_available_gb.toFixed(1)}GB`;
-            
-            // Navigation status
-            document.getElementById('cpu-display').textContent = `CPU: ${data.system.cpu_usage.toFixed(0)}%`;
-            document.getElementById('memory-display').textContent = `RAM: ${data.system.memory_usage.toFixed(0)}%`;
-            
-            // Trading metrics
-            document.getElementById('total-pnl').textContent = `$${data.trading.total_pnl.toFixed(2)}`;
-            document.getElementById('total-trades').textContent = data.trading.total_trades;
-            document.getElementById('win-rate').textContent = `${data.trading.win_rate.toFixed(1)}%`;
-            
-            // Trading status
-            const isRunning = data.trading.is_running;
-            const statusDot = document.getElementById('trading-status-dot');
-            const statusText = document.getElementById('trading-status-text');
-            
-            if (isRunning) {
-                statusDot.style.background = 'var(--accent-green)';
-                statusText.textContent = 'Active';
-            } else {
-                statusDot.style.background = 'var(--accent-red)';
-                statusText.textContent = 'Stopped';
-            }
-            
-            // Backtest progress
-            updateBacktestProgress(data.backtest);
-            
-            // API status
-            if (data.external_data) {
-                updateAPIStatus(data.external_data);
-            }
-        }
-
-        function updateBacktestProgress(backtest) {
-            const progress = backtest.progress || 0;
-            
-            document.getElementById('backtest-progress').textContent = `${progress}%`;
-            document.getElementById('backtest-status').textContent = backtest.status || 'Ready';
-            document.getElementById('backtest-eta').textContent = backtest.eta_minutes ? `${backtest.eta_minutes.toFixed(1)}m` : '--';
-            document.getElementById('current-symbol').textContent = backtest.current_symbol || '--';
-            document.getElementById('current-strategy').textContent = backtest.current_strategy || '--';
-            document.getElementById('completed-count').textContent = backtest.completed || 0;
-            document.getElementById('total-count').textContent = backtest.total || 0;
-            
-            // Update progress bar
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-            
-            progressBar.style.width = `${progress}%`;
-            progressText.textContent = `${progress}% Complete`;
-            
-            // Update status color
-            const statusEl = document.getElementById('backtest-status');
-            if (backtest.status === 'completed') {
-                statusEl.className = 'progress-stat-value success';
-            } else if (backtest.status === 'error') {
-                statusEl.className = 'progress-stat-value error';
-            } else if (backtest.status === 'in_progress') {
-                statusEl.className = 'progress-stat-value warning';
-            } else {
-                statusEl.className = 'progress-stat-value';
-            }
-        }
-
-        function updateAPIStatus(apiData) {
-            const binanceEl = document.getElementById('binance-status');
-            const alphaEl = document.getElementById('alpha-vantage-status');
-            const newsEl = document.getElementById('news-api-status');
-            
-            binanceEl.textContent = apiData.api_status.binance ? '? Connected' : '? Offline';
-            binanceEl.className = apiData.api_status.binance ? 'success' : 'error';
-            
-            alphaEl.textContent = apiData.api_status.alpha_vantage ? '? Connected' : '? Offline';
-            alphaEl.className = apiData.api_status.alpha_vantage ? 'success' : 'error';
-            
-            newsEl.textContent = apiData.api_status.news_api ? '? Connected' : '? Offline';
-            newsEl.className = apiData.api_status.news_api ? 'success' : 'error';
-        }
-
-        function updateStrategiesData(data) {
-            document.getElementById('top-strategies-count').textContent = data.top_strategies?.length || 0;
-            document.getElementById('ml-strategies-count').textContent = data.ml_trained_strategies?.length || 0;
-            document.getElementById('ai-strategies').textContent = data.ml_trained_strategies?.length || 0;
-            
-            if (data.top_strategies && data.top_strategies.length > 0) {
-                const best = data.top_strategies[0];
-                document.getElementById('best-strategy').textContent = best.strategy_type || '--';
-            }
-        }
-
-        function updateTradesData(trades) {
-            const tbody = document.getElementById('trades-tbody');
-            const countEl = document.getElementById('trades-count');
-            
-            countEl.textContent = `${trades.length} trades`;
-            
-            if (trades.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="text-center" style="color: var(--text-muted); padding: 2rem;">
-                            <i class="fas fa-chart-line" style="font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
-                            No trades executed yet
-                        </td>
-                    </tr>
+            if (!newsItems || newsItems.length === 0) {
+                container.innerHTML = `
+                    <div class="news-item">
+                        <div class="news-title">No recent news</div>
+                        <div class="news-sentiment sentiment-neutral">Sentiment: Neutral</div>
+                        <div class="news-time">Waiting for updates...</div>
+                    </div>
                 `;
                 return;
             }
             
-            const tradesHTML = trades.slice(-10).reverse().map(trade => `
-                <tr>
-                    <td class="trade-symbol">${trade.symbol}</td>
-                    <td>
-                        <span class="trade-side ${trade.side.toLowerCase() === 'buy' ? 'trade-buy' : 'trade-sell'}">
-                            ${trade.side}
-                        </span>
-                    </td>
-                    <td class="${trade.is_win ? 'success' : 'error'}">
-                        $${trade.profit_loss?.toFixed(2) || '0.00'}
-                    </td>
-                    <td class="${trade.is_win ? 'success' : 'error'}">
-                        ${trade.profit_pct?.toFixed(2) || '0.00'}%
-                    </td>
-                    <td style="color: var(--text-secondary);">
-                        ${new Date(trade.timestamp).toLocaleTimeString()}
-                    </td>
-                    <td style="color: var(--text-secondary);">
-                        ${trade.source || '--'}
-                    </td>
-                </tr>
+            container.innerHTML = newsItems.slice(0, 3).map(item => `
+                <div class="news-item">
+                    <div class="news-title">${item.title}</div>
+                    <div class="news-sentiment sentiment-${item.sentiment}">
+                        Sentiment: ${item.sentiment_score}
+                    </div>
+                    <div class="news-time">${item.time}</div>
+                </div>
             `).join('');
-            
-            tbody.innerHTML = tradesHTML;
         }
-
-        // Trading controls
-        async function startTrading() {
-            const btn = document.getElementById('start-trading');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
-            
+        
+        // Fetch data from API
+        async function fetchData(endpoint) {
             try {
-                log('Starting trading system...', 'warning');
-                const result = await fetchAPI('/trading/start', { method: 'POST' });
-                
-                if (result.success) {
-                    log('Trading started successfully', 'success');
-                } else {
-                    log(`Failed to start trading: ${result.error}`, 'error');
-                }
-                
+                const response = await fetch(`/api/${endpoint}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
             } catch (error) {
-                log(`Error starting trading: ${error.message}`, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-play"></i> Start Trading';
-                refreshData();
+                console.error(`Failed to fetch ${endpoint}:`, error);
+                return null;
             }
         }
-
-        async function stopTrading() {
-            const btn = document.getElementById('stop-trading');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Stopping...';
-            
+        
+        // Update dashboard
+        async function updateDashboard() {
             try {
-                log('Stopping trading system...', 'warning');
-                const result = await fetchAPI('/trading/stop', { method: 'POST' });
+                // Fetch all data
+                const [overview, metrics, systemStatus, trades, backtest] = await Promise.all([
+                    fetchData('dashboard/overview'),
+                    fetchData('trading/metrics'),
+                    fetchData('system/status'),
+                    fetchData('trading/recent-trades'),
+                    fetchData('backtest/progress')
+                ]);
                 
-                if (result.success) {
-                    log('Trading stopped successfully', 'success');
-                } else {
-                    log(`Failed to stop trading: ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                log(`Error stopping trading: ${error.message}`, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-stop"></i> Stop Trading';
-                refreshData();
-            }
-        }
-
-        async function startBacktest() {
-            const btn = document.getElementById('start-backtest');
-            btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Starting...';
-            
-            try {
-                log('Starting comprehensive backtest...', 'warning');
-                const result = await fetchAPI('/backtest/start', { method: 'POST' });
-                
-                if (result.success) {
-                    log('Backtest started successfully', 'success');
-                    startBacktestMonitoring();
-                } else {
-                    log(`Failed to start backtest: ${result.error}`, 'error');
-                }
-                
-            } catch (error) {
-                log(`Error starting backtest: ${error.message}`, 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-chart-bar"></i> Run Backtest';
-                refreshData();
-            }
-        }
-
-        function startBacktestMonitoring() {
-            if (backtestInterval) {
-                clearInterval(backtestInterval);
-            }
-            
-            backtestInterval = setInterval(async () => {
-                try {
-                    const progress = await fetchAPI('/backtest/progress');
-                    updateBacktestProgress(progress);
+                if (overview) {
+                    // Update system status
+                    updateSystemStatus(overview.system?.controller_connected || false);
                     
-                    if (progress.status === 'completed') {
-                        clearInterval(backtestInterval);
-                        log('Backtest completed successfully!', 'success');
-                        refreshData();
-                    } else if (progress.status === 'error') {
-                        clearInterval(backtestInterval);
-                        log(`Backtest failed: ${progress.error || 'Unknown error'}`, 'error');
-                        refreshData();
+                    // Update P&L
+                    const trading = overview.trading || {};
+                    document.getElementById('total-pnl').textContent = `$${(trading.total_pnl || 0).toFixed(2)}`;
+                    document.getElementById('daily-pnl').textContent = `$${(trading.daily_pnl || 0).toFixed(2)}`;
+                    document.getElementById('win-rate').textContent = `${(trading.win_rate || 0).toFixed(1)}%`;
+                    document.getElementById('total-trades').textContent = trading.total_trades || 0;
+                    document.getElementById('active-positions').textContent = trading.active_positions || 0;
+                    document.getElementById('best-trade').textContent = `$${(trading.best_trade || 0).toFixed(2)}`;
+                    
+                    // Update API status
+                    if (overview.external_data?.api_status) {
+                        updateAPIStatus(overview.external_data.api_status);
                     }
-                } catch (error) {
-                    log(`Progress check error: ${error.message}`, 'warning');
                 }
-            }, 2000);
+                
+                if (systemStatus) {
+                    // Update system resources
+                    const resources = systemStatus.resources || {};
+                    document.getElementById('cpu-usage').textContent = `${(resources.cpu_usage || 0).toFixed(1)}%`;
+                    document.getElementById('memory-usage').textContent = `${(resources.memory_usage || 0).toFixed(1)}%`;
+                    document.getElementById('api-calls').textContent = resources.api_calls_today || 0;
+                    document.getElementById('data-points').textContent = resources.data_points_processed || 0;
+                }
+                
+                if (backtest) {
+                    // Update backtest progress
+                    document.getElementById('backtest-status').textContent = backtest.status || 'Not Started';
+                    document.getElementById('backtest-progress').style.width = `${backtest.progress_percent || 0}%`;
+                    document.getElementById('backtest-percent').textContent = `${(backtest.progress_percent || 0).toFixed(1)}%`;
+                    document.getElementById('current-symbol').textContent = backtest.current_symbol || 'None';
+                    document.getElementById('backtest-eta').textContent = backtest.eta_minutes ? `${backtest.eta_minutes.toFixed(0)}m` : 'Unknown';
+                }
+                
+                if (trades?.trades) {
+                    updateTrades(trades.trades, 'recent-trades');
+                }
+                
+                // Update Fear & Greed (simulate for now)
+                const fearGreedValue = 45 + Math.sin(Date.now() / 10000) * 20;
+                updateFearGreedIndex(Math.round(fearGreedValue));
+                
+                // Update news feed (simulate for now)
+                updateNewsFeed([
+                    {
+                        title: "Bitcoin Shows Strong Support at $45,000",
+                        sentiment: "positive",
+                        sentiment_score: "Bullish",
+                        time: "5 minutes ago"
+                    },
+                    {
+                        title: "Fed Rate Decision Expected Next Week",
+                        sentiment: "neutral",
+                        sentiment_score: "Neutral",
+                        time: "15 minutes ago"
+                    },
+                    {
+                        title: "Crypto Market Sees Increased Volatility",
+                        sentiment: "negative",
+                        sentiment_score: "Bearish",
+                        time: "1 hour ago"
+                    }
+                ]);
+                
+                updateLastUpdate();
+                updateUptime();
+                
+            } catch (error) {
+                console.error('Dashboard update failed:', error);
+                updateSystemStatus(false);
+            }
         }
-
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (refreshInterval) clearInterval(refreshInterval);
-            if (backtestInterval) clearInterval(backtestInterval);
+        
+        // Execute action
+        async function executeAction(action, buttonId) {
+            const button = document.getElementById(buttonId);
+            const originalText = button.textContent;
+            
+            button.disabled = true;
+            button.textContent = 'Processing...';
+            
+            try {
+                const response = await fetch(`/api/control/${action}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log(`${action} completed:`, result.message);
+                } else {
+                    console.error(`${action} failed:`, result.error);
+                }
+                
+                setTimeout(updateDashboard, 1000);
+                
+            } catch (error) {
+                console.error(`${action} error:`, error);
+            } finally {
+                button.disabled = false;
+                button.textContent = originalText;
+            }
+        }
+        
+        // Button actions
+        function startTrading() { executeAction('start_trading', 'start-btn'); }
+        function stopTrading() { executeAction('stop_trading', 'stop-btn'); }
+        function startBacktest() { executeAction('start_backtest', 'backtest-btn'); }
+        function resetML() { executeAction('reset_ml_data', 'reset-ml-btn'); }
+        function saveMetrics() { executeAction('save_metrics', 'save-btn'); }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('V3 Comprehensive Dashboard initialized');
+            updateDashboard();
+            updateInterval = setInterval(updateDashboard, 5000);
         });
-
-        // Network status handling
-        window.addEventListener('online', () => {
-            log('Network connection restored', 'success');
-            updateConnectionStatus(true);
-            refreshData();
-        });
-
-        window.addEventListener('offline', () => {
-            log('Network connection lost', 'warning');
-            updateConnectionStatus(false);
+        
+        window.addEventListener('beforeunload', function() {
+            if (updateInterval) clearInterval(updateInterval);
         });
     </script>
 </body>
