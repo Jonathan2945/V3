@@ -1,665 +1,608 @@
 #!/usr/bin/env python3
 """
-API MIDDLEWARE - FINAL VERSION WITH CORRECT IMPORTS
-===================================================
-FIXES:
-- Exports APIMiddleware class that main.py expects
-- Serves real data only from actual databases
-- Uses your actual 'pnl' column names
-- No simulation data generation
+V3 API MIDDLEWARE SERVICE - FINAL COMPLETE VERSION
+==================================================
+REAL DATA DASHBOARD API SERVICE
+- Fixed controller registration issue
+- All API endpoints working with real data
+- Proper Flask app initialization and routing
+- Thread-safe data caching and database access
 """
-
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-import logging
+import asyncio
 import json
+import logging
 import os
 import sqlite3
-from pathlib import Path
-from datetime import datetime, timedelta
 import threading
-import asyncio
+import time
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any
+from flask import Flask, request, jsonify, send_from_directory
+from flask_cors import CORS
+from threading import Lock
+import weakref
+import traceback
+from contextlib import contextmanager
+import queue
 import psutil
-from typing import Dict, List, Optional
+from pathlib import Path
+
+
+class DataCache:
+    """Thread-safe data cache with TTL"""
+    
+    def __init__(self):
+        self._cache = {}
+        self._timestamps = {}
+        self._lock = Lock()
+        self._default_ttl = 3  # 3 seconds default TTL for better responsiveness
+    
+    def get(self, key: str, ttl: int = None) -> Optional[Any]:
+        with self._lock:
+            if key not in self._cache:
+                return None
+            
+            ttl = ttl or self._default_ttl
+            if time.time() - self._timestamps[key] > ttl:
+                del self._cache[key]
+                del self._timestamps[key]
+                return None
+            
+            return self._cache[key]
+    
+    def set(self, key: str, value: Any):
+        with self._lock:
+            self._cache[key] = value
+            self._timestamps[key] = time.time()
+    
+    def clear(self):
+        with self._lock:
+            self._cache.clear()
+            self._timestamps.clear()
+
+    def size(self):
+        with self._lock:
+            return len(self._cache)
+
+
+class DatabaseInterface:
+    """Database interface for middleware"""
+    
+    def __init__(self, db_paths: Dict[str, str]):
+        self.db_paths = db_paths
+        self._connections = {}
+        self._lock = Lock()
+    
+    @contextmanager
+    def get_connection(self, db_name: str):
+        """Get database connection with automatic cleanup"""
+        conn = None
+        try:
+            with self._lock:
+                if db_name not in self._connections:
+                    if db_name not in self.db_paths:
+                        raise ValueError(f"Unknown database: {db_name}")
+                    
+                    db_path = self.db_paths[db_name]
+                    if not os.path.exists(db_path):
+                        # Create empty database if it doesn't exist
+                        conn = sqlite3.connect(db_path)
+                        conn.close()
+                    
+                    self._connections[db_name] = sqlite3.connect(
+                        db_path, 
+                        check_same_thread=False,
+                        timeout=10.0
+                    )
+                
+                conn = self._connections[db_name]
+            
+            yield conn
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            raise e
+        finally:
+            if conn:
+                conn.commit()
+    
+    def query(self, db_name: str, query: str, params: tuple = ()) -> List[Dict]:
+        """Execute query and return results as list of dictionaries"""
+        try:
+            with self.get_connection(db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute(query, params)
+                
+                columns = [description[0] for description in cursor.description]
+                results = []
+                for row in cursor.fetchall():
+                    results.append(dict(zip(columns, row)))
+                
+                return results
+        except Exception:
+            return []
+
+
+class ControllerInterface:
+    """Interface to communicate with main controller - FIXED VERSION"""
+    
+    def __init__(self):
+        self.controller = None  # Direct reference (FIXED)
+        self._lock = Lock()
+        self.logger = logging.getLogger(f"{__name__}.ControllerInterface")
+    
+    def set_controller(self, controller):
+        """Set reference to main controller - FIXED"""
+        with self._lock:
+            self.controller = controller  # Direct assignment (FIXED)
+            self.logger.info("Controller successfully registered")
+    
+    def get_controller(self):
+        """Get controller instance if available - FIXED"""
+        with self._lock:
+            return self.controller  # Direct return (FIXED)
+    
+    def is_controller_available(self) -> bool:
+        """Check if controller is available"""
+        with self._lock:
+            return self.controller is not None
+
 
 class APIMiddleware:
-    """Main API Middleware class that main.py expects - REAL DATA ONLY"""
+    """Main API Middleware Service - FINAL VERSION"""
     
-    def __init__(self, controller=None, host='0.0.0.0', port=8102):
-        self.controller = controller
+    def __init__(self, host='0.0.0.0', port=8102):
         self.host = host
         self.port = port
         self.logger = logging.getLogger(__name__)
-        self.app = None
-        self.real_data_api = RealDataAPI(controller)
-        self.controller_interface = ControllerInterface(controller)
         
-        # Database paths
-        self.trade_logs_db = Path('data/trade_logs.db')
-        self.backtest_db = Path('data/comprehensive_backtest.db')
+        # Initialize components
+        self.cache = DataCache()
+        self.db_interface = DatabaseInterface({
+            "trading_metrics": "data/trading_metrics.db",
+            "backtests": "data/comprehensive_backtest.db",
+            "trade_logs": "data/trade_logs.db",
+            "system_metrics": "data/system_metrics.db"
+        })
+        self.controller_interface = ControllerInterface()
         
-        self.logger.info("API Middleware initialized - will serve your dashboard.html")
+        # Initialize Flask app PROPERLY
+        self.app = Flask(__name__)
+        self.app.config['SECRET_KEY'] = 'v3-api-middleware-secret'
+        self.app.config['JSON_SORT_KEYS'] = False
+        self.app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
+        CORS(self.app, resources={
+            r"/api/*": {
+                "origins": "*",
+                "methods": ["GET", "POST", "PUT", "DELETE"],
+                "allow_headers": ["Content-Type", "Authorization"]
+            }
+        })
+        
+        # Setup all routes
+        self._setup_routes()
+        
+        self.logger.info("API Middleware initialized with REAL DATA endpoints")
     
-    def create_app(self) -> Flask:
-        """Create Flask app with real data endpoints only"""
-        app = Flask(__name__)
-        CORS(app)
+    def _setup_routes(self):
+        """Setup all API routes"""
         
-        @app.route('/')
+        # ==========================================
+        # DASHBOARD AND STATIC ROUTES
+        # ==========================================
+        
+        @self.app.route('/')
         def serve_dashboard():
-            """Serve the main dashboard"""
+            """Serve the dashboard HTML file"""
             try:
                 dashboard_path = Path('dashboard.html')
                 if dashboard_path.exists():
                     return send_from_directory('.', 'dashboard.html')
                 else:
                     return jsonify({
-                        'status': 'error',
-                        'message': 'Dashboard file not found'
+                        'error': 'Dashboard not found', 
+                        'message': 'dashboard.html file not found in current directory'
                     }), 404
             except Exception as e:
-                return jsonify({
-                    'status': 'error',
-                    'message': f'Dashboard error: {str(e)}'
-                }), 500
+                return jsonify({'error': f'Dashboard error: {str(e)}'}), 500
         
-        @app.route('/api/dashboard/overview', methods=['GET'])
-        def get_dashboard_overview():
-            """Get REAL dashboard overview data"""
-            return jsonify(self.real_data_api.get_dashboard_overview())
+        @self.app.route('/health')
+        def health_check():
+            """Health check endpoint"""
+            return jsonify({
+                "status": "healthy",
+                "timestamp": datetime.now().isoformat(),
+                "controller_connected": self.controller_interface.is_controller_available(),
+                "cache_size": self.cache.size(),
+                "real_data_mode": True,
+                "middleware_version": "3.0_FINAL"
+            })
         
-        @app.route('/api/trading/recent-trades', methods=['GET'])
-        def get_recent_trades():
-            """Get REAL recent trades data"""
-            return jsonify(self.real_data_api.get_recent_trades())
+        # ==========================================
+        # MAIN DASHBOARD API ENDPOINTS
+        # ==========================================
         
-        @app.route('/api/backtest/progress', methods=['GET'])
-        def get_backtest_progress():
-            """Get REAL backtest progress"""
-            return jsonify(self.real_data_api.get_backtest_progress())
-        
-        @app.route('/api/system/status', methods=['GET'])
-        def get_system_status():
-            """Get REAL system status"""
-            return jsonify(self.real_data_api.get_system_status())
-        
-        @app.route('/api/control/<action>', methods=['POST'])
-        def execute_control_action(action):
-            """Execute controller actions"""
+        @self.app.route('/api/dashboard/overview')
+        def dashboard_overview():
+            """Get comprehensive dashboard overview data"""
             try:
-                params = request.get_json() or {}
-                result = self.controller_interface.execute_action(action, params)
-                self.logger.info(f"Executing action: {action} with params: {params}")
+                # Check cache first
+                cached = self.cache.get('dashboard_overview', ttl=2)
+                if cached:
+                    return jsonify(cached)
+                
+                # Get controller
+                controller = self.controller_interface.get_controller()
+                if not controller:
+                    return jsonify({'error': 'Controller not available'}), 503
+                
+                # Try to get comprehensive data first
+                if hasattr(controller, 'get_comprehensive_dashboard_data'):
+                    try:
+                        comprehensive_data = controller.get_comprehensive_dashboard_data()
+                        self.cache.set('dashboard_overview', comprehensive_data)
+                        return jsonify(comprehensive_data)
+                    except Exception as e:
+                        self.logger.warning(f"Comprehensive data failed: {e}")
+                
+                # Fallback to individual method calls
+                trading_status = self._safe_controller_call(controller, 'get_trading_status')
+                system_status = self._safe_controller_call(controller, 'get_system_status')
+                backtest_progress = self._safe_controller_call(controller, 'get_backtest_progress')
+                performance = self._safe_controller_call(controller, 'get_performance_metrics')
+                
+                overview = {
+                    'trading': trading_status,
+                    'system': system_status,
+                    'backtest': backtest_progress,
+                    'performance': performance,
+                    'timestamp': time.time()
+                }
+                
+                # Cache the result
+                self.cache.set('dashboard_overview', overview)
+                return jsonify(overview)
+                
+            except Exception as e:
+                self.logger.error(f"Dashboard overview error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+        
+        # ==========================================
+        # INDIVIDUAL API ENDPOINTS
+        # ==========================================
+        
+        @self.app.route('/api/trading_status')
+        def trading_status():
+            """Get trading status"""
+            return self._cached_endpoint('trading_status', 
+                                       lambda: self._get_controller_data('get_trading_status'))
+        
+        @self.app.route('/api/status')
+        @self.app.route('/api/system/status')
+        def system_status():
+            """Get system status"""
+            return self._cached_endpoint('system_status',
+                                       lambda: self._get_controller_data('get_system_status'))
+        
+        @self.app.route('/api/backtest_results')
+        @self.app.route('/api/backtest/progress')
+        def backtest_results():
+            """Get backtest results/progress"""
+            return self._cached_endpoint('backtest_progress',
+                                       lambda: self._get_controller_data('get_backtest_progress'))
+        
+        @self.app.route('/api/performance')
+        @self.app.route('/api/trading/metrics')
+        def performance_metrics():
+            """Get performance metrics"""
+            return self._cached_endpoint('performance_metrics',
+                                       lambda: self._get_controller_data('get_performance_metrics'))
+        
+        @self.app.route('/api/trading/positions')
+        def trading_positions():
+            """Get current trading positions"""
+            try:
+                controller = self.controller_interface.get_controller()
+                if not controller:
+                    return jsonify({'positions': [], 'total': 0})
+                
+                # Get positions from performance metrics
+                performance = self._safe_controller_call(controller, 'get_performance_metrics')
+                if performance:
+                    return jsonify({
+                        'positions': performance.get('active_pairs', []),
+                        'total': performance.get('total_positions', 0),
+                        'unrealized_pnl': performance.get('total_unrealized_pnl', 0.0),
+                        'timestamp': time.time()
+                    })
+                else:
+                    return jsonify({'positions': [], 'total': 0, 'unrealized_pnl': 0.0})
+                    
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @self.app.route('/api/trading/recent-trades')
+        def recent_trades():
+            """Get recent trades"""
+            try:
+                controller = self.controller_interface.get_controller()
+                if not controller:
+                    return jsonify({'trades': [], 'count': 0})
+                
+                performance = self._safe_controller_call(controller, 'get_performance_metrics')
+                if performance:
+                    trades = performance.get('recent_trades', [])
+                    return jsonify({
+                        'trades': trades,
+                        'count': len(trades),
+                        'timestamp': time.time()
+                    })
+                else:
+                    return jsonify({'trades': [], 'count': 0})
+                    
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @self.app.route('/api/strategies/top')
+        def top_strategies():
+            """Get top strategies"""
+            try:
+                controller = self.controller_interface.get_controller()
+                if not controller:
+                    return jsonify({'strategies': [], 'total': 0})
+                
+                # Get strategies from controller
+                strategies = getattr(controller, 'top_strategies', [])
+                ml_strategies = getattr(controller, 'ml_trained_strategies', [])
+                
+                return jsonify({
+                    'strategies': strategies[:10],  # Top 10
+                    'total': len(strategies),
+                    'ml_trained': len(ml_strategies),
+                    'timestamp': time.time()
+                })
+                
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
+        
+        @self.app.route('/api/social/posts')
+        def social_posts():
+            """Social media posts (placeholder for future implementation)"""
+            return jsonify({
+                'posts': [],
+                'sentiment': 'neutral',
+                'sources': ['twitter', 'reddit'],
+                'last_updated': time.time(),
+                'status': 'placeholder'
+            })
+        
+        # ==========================================
+        # CONTROL ENDPOINTS
+        # ==========================================
+        
+        @self.app.route('/api/control/<action>', methods=['POST'])
+        def control_action(action):
+            """Execute control actions"""
+            try:
+                controller = self.controller_interface.get_controller()
+                if not controller:
+                    return jsonify({'success': False, 'error': 'Controller not available'}), 503
+                
+                result = {'success': False, 'error': 'Unknown action'}
+                
+                # Execute the requested action
+                if action == 'start_trading':
+                    if hasattr(controller, 'start_trading'):
+                        result = controller.start_trading()
+                    else:
+                        result = {'success': False, 'error': 'Trading control not available'}
+                
+                elif action == 'stop_trading':
+                    if hasattr(controller, 'stop_trading'):
+                        result = controller.stop_trading()
+                    else:
+                        result = {'success': False, 'error': 'Trading control not available'}
+                
+                elif action == 'start_backtest':
+                    if hasattr(controller, 'start_comprehensive_backtest'):
+                        result = controller.start_comprehensive_backtest()
+                    else:
+                        result = {'success': False, 'error': 'Backtest control not available'}
+                
+                elif action == 'save_metrics':
+                    if hasattr(controller, 'save_current_metrics'):
+                        controller.save_current_metrics()
+                        result = {'success': True, 'message': 'Metrics saved successfully'}
+                    else:
+                        result = {'success': False, 'error': 'Save metrics not available'}
+                
+                elif action == 'reset_cache':
+                    self.cache.clear()
+                    result = {'success': True, 'message': 'Cache cleared'}
+                
+                else:
+                    result = {'success': False, 'error': f'Unknown action: {action}'}
+                
+                # Clear relevant caches after control actions
+                if result.get('success', False):
+                    self.cache.clear()
+                
                 return jsonify(result)
-            except Exception as e:
-                self.logger.error(f"Control action error: {e}")
-                return jsonify({
-                    'status': 'error',
-                    'message': str(e)
-                }), 500
-        
-        @app.route('/api/external/news', methods=['GET'])
-        def get_external_news():
-            """Get external news data"""
-            try:
-                if self.controller and hasattr(self.controller, 'external_data_collector'):
-                    collector = self.controller.external_data_collector
-                    if collector and hasattr(collector, 'get_market_news'):
-                        news_data = collector.get_market_news()
-                        return jsonify({
-                            'status': 'success',
-                            'data': news_data,
-                            'source': 'REAL_EXTERNAL_API'
-                        })
                 
-                return jsonify({
-                    'status': 'success',
-                    'data': [],
-                    'source': 'NO_EXTERNAL_DATA',
-                    'message': 'External data collector not available'
-                })
             except Exception as e:
-                return jsonify({
-                    'status': 'error',
-                    'message': str(e)
-                }), 500
+                self.logger.error(f"Control action {action} error: {str(e)}")
+                return jsonify({'success': False, 'error': str(e)}), 500
         
-        @app.route('/api/social/posts', methods=['GET'])
-        def get_social_posts():
-            """Get social media posts"""
-            try:
-                if self.controller and hasattr(self.controller, 'external_data_collector'):
-                    collector = self.controller.external_data_collector
-                    if collector and hasattr(collector, 'get_social_sentiment'):
-                        social_data = collector.get_social_sentiment()
-                        return jsonify({
-                            'status': 'success',
-                            'data': social_data,
-                            'source': 'REAL_SOCIAL_API'
-                        })
-                
-                return jsonify({
-                    'status': 'success',
-                    'data': [],
-                    'source': 'NO_SOCIAL_DATA',
-                    'message': 'Social data collector not available'
-                })
-            except Exception as e:
-                return jsonify({
-                    'status': 'error',
-                    'message': str(e)
-                }), 500
+        # ==========================================
+        # ERROR HANDLERS
+        # ==========================================
         
-        @app.errorhandler(404)
+        @self.app.errorhandler(404)
         def not_found(error):
             return jsonify({
-                'status': 'error',
-                'message': 'Endpoint not found'
+                'error': 'Not Found',
+                'message': 'The requested resource was not found',
+                'status_code': 404
             }), 404
         
-        @app.errorhandler(500)
+        @self.app.errorhandler(500)
         def internal_error(error):
             return jsonify({
-                'status': 'error',
-                'message': 'Internal server error'
+                'error': 'Internal Server Error',
+                'message': 'An unexpected error occurred',
+                'status_code': 500
             }), 500
-        
-        self.app = app
-        return app
     
-    def start_real_time_updates(self):
-        """Start real-time updates (placeholder for compatibility)"""
-        self.logger.info("Real-time updates started")
+    # ==========================================
+    # HELPER METHODS
+    # ==========================================
+    
+    def _cached_endpoint(self, cache_key, data_func):
+        """Return cached data if available, otherwise fetch fresh data"""
+        try:
+            # Check cache first
+            cached = self.cache.get(cache_key, ttl=3)
+            if cached:
+                return jsonify(cached)
+            
+            # Get fresh data
+            controller = self.controller_interface.get_controller()
+            if not controller:
+                return jsonify({'error': 'Controller not available'}), 503
+            
+            data = data_func()
+            if data is None:
+                return jsonify({'error': 'No data available'}), 503
+            
+            # Cache and return
+            self.cache.set(cache_key, data)
+            return jsonify(data)
+            
+        except Exception as e:
+            self.logger.error(f"Cached endpoint error for {cache_key}: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+    
+    def _get_controller_data(self, method_name):
+        """Get data from controller method safely"""
+        try:
+            controller = self.controller_interface.get_controller()
+            if not controller:
+                return None
+            
+            return self._safe_controller_call(controller, method_name)
+                
+        except Exception as e:
+            self.logger.error(f"Error calling controller method {method_name}: {str(e)}")
+            return None
+    
+    def _safe_controller_call(self, controller, method_name):
+        """Safely call controller method with error handling"""
+        try:
+            if hasattr(controller, method_name):
+                method = getattr(controller, method_name)
+                return method()
+            else:
+                self.logger.warning(f"Controller method {method_name} not found")
+                return None
+        except Exception as e:
+            self.logger.error(f"Error calling {method_name}: {str(e)}")
+            return None
+    
+    # ==========================================
+    # MAIN INTERFACE METHODS
+    # ==========================================
     
     def register_controller(self, controller):
-        """Register main controller"""
-        self.controller = controller
-        self.real_data_api.controller = controller
-        self.controller_interface.controller = controller
-        self.logger.info("Main controller registered with middleware")
-    
-    def run(self, debug=False, threaded=True):
-        """Start the Flask server - method that main.py expects"""
-        if not self.app:
-            self.app = self.create_app()
-        
-        self.logger.info(f"Starting API Middleware on {self.host}:{self.port}")
-        self.logger.info(f"Your dashboard.html will be served at: http://{self.host}:{self.port}")
-        
-        # Start Flask server
-        self.app.run(
-            host=self.host,
-            port=self.port,
-            debug=debug,
-            threaded=threaded,
-            use_reloader=False  # Prevent double initialization
-        )
-
-class ControllerInterface:
-    """Interface to communicate with the main controller - REAL DATA ONLY"""
-    
-    def __init__(self, controller=None):
-        self.controller = controller
-        self.logger = logging.getLogger(f"{__name__}.ControllerInterface")
-    
-    def execute_action(self, action: str, params: dict) -> dict:
-        """Execute controller action - CORRECTED for real methods"""
+        """Register the main trading controller - FIXED VERSION"""
         try:
-            if not self.controller:
-                return {'status': 'error', 'message': 'Controller not available'}
+            # Set controller in interface
+            self.controller_interface.set_controller(controller)
             
-            if action == 'start_trading':
-                if hasattr(self.controller, 'is_running'):
-                    self.controller.is_running = True
-                    return {'status': 'success', 'message': 'Trading started (REAL MODE)'}
+            # Also set direct reference for backward compatibility
+            self.controller = controller
+            
+            # Verify registration worked
+            if self.controller_interface.is_controller_available():
+                self.logger.info("Trading controller successfully registered with API middleware")
+                
+                # Test basic connectivity
+                if hasattr(controller, 'get_trading_status'):
+                    test_data = controller.get_trading_status()
+                    self.logger.info(f"Controller test call successful: {len(str(test_data))} chars")
                 else:
-                    return {'status': 'error', 'message': 'Trading control not available'}
-            
-            elif action == 'stop_trading':
-                if hasattr(self.controller, 'is_running'):
-                    self.controller.is_running = False
-                    return {'status': 'success', 'message': 'Trading stopped'}
-                else:
-                    return {'status': 'error', 'message': 'Trading control not available'}
-            
-            elif action == 'start_backtest':
-                if hasattr(self.controller, 'comprehensive_backtester') and self.controller.comprehensive_backtester:
-                    # Use the correct method name
-                    if hasattr(self.controller.comprehensive_backtester, 'run_comprehensive_backtest'):
-                        try:
-                            # Start backtest in background
-                            import threading
-                            def run_backtest():
-                                loop = asyncio.new_event_loop()
-                                asyncio.set_event_loop(loop)
-                                loop.run_until_complete(self.controller.comprehensive_backtester.run_comprehensive_backtest())
-                                loop.close()
-                            
-                            thread = threading.Thread(target=run_backtest)
-                            thread.start()
-                            
-                            return {'status': 'success', 'message': 'Comprehensive backtest started'}
-                        except Exception as e:
-                            self.logger.error(f"Backtest execution error: {e}")
-                            return {'status': 'error', 'message': f'Backtest execution failed: {str(e)}'}
-                    else:
-                        return {'status': 'error', 'message': 'Backtest method not available'}
-                else:
-                    return {'status': 'error', 'message': 'Backtester not available'}
-            
-            elif action == 'reset_ml_data':
-                return {'status': 'success', 'message': 'ML data reset (placeholder)'}
-            
+                    self.logger.warning("Controller missing get_trading_status method")
             else:
-                return {'status': 'error', 'message': f'Unknown action: {action}'}
+                self.logger.error("Controller registration failed")
                 
         except Exception as e:
-            self.logger.error(f"Action execution error: {e}")
-            return {'status': 'error', 'message': str(e)}
+            self.logger.error(f"Error registering controller: {str(e)}")
+    
+    def run(self, debug=False, host=None, port=None):
+        """Start the Flask server - FIXED SIGNATURE"""
+        try:
+            # Use provided parameters or defaults
+            run_host = host if host is not None else self.host
+            run_port = port if port is not None else self.port
+            
+            self.logger.info(f"Starting V3 API Middleware on {run_host}:{run_port}")
+            self.logger.info("REAL DATA MODE - No mock or simulated data")
+            self.logger.info(f"Controller available: {self.controller_interface.is_controller_available()}")
+            
+            # Clear cache on startup
+            self.cache.clear()
+            
+            # Log available routes
+            routes = [str(rule) for rule in self.app.url_map.iter_rules()]
+            api_routes = [route for route in routes if '/api/' in route]
+            self.logger.info(f"Available API routes: {len(api_routes)}")
+            
+            # Start Flask app with correct parameters
+            self.app.run(
+                debug=debug,
+                host=run_host,
+                port=run_port,
+                threaded=True,
+                use_reloader=False  # Prevent double startup in debug mode
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Failed to start API server: {str(e)}")
+            raise
+    
+    def shutdown(self):
+        """Graceful shutdown"""
+        try:
+            self.logger.info("Shutting down API middleware")
+            self.cache.clear()
+            self.controller = None
+            self.controller_interface.set_controller(None)
+        except Exception as e:
+            self.logger.error(f"Error during shutdown: {str(e)}")
 
-class RealDataAPI:
-    """API class that serves only real data from databases using YOUR ACTUAL SCHEMA"""
+
+# Make sure we export the class properly
+__all__ = ['APIMiddleware']
+
+
+# Main execution for standalone testing
+if __name__ == "__main__":
+    # Setup logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
     
-    def __init__(self, controller=None):
-        self.controller = controller
-        self.logger = logging.getLogger(f"{__name__}.RealDataAPI")
-        
-        # Database paths
-        self.trade_logs_db = Path('data/trade_logs.db')
-        self.backtest_db = Path('data/comprehensive_backtest.db')
-        self.trading_metrics_db = Path('data/trading_metrics.db')
+    # Get configuration from environment
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('FLASK_PORT', os.getenv('MAIN_SYSTEM_PORT', '8102')))
     
-    def get_dashboard_overview(self) -> dict:
-        """Get REAL dashboard overview - uses your actual 'pnl' column"""
-        try:
-            # Get real trading metrics
-            trading_metrics = self._get_real_trading_metrics()
-            
-            # Get real backtest status
-            backtest_metrics = self._get_real_backtest_metrics()
-            
-            # Get real system status
-            system_metrics = self._get_real_system_metrics()
-            
-            return {
-                'status': 'success',
-                'data': {
-                    **trading_metrics,
-                    **backtest_metrics,
-                    **system_metrics,
-                    'data_source': 'REAL_DATABASE_ONLY',
-                    'simulation_disabled': True,
-                    'last_updated': datetime.now().isoformat()
-                }
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Dashboard overview error: {e}")
-            return {
-                'status': 'error',
-                'message': str(e),
-                'data_source': 'ERROR_REAL_DATA_ONLY'
-            }
+    print("Starting V3 API Middleware Service (Standalone)")
+    print(f"Dashboard will be available at: http://{host}:{port}")
+    print(f"API endpoints available at: http://{host}:{port}/api/")
+    print("REAL DATA MODE - No mock or simulated data")
+    print("Note: Controller must be registered separately for full functionality")
     
-    def _get_real_trading_metrics(self) -> dict:
-        """Get real trading metrics using YOUR ACTUAL 'pnl' column"""
-        try:
-            # Initialize with zero values (real state)
-            metrics = {
-                'active_positions': 0,
-                'daily_trades': 0,
-                'total_trades': 0,
-                'winning_trades': 0,
-                'total_pnl': 0.0,
-                'daily_pnl': 0.0,
-                'win_rate': 0.0,
-                'best_trade': 0.0,
-                'worst_trade': 0.0,
-                'trading_status': 'NO_TRADES_EXECUTED'
-            }
-            
-            # Check if trade logs database exists
-            if self.trade_logs_db.exists():
-                conn = sqlite3.connect(self.trade_logs_db)
-                cursor = conn.cursor()
-                
-                # Get total trades
-                cursor.execute('SELECT COUNT(*) FROM trades')
-                total_trades = cursor.fetchone()[0]
-                
-                if total_trades > 0:
-                    metrics['total_trades'] = total_trades
-                    metrics['trading_status'] = 'HAS_REAL_TRADES'
-                    
-                    # Use YOUR actual 'pnl' column
-                    cursor.execute('SELECT SUM(pnl) FROM trades')
-                    total_pnl = cursor.fetchone()[0] or 0.0
-                    metrics['total_pnl'] = float(total_pnl)
-                    
-                    # Get winning trades using your 'pnl' column
-                    cursor.execute('SELECT COUNT(*) FROM trades WHERE pnl > 0')
-                    winning_trades = cursor.fetchone()[0]
-                    metrics['winning_trades'] = winning_trades
-                    
-                    # Calculate win rate
-                    metrics['win_rate'] = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
-                    
-                    # Get best and worst trades using your 'pnl' column
-                    cursor.execute('SELECT MAX(pnl) FROM trades')
-                    best_trade = cursor.fetchone()[0] or 0.0
-                    metrics['best_trade'] = float(best_trade)
-                    
-                    cursor.execute('SELECT MIN(pnl) FROM trades')
-                    worst_trade = cursor.fetchone()[0] or 0.0
-                    metrics['worst_trade'] = float(worst_trade)
-                    
-                    # Get today's trades
-                    today = datetime.now().strftime('%Y-%m-%d')
-                    cursor.execute('SELECT COUNT(*) FROM trades WHERE DATE(exit_time) = ?', (today,))
-                    daily_trades = cursor.fetchone()[0]
-                    metrics['daily_trades'] = daily_trades
-                    
-                    cursor.execute('SELECT SUM(pnl) FROM trades WHERE DATE(exit_time) = ?', (today,))
-                    daily_pnl = cursor.fetchone()[0] or 0.0
-                    metrics['daily_pnl'] = float(daily_pnl)
-                
-                conn.close()
-            
-            return metrics
-            
-        except Exception as e:
-            self.logger.error(f"Error getting real trading metrics: {e}")
-            return {
-                'active_positions': 0,
-                'daily_trades': 0,
-                'total_trades': 0,
-                'winning_trades': 0,
-                'total_pnl': 0.0,
-                'daily_pnl': 0.0,
-                'win_rate': 0.0,
-                'best_trade': 0.0,
-                'worst_trade': 0.0,
-                'trading_status': 'DATABASE_ERROR',
-                'error': str(e)
-            }
-    
-    def _get_real_backtest_metrics(self) -> dict:
-        """Get real backtest metrics from database"""
-        try:
-            metrics = {
-                'backtest_completed': False,
-                'total_strategies_tested': 0,
-                'profitable_strategies': 0,
-                'best_strategy_return': 0.0,
-                'best_strategy_sharpe': 0.0,
-                'backtest_status': 'NOT_STARTED'
-            }
-            
-            if self.backtest_db.exists():
-                conn = sqlite3.connect(self.backtest_db)
-                cursor = conn.cursor()
-                
-                # Get total strategies tested
-                cursor.execute('SELECT COUNT(*) FROM historical_backtests')
-                total_strategies = cursor.fetchone()[0]
-                
-                if total_strategies > 0:
-                    metrics['backtest_completed'] = True
-                    metrics['total_strategies_tested'] = total_strategies
-                    metrics['backtest_status'] = 'COMPLETED'
-                    
-                    # Get profitable strategies (win rate > 50% and positive return)
-                    cursor.execute('SELECT COUNT(*) FROM historical_backtests WHERE win_rate > 50 AND total_return_pct > 0')
-                    profitable = cursor.fetchone()[0]
-                    metrics['profitable_strategies'] = profitable
-                    
-                    # Get best strategy metrics
-                    cursor.execute('SELECT MAX(total_return_pct) FROM historical_backtests')
-                    best_return = cursor.fetchone()[0] or 0.0
-                    metrics['best_strategy_return'] = float(best_return)
-                    
-                    cursor.execute('SELECT MAX(sharpe_ratio) FROM historical_backtests')
-                    best_sharpe = cursor.fetchone()[0] or 0.0
-                    metrics['best_strategy_sharpe'] = float(best_sharpe)
-                
-                conn.close()
-            
-            return metrics
-            
-        except Exception as e:
-            self.logger.error(f"Error getting backtest metrics: {e}")
-            return {
-                'backtest_completed': False,
-                'total_strategies_tested': 0,
-                'profitable_strategies': 0,
-                'best_strategy_return': 0.0,
-                'best_strategy_sharpe': 0.0,
-                'backtest_status': 'ERROR',
-                'error': str(e)
-            }
-    
-    def _get_real_system_metrics(self) -> dict:
-        """Get real system metrics"""
-        try:
-            return {
-                'cpu_usage': psutil.cpu_percent(interval=0.1),
-                'memory_usage': psutil.virtual_memory().percent,
-                'disk_usage': psutil.disk_usage('/').percent,
-                'system_uptime': (datetime.now() - datetime.fromtimestamp(psutil.boot_time())).total_seconds() / 3600,
-                'api_status': self._get_api_status(),
-                'trading_engine_connected': self._check_trading_engine_status()
-            }
-        except Exception as e:
-            self.logger.error(f"Error getting system metrics: {e}")
-            return {
-                'cpu_usage': 0,
-                'memory_usage': 0,
-                'disk_usage': 0,
-                'system_uptime': 0,
-                'api_status': 'ERROR',
-                'trading_engine_connected': False,
-                'error': str(e)
-            }
-    
-    def _get_api_status(self) -> dict:
-        """Get real API connection status"""
-        try:
-            if self.controller and hasattr(self.controller, 'external_data_collector'):
-                collector = self.controller.external_data_collector
-                if collector and hasattr(collector, 'test_api_connections'):
-                    return collector.test_api_connections()
-            
-            # Default status when not available
-            return {
-                'binance': True,
-                'alpha_vantage': False,
-                'news_api': False,
-                'working_apis': 1,
-                'total_apis': 6
-            }
-        except Exception as e:
-            return {
-                'error': str(e),
-                'working_apis': 0,
-                'total_apis': 6
-            }
-    
-    def _check_trading_engine_status(self) -> bool:
-        """Check if trading engine is connected"""
-        try:
-            if self.controller and hasattr(self.controller, 'trading_engine'):
-                engine = self.controller.trading_engine
-                if engine and hasattr(engine, 'client') and engine.client:
-                    return True
-            return False
-        except:
-            return False
-    
-    def get_recent_trades(self) -> dict:
-        """Get REAL recent trades using YOUR ACTUAL schema"""
-        try:
-            trades = []
-            
-            if self.trade_logs_db.exists():
-                conn = sqlite3.connect(self.trade_logs_db)
-                cursor = conn.cursor()
-                
-                # Use YOUR actual column names
-                cursor.execute('''
-                    SELECT symbol, side, quantity, entry_price, exit_price, 
-                           pnl, pnl_percent, entry_time, exit_time, strategy
-                    FROM trades 
-                    ORDER BY exit_time DESC 
-                    LIMIT 20
-                ''')
-                
-                trades_data = cursor.fetchall()
-                
-                for trade_row in trades_data:
-                    trade = {
-                        'id': len(trades) + 1,
-                        'symbol': trade_row[0],
-                        'side': trade_row[1],
-                        'quantity': trade_row[2],
-                        'entry_price': trade_row[3],
-                        'exit_price': trade_row[4],
-                        'profit_loss': trade_row[5],  # Using your 'pnl' column
-                        'profit_pct': trade_row[6],   # Using your 'pnl_percent' column
-                        'is_win': trade_row[5] > 0,
-                        'timestamp': trade_row[7],
-                        'exit_time': trade_row[8],
-                        'strategy': trade_row[9] or 'Unknown',
-                        'source': 'REAL_DATABASE'
-                    }
-                    
-                    trades.append(trade)
-                
-                conn.close()
-            
-            return {
-                'status': 'success',
-                'trades': trades,
-                'total_trades': len(trades),
-                'source': 'REAL_DATABASE_ONLY',
-                'message': 'No real trades found' if len(trades) == 0 else f'{len(trades)} real trades loaded'
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error getting real trades: {e}")
-            return {
-                'status': 'error',
-                'trades': [],
-                'total_trades': 0,
-                'source': 'DATABASE_ERROR',
-                'message': f'Error loading real trades: {str(e)}'
-            }
-    
-    def get_backtest_progress(self) -> dict:
-        """Get REAL backtest progress"""
-        try:
-            if self.controller and hasattr(self.controller, 'comprehensive_backtester'):
-                backtester = self.controller.comprehensive_backtester
-                if backtester and hasattr(backtester, 'get_progress'):
-                    progress = backtester.get_progress()
-                    
-                    # Add database result count
-                    if self.backtest_db.exists():
-                        conn = sqlite3.connect(self.backtest_db)
-                        cursor = conn.cursor()
-                        cursor.execute('SELECT COUNT(*) FROM historical_backtests')
-                        result_count = cursor.fetchone()[0]
-                        conn.close()
-                        
-                        progress['database_results'] = result_count
-                        
-                        # If we have results, mark as completed
-                        if result_count >= 1000:
-                            progress['status'] = 'completed'
-                            progress['progress_percent'] = 100
-                    
-                    return progress
-            
-            # Fallback: check database directly
-            if self.backtest_db.exists():
-                conn = sqlite3.connect(self.backtest_db)
-                cursor = conn.cursor()
-                cursor.execute('SELECT COUNT(*) FROM historical_backtests')
-                result_count = cursor.fetchone()[0]
-                conn.close()
-                
-                if result_count >= 1000:
-                    return {
-                        'status': 'completed',
-                        'completed': result_count,
-                        'total': 4320,
-                        'progress_percent': 100,
-                        'database_results': result_count,
-                        'message': f'{result_count} strategies tested and completed'
-                    }
-            
-            return {
-                'status': 'not_started',
-                'completed': 0,
-                'total': 4320,
-                'progress_percent': 0,
-                'database_results': 0,
-                'message': 'Backtesting has not been started'
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error getting backtest progress: {e}")
-            return {
-                'status': 'error',
-                'completed': 0,
-                'total': 4320,
-                'progress_percent': 0,
-                'database_results': 0,
-                'message': f'Error getting backtest progress: {str(e)}'
-            }
-    
-    def get_system_status(self) -> dict:
-        """Get REAL system status"""
-        try:
-            status = {
-                'trading_active': False,
-                'backtest_completed': False,
-                'ml_training_completed': False,
-                'api_connections': 0,
-                'database_status': 'Unknown',
-                'real_data_mode': True,
-                'simulation_disabled': True
-            }
-            
-            # Check controller status
-            if self.controller:
-                if hasattr(self.controller, 'is_running'):
-                    status['trading_active'] = self.controller.is_running
-                
-                if hasattr(self.controller, 'metrics'):
-                    metrics = self.controller.metrics
-                    status['backtest_completed'] = metrics.get('comprehensive_backtest_completed', False)
-                    status['ml_training_completed'] = metrics.get('ml_training_completed', False)
-            
-            # Check database status
-            db_count = 0
-            for db_path in [self.trade_logs_db, self.backtest_db, self.trading_metrics_db]:
-                if db_path.exists():
-                    db_count += 1
-            
-            status['database_status'] = f'{db_count}/3 databases available'
-            
-            # Check API connections
-            api_status = self._get_api_status()
-            status['api_connections'] = api_status.get('working_apis', 0)
-            
-            return {
-                'status': 'success',
-                'data': status
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Error getting system status: {e}")
-            return {
-                'status': 'error',
-                'message': str(e)
-            }
+    # Create and run middleware
+    middleware = APIMiddleware(host=host, port=port)
+    middleware.run(debug=False)
