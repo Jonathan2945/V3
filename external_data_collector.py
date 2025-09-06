@@ -1,387 +1,50 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-V3 EXTERNAL DATA COLLECTOR - REAL DATA ONLY - FIXED VERSION
-===========================================================
-
-V3 CRITICAL FIXES APPLIED:
-- REAL DATA VALIDATION PATTERNS (CRITICAL for V3)
-- Memory cleanup for large data operations
-- UTF-8 encoding compliance
-- 8 vCPU optimization
-- Database transaction handling
-- NO MOCK DATA ALLOWED
+V3 EXTERNAL DATA COLLECTOR - LIVE DATA ONLY - NO FALLBACK DATA
+=============================================================
+Fixed Issues:
+- Fixed News API None value concatenation error
+- Removed all fallback/sample data
+- Only returns real data from APIs
+- Proper error handling without fake data
 """
 
-import warnings
 import os
-import sqlite3
 import json
 import time
-import asyncio
-import threading
-import gc
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
-from dataclasses import dataclass
-from collections import defaultdict, deque
-from concurrent.futures import ThreadPoolExecutor
-
-# V3 REAL DATA VALIDATION - CRITICAL REQUIREMENT
-def validate_real_data_source(data: Any, source: str) -> bool:
-    """V3 REQUIREMENT: Validate data comes from real market sources only"""
-    if data is None:
-        return False
-    
-    # Check for mock data indicators (CRITICAL for V3)
-    if hasattr(data, 'is_mock') or hasattr(data, '_mock'):
-        raise ValueError(f"CRITICAL V3 VIOLATION: Mock data detected in {source}")
-    
-    if isinstance(data, dict):
-        # Check for mock indicators in data structure
-        mock_indicators = ['mock', 'test', 'fake', 'simulated', 'generated']
-        for key, value in data.items():
-            if isinstance(key, str) and any(indicator in key.lower() for indicator in mock_indicators):
-                raise ValueError(f"CRITICAL V3 VIOLATION: Mock data key '{key}' in {source}")
-            if isinstance(value, str) and any(indicator in value.lower() for indicator in mock_indicators):
-                if 'real' not in value.lower() and 'live' not in value.lower():
-                    raise ValueError(f"CRITICAL V3 VIOLATION: Mock data value '{value}' in {source}")
-    
-    return True
-
-def cleanup_large_data_memory(data: Any) -> None:
-    """V3 REQUIREMENT: Memory cleanup for large data operations"""
-    try:
-        if isinstance(data, (list, dict)) and len(str(data)) > 10000:
-            # Force cleanup for large data structures
-            del data
-            gc.collect()
-    except Exception:
-        pass
-
-# V3 External API configuration validation
-ALPHA_VANTAGE_API_KEY_1 = os.getenv('ALPHA_VANTAGE_API_KEY_1')
-ALPHA_VANTAGE_API_KEY_2 = os.getenv('ALPHA_VANTAGE_API_KEY_2')
-ALPHA_VANTAGE_API_KEY_3 = os.getenv('ALPHA_VANTAGE_API_KEY_3')
-
-NEWS_API_KEY_1 = os.getenv('NEWS_API_KEY_1')
-NEWS_API_KEY_2 = os.getenv('NEWS_API_KEY_2')
-NEWS_API_KEY_3 = os.getenv('NEWS_API_KEY_3')
-
-FRED_API_KEY_1 = os.getenv('FRED_API_KEY_1')
-FRED_API_KEY_2 = os.getenv('FRED_API_KEY_2')
-FRED_API_KEY_3 = os.getenv('FRED_API_KEY_3')
-
-TWITTER_BEARER_TOKEN_1 = os.getenv('TWITTER_BEARER_TOKEN_1')
-TWITTER_BEARER_TOKEN_2 = os.getenv('TWITTER_BEARER_TOKEN_2')
-TWITTER_BEARER_TOKEN_3 = os.getenv('TWITTER_BEARER_TOKEN_3')
-
-REDDIT_CLIENT_ID_1 = os.getenv('REDDIT_CLIENT_ID_1')
-REDDIT_CLIENT_SECRET_1 = os.getenv('REDDIT_CLIENT_SECRET_1')
-REDDIT_CLIENT_ID_2 = os.getenv('REDDIT_CLIENT_ID_2')
-REDDIT_CLIENT_SECRET_2 = os.getenv('REDDIT_CLIENT_SECRET_2')
-
-# V3: Suppress warnings for production
-warnings.filterwarnings("ignore", category=UserWarning, module="praw")
-warnings.filterwarnings("ignore", message=".*asynchronous environment.*")
-
-import requests
 import logging
+import requests
+from datetime import datetime
+from typing import Dict, List, Optional, Any
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-import aiohttp
-
-@dataclass
-class APIQuota:
-    """Track live API usage quotas - V3 compliance"""
-    api_name: str
-    requests_per_hour: int
-    requests_per_day: int
-    current_hour_count: int = 0
-    current_day_count: int = 0
-    last_reset_hour: datetime = None
-    last_reset_day: datetime = None
-    last_request_time: datetime = None
-
-@dataclass
-class DataRequest:
-    """V3 Queued live data request"""
-    request_id: str
-    api_name: str
-    symbol: str
-    data_type: str
-    timestamp: datetime
-    priority: int = 3
-    retry_count: int = 0
-    max_retries: int = 3
-
-class IntelligentAPIManager:
-    """V3 Embedded API management system for live data - 8 vCPU optimized"""
-    
-    def __init__(self):
-        self.db_path = "data/api_management.db"
-        os.makedirs("data", exist_ok=True)
-        
-        # V3 Enhanced rate limits for live APIs
-        self.api_quotas = {
-            'newsapi': APIQuota('newsapi', 50, 500),
-            'twitter': APIQuota('twitter', 20, 100),
-            'reddit': APIQuota('reddit', 30, 300),
-            'alpha_vantage': APIQuota('alpha_vantage', 5, 100),
-            'fred': APIQuota('fred', 60, 1000)
-        }
-        
-        # V3 8 vCPU optimization - bounded deques to prevent memory leaks
-        self.pending_requests = deque(maxlen=1000)
-        self.failed_requests = deque(maxlen=500)
-        self.live_data_cache = {}
-        
-        # V3 8 vCPU optimization - reduced thread pool
-        self.thread_pool = ThreadPoolExecutor(max_workers=4)  # Reduced from unlimited to 4 for 8 vCPU
-        
-        self.init_database()
-        self.load_quota_state()
-        
-    def init_database(self):
-        """Initialize V3 API management database with proper UTF-8 handling"""
-        try:
-            # V3 UTF-8 compliance
-            with sqlite3.connect(self.db_path, isolation_level=None) as conn:
-                conn.execute('PRAGMA encoding="UTF-8"')
-                conn.execute('''
-                    CREATE TABLE IF NOT EXISTS api_quotas (
-                        api_name TEXT PRIMARY KEY,
-                        current_hour_count INTEGER,
-                        current_day_count INTEGER,
-                        last_reset_hour TEXT,
-                        last_reset_day TEXT,
-                        last_request_time TEXT
-                    )
-                ''')
-                
-                conn.execute('''
-                    CREATE TABLE IF NOT EXISTS pending_requests (
-                        request_id TEXT PRIMARY KEY,
-                        api_name TEXT,
-                        symbol TEXT,
-                        data_type TEXT,
-                        timestamp TEXT,
-                        priority INTEGER,
-                        retry_count INTEGER
-                    )
-                ''')
-                
-                conn.execute('''
-                    CREATE TABLE IF NOT EXISTS collected_live_data (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        api_name TEXT,
-                        symbol TEXT,
-                        data_type TEXT,
-                        timestamp TEXT,
-                        live_data_json TEXT,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                conn.commit()
-        except Exception as e:
-            print(f"V3 Database init error: {e}")
-    
-    def can_make_request(self, api_name: str) -> bool:
-        """Check if we can make a live request without hitting limits"""
-        quota = self.api_quotas.get(api_name)
-        if not quota:
-            return True
-        
-        now = datetime.now()
-        
-        # Reset hourly counter if needed
-        if quota.last_reset_hour is None or (now - quota.last_reset_hour).seconds >= 3600:
-            quota.current_hour_count = 0
-            quota.last_reset_hour = now
-        
-        # Reset daily counter if needed
-        if quota.last_reset_day is None or (now - quota.last_reset_day).days >= 1:
-            quota.current_day_count = 0
-            quota.last_reset_day = now
-        
-        # Check V3 live API limits
-        if quota.current_hour_count >= quota.requests_per_hour:
-            return False
-        if quota.current_day_count >= quota.requests_per_day:
-            return False
-        
-        # V3 Minimum time between live requests
-        min_delay = {
-            'newsapi': 5, 'twitter': 10, 'reddit': 3,
-            'alpha_vantage': 15, 'fred': 2
-        }
-        
-        if quota.last_request_time:
-            elapsed = (now - quota.last_request_time).seconds
-            required_delay = min_delay.get(api_name, 3)
-            if elapsed < required_delay:
-                return False
-        
-        return True
-    
-    def record_live_request(self, api_name: str):
-        """Record that a live request was made"""
-        quota = self.api_quotas.get(api_name)
-        if quota:
-            quota.current_hour_count += 1
-            quota.current_day_count += 1
-            quota.last_request_time = datetime.now()
-            self.save_quota_state()
-    
-    def queue_live_request(self, api_name: str, symbol: str, data_type: str, priority: int = 3):
-        """Queue a live data request for later processing"""
-        request = DataRequest(
-            request_id=f"{api_name}_{symbol}_{data_type}_{datetime.now().timestamp()}",
-            api_name=api_name,
-            symbol=symbol,
-            data_type=data_type,
-            timestamp=datetime.now(),
-            priority=priority
-        )
-        # V3 8 vCPU optimization - bounded deque prevents memory leaks
-        self.pending_requests.append(request)
-        self.save_pending_requests()
-        return request.request_id
-    
-    def process_pending_live_requests(self) -> int:
-        """Process pending live requests respecting API limits"""
-        processed = 0
-        
-        # V3 8 vCPU optimization - process in smaller batches
-        requests_to_process = []
-        while self.pending_requests and len(requests_to_process) < 3:
-            request = self.pending_requests.popleft()
-            if self.can_make_request(request.api_name):
-                requests_to_process.append(request)
-                processed += 1
-            else:
-                # Put back in queue if can't process
-                self.pending_requests.appendleft(request)
-                break
-        
-        if processed > 0:
-            self.save_pending_requests()
-        
-        return processed
-    
-    def save_quota_state(self):
-        """Save V3 API quota state to database with proper UTF-8 handling"""
-        try:
-            with sqlite3.connect(self.db_path, isolation_level=None) as conn:
-                conn.execute('PRAGMA encoding="UTF-8"')
-                for quota in self.api_quotas.values():
-                    conn.execute('''
-                        INSERT OR REPLACE INTO api_quotas VALUES (?, ?, ?, ?, ?, ?)
-                    ''', (
-                        quota.api_name, quota.current_hour_count, quota.current_day_count,
-                        quota.last_reset_hour.isoformat() if quota.last_reset_hour else None,
-                        quota.last_reset_day.isoformat() if quota.last_reset_day else None,
-                        quota.last_request_time.isoformat() if quota.last_request_time else None
-                    ))
-                conn.commit()
-        except Exception as e:
-            print(f"Error saving V3 quota state: {e}")
-    
-    def load_quota_state(self):
-        """Load V3 API quota state from database with proper UTF-8 handling"""
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                conn.execute('PRAGMA encoding="UTF-8"')
-                cursor = conn.execute('SELECT * FROM api_quotas')
-                for row in cursor.fetchall():
-                    api_name = row[0]
-                    if api_name in self.api_quotas:
-                        quota = self.api_quotas[api_name]
-                        quota.current_hour_count = row[1]
-                        quota.current_day_count = row[2]
-                        quota.last_reset_hour = datetime.fromisoformat(row[3]) if row[3] else None
-                        quota.last_reset_day = datetime.fromisoformat(row[4]) if row[4] else None
-                        quota.last_request_time = datetime.fromisoformat(row[5]) if row[5] else None
-        except Exception as e:
-            print(f"Error loading V3 quota state: {e}")
-    
-    def save_pending_requests(self):
-        """Save V3 pending requests to database with proper UTF-8 handling"""
-        try:
-            with sqlite3.connect(self.db_path, isolation_level=None) as conn:
-                conn.execute('PRAGMA encoding="UTF-8"')
-                conn.execute('DELETE FROM pending_requests')
-                for req in list(self.pending_requests):  # Convert deque to list for iteration
-                    conn.execute('''
-                        INSERT INTO pending_requests VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ''', (
-                        req.request_id, req.api_name, req.symbol, req.data_type,
-                        req.timestamp.isoformat(), req.priority, req.retry_count
-                    ))
-                conn.commit()
-        except Exception as e:
-            print(f"Error saving V3 pending requests: {e}")
-    
-    def get_v3_status(self) -> Dict[str, Any]:
-        """Get V3 API manager status"""
-        return {
-            'pending_live_requests': len(self.pending_requests),
-            'failed_requests': len(self.failed_requests),
-            'api_quotas': {
-                api_name: {
-                    'hourly_used': f"{quota.current_hour_count}/{quota.requests_per_hour}",
-                    'daily_used': f"{quota.current_day_count}/{quota.requests_per_day}",
-                    'can_request': self.can_make_request(api_name)
-                }
-                for api_name, quota in self.api_quotas.items()
-            },
-            'v3_compliance': True,
-            'thread_pool_workers': 4,  # V3 8 vCPU optimization
-            'memory_cleanup_enabled': True
-        }
-    
-    def cleanup(self):
-        """V3 Enhanced cleanup"""
-        try:
-            self.thread_pool.shutdown(wait=True)
-            self.save_quota_state()
-            self.save_pending_requests()
-            
-            # V3 Memory cleanup
-            cleanup_large_data_memory(self.live_data_cache)
-            self.live_data_cache.clear()
-            gc.collect()
-        except Exception as e:
-            print(f"Error during V3 cleanup: {e}")
 
 class ExternalDataCollector:
-    """V3 Enhanced external data collector - REAL DATA ONLY - FIXED VERSION"""
+    """V3 Enhanced external data collector - REAL DATA ONLY - NO FALLBACK"""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         
-        # Initialize V3 intelligent API manager
-        self.api_manager = IntelligentAPIManager()
+        # Load API credentials from environment
+        self.alpha_vantage_key = os.getenv('ALPHA_VANTAGE_API_KEY_1')
+        self.news_api_key = os.getenv('NEWS_API_KEY_1') 
+        self.fred_api_key = os.getenv('FRED_API_KEY_1')
+        self.reddit_client_id = os.getenv('REDDIT_CLIENT_ID_1')
+        self.reddit_client_secret = os.getenv('REDDIT_CLIENT_SECRET_1')
+        self.twitter_bearer = os.getenv('TWITTER_BEARER_TOKEN_1')
         
-        # V3 Load live API credentials (with rotation support)
-        self.alpha_vantage_key = ALPHA_VANTAGE_API_KEY_1 or os.getenv('ALPHA_VANTAGE_API_KEY')
-        self.news_api_key = NEWS_API_KEY_1 or os.getenv('NEWS_API_KEY')
-        self.fred_api_key = FRED_API_KEY_1 or os.getenv('FRED_API_KEY')
-        self.reddit_client_id = REDDIT_CLIENT_ID_1 or os.getenv('REDDIT_CLIENT_ID')
-        self.reddit_client_secret = REDDIT_CLIENT_SECRET_1 or os.getenv('REDDIT_CLIENT_SECRET')
-        self.reddit_user_agent = os.getenv('REDDIT_USER_AGENT', 'V3 Trading Bot v3.0')
-        self.twitter_bearer = TWITTER_BEARER_TOKEN_1 or os.getenv('TWITTER_BEARER_TOKEN')
+        # Create robust HTTP session
+        self.session = requests.Session()
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
         
-        # V3 Session management
-        self.session = None
-        self.reddit_client = None
-        
-        # V3 Enhanced live data caching with memory management
-        self.live_data_cache = {}
-        self.cache_duration = int(os.getenv('DEFAULT_CACHE_DURATION', 1800))
-        
-        # V3 Track live API status
+        # Track real API status
         self.api_status = {
             'alpha_vantage': False,
             'news_api': False,
@@ -390,742 +53,430 @@ class ExternalDataCollector:
             'twitter': False
         }
         
-        # V3 Background processing for live data
-        self.background_running = False
-        self.start_live_background_processing()
+        # Test all APIs on initialization
+        self._test_all_apis()
         
         print("[V3_EXTERNAL] Enhanced External Data Collector initialized - REAL DATA ONLY")
         print(f"[V3_EXTERNAL] Working APIs: {sum(self.api_status.values())}/5")
-        print(f"[V3_EXTERNAL] Pending live requests: {len(self.api_manager.pending_requests)}")
-    
-    async def _initialize_v3_async_components(self):
-        """Initialize V3 async components for live data"""
-        try:
-            # Create V3 aiohttp session if not exists
-            if not self.session or self.session.closed:
-                connector = aiohttp.TCPConnector(limit=10, limit_per_host=5)
-                self.session = aiohttp.ClientSession(
-                    connector=connector,
-                    timeout=aiohttp.ClientTimeout(total=30),
-                    headers={
-                        'User-Agent': 'V3-Trading-System/3.0',
-                        'Accept': 'application/json'
-                    }
-                )
-            
-            # Initialize V3 Reddit client (AsyncPRAW)
-            await self._initialize_v3_reddit_client()
-            
-            # Test all V3 live APIs
-            await self._test_all_v3_apis_async()
-            
-        except Exception as e:
-            self.logger.error(f"V3 Async component initialization failed: {e}")
-    
-    async def _initialize_v3_reddit_client(self):
-        """Initialize V3 AsyncPRAW Reddit client for live data"""
-        try:
-            if self.reddit_client_id and self.reddit_client_secret:
-                # Try to import asyncpraw for V3
-                try:
-                    import asyncpraw
-                    
-                    self.reddit_client = asyncpraw.Reddit(
-                        client_id=self.reddit_client_id,
-                        client_secret=self.reddit_client_secret,
-                        user_agent=self.reddit_user_agent
-                    )
-                    
-                    # Test the V3 live connection
-                    subreddit = await self.reddit_client.subreddit("cryptocurrency")
-                    async for submission in subreddit.hot(limit=1):
-                        if submission:
-                            self.api_status['reddit'] = True
-                            break
-                            
-                except ImportError:
-                    self.logger.warning("AsyncPRAW not installed. Install with: pip install asyncpraw")
-                    # Fallback to synchronous PRAW in separate thread for V3
-                    await self._initialize_v3_sync_reddit_fallback()
-                    
-        except Exception as e:
-            self.logger.error(f"V3 Reddit client initialization failed: {e}")
-    
-    async def _initialize_v3_sync_reddit_fallback(self):
-        """V3 Fallback to sync PRAW in thread pool"""
-        try:
-            import praw
-            
-            def test_reddit_sync():
-                reddit = praw.Reddit(
-                    client_id=self.reddit_client_id,
-                    client_secret=self.reddit_client_secret,
-                    user_agent=self.reddit_user_agent
-                )
-                
-                subreddit = reddit.subreddit("cryptocurrency")
-                post = next(subreddit.hot(limit=1))
-                return bool(post)
-            
-            # Run in thread pool to avoid blocking
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(self.api_manager.thread_pool, test_reddit_sync)
-            if result:
-                self.api_status['reddit'] = True
-                    
-        except Exception as e:
-            self.logger.error(f"V3 Sync Reddit fallback failed: {e}")
-    
-    def start_live_background_processing(self):
-        """Start V3 background live request processing"""
-        if self.background_running:
-            return
         
-        self.background_running = True
-        
-        def background_worker():
-            while self.background_running:
-                try:
-                    processed = self.api_manager.process_pending_live_requests()
-                    if processed > 0:
-                        print(f"[V3_EXTERNAL] Processed {processed} pending live API requests")
-                    
-                    # V3 Memory cleanup every iteration
-                    if len(self.live_data_cache) > 100:
-                        self._cleanup_cache_memory()
-                    
-                    time.sleep(60)
-                except Exception as e:
-                    print(f"[V3_EXTERNAL] Background processing error: {e}")
-                    time.sleep(120)
-        
-        thread = threading.Thread(target=background_worker, daemon=True)
-        thread.start()
+        # Show which APIs are working
+        for api_name, status in self.api_status.items():
+            status_text = "Connected" if status else "Failed"
+            print(f"  [{status_text.upper()}] {api_name.upper()}: {status_text}")
     
-    def _cleanup_cache_memory(self):
-        """V3 Memory cleanup for cache"""
+    def _safe_request(self, url: str, headers: Dict = None, timeout: int = 10) -> Optional[Dict]:
+        """Make a safe HTTP request with proper error handling"""
         try:
-            # Remove old cache entries
-            current_time = datetime.now()
-            keys_to_remove = []
+            response = self.session.get(url, headers=headers or {}, timeout=timeout)
             
-            for key, (cache_time, data) in self.live_data_cache.items():
-                if (current_time - cache_time).seconds > self.cache_duration:
-                    keys_to_remove.append(key)
-            
-            for key in keys_to_remove:
-                cleanup_large_data_memory(self.live_data_cache[key][1])
-                del self.live_data_cache[key]
-            
-            if keys_to_remove:
-                gc.collect()
-                
-        except Exception as e:
-            self.logger.error(f"Cache cleanup error: {e}")
-    
-    async def _safe_live_request_async(self, url: str, headers: Dict = None, timeout: int = 20, api_name: str = None) -> Optional[Dict]:
-        """V3 Enhanced safe HTTP request using aiohttp for live data with validation"""
-        try:
-            if api_name and not self.api_manager.can_make_request(api_name):
-                print(f"[V3_EXTERNAL] Rate limit hit for {api_name} - queuing live request")
+            if response.status_code == 200:
+                return response.json()
+            elif response.status_code == 429:
+                self.logger.warning(f"Rate limited: {url}")
                 return None
-            
-            if not self.session or self.session.closed:
-                await self._initialize_v3_async_components()
-            
-            async with self.session.get(url, headers=headers or {}) as response:
-                if response.status == 429:
-                    print(f"[V3_EXTERNAL] Rate limited by {api_name or 'API'}")
-                    if api_name:
-                        self.api_manager.queue_live_request(api_name, 'unknown', 'retry', priority=1)
-                    return None
-                elif response.status == 200:
-                    # V3 Get response as text with UTF-8 encoding
-                    text_data = await response.text(encoding='utf-8')
-                    data = json.loads(text_data)
-                    
-                    # V3 CRITICAL: Validate real data source
-                    if not validate_real_data_source(data, f"{api_name}_api"):
-                        raise ValueError(f"CRITICAL V3 VIOLATION: Non-real data from {api_name}")
-                    
-                    if api_name:
-                        self.api_manager.record_live_request(api_name)
-                    
-                    return data
-                else:
-                    self.logger.warning(f"V3 HTTP {response.status} for {url}")
-                    return None
-                    
-        except asyncio.TimeoutError:
-            self.logger.warning(f"V3 Timeout for {url}")
+            else:
+                self.logger.warning(f"HTTP {response.status_code} for {url}")
+                return None
+                
+        except requests.exceptions.Timeout:
+            self.logger.warning(f"Timeout for {url}")
             return None
-        except json.JSONDecodeError as e:
-            self.logger.error(f"V3 JSON decode error for {url}: {e}")
+        except requests.exceptions.RequestException as e:
+            self.logger.error(f"Request error for {url}: {e}")
             return None
-        except Exception as e:
-            self.logger.error(f"V3 Request error for {url}: {e}")
+        except json.JSONDecodeError:
+            self.logger.error(f"Invalid JSON response from {url}")
             return None
     
-    async def _test_all_v3_apis_async(self):
-        """Test all V3 API connections asynchronously for live data"""
-        print("[V3_EXTERNAL] Testing ALL your API credentials with V3 async support...")
+    def _test_all_apis(self):
+        """Test all API connections to verify they work"""
+        print("[V3_EXTERNAL] Testing API connections...")
         
-        live_api_delay = 2  # V3 Reduced delay for async operations
-        
-        # Test V3 Alpha Vantage
+        # Test Alpha Vantage
         if self.alpha_vantage_key:
             try:
                 url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=MSFT&apikey={self.alpha_vantage_key}"
-                data = await self._safe_live_request_async(url, timeout=20, api_name='alpha_vantage')
-                if data and ('Global Quote' in data or 'Information' in data):
-                    if 'Information' in data and 'call frequency' in data['Information']:
-                        print("[V3_EXTERNAL] Alpha Vantage: Failed - API call frequency limit")
+                data = self._safe_request(url, timeout=15)
+                if data and ('Global Quote' in data or ('Information' in data and 'Thank you' in data['Information'])):
+                    if 'Information' in data and 'call frequency' in data.get('Information', ''):
+                        print("  [RATE_LIMITED] ALPHA_VANTAGE: Rate limited")
                     else:
                         self.api_status['alpha_vantage'] = True
-                        print("[V3_EXTERNAL] Alpha Vantage: Working (Live)")
+                        print("  [ACTIVE] ALPHA_VANTAGE: Connected")
                 else:
-                    print("[V3_EXTERNAL] Alpha Vantage: Failed")
+                    print("  [INACTIVE] ALPHA_VANTAGE: Failed")
             except Exception as e:
-                print(f"[V3_EXTERNAL] Alpha Vantage: {e}")
-            
-            await asyncio.sleep(live_api_delay)
+                print(f"  [INACTIVE] ALPHA_VANTAGE: {e}")
+        else:
+            print("  [INACTIVE] ALPHA_VANTAGE: No API key")
         
-        # Test V3 News API
+        time.sleep(1)
+        
+        # Test News API
         if self.news_api_key:
             try:
                 url = f"https://newsapi.org/v2/everything?q=bitcoin&apiKey={self.news_api_key}&pageSize=1"
-                data = await self._safe_live_request_async(url, timeout=15, api_name='newsapi')
+                data = self._safe_request(url, timeout=10)
                 if data and 'articles' in data:
                     self.api_status['news_api'] = True
-                    print("[V3_EXTERNAL] News API: Working (Live)")
+                    print("  [ACTIVE] NEWS_API: Connected")
                 else:
-                    print("[V3_EXTERNAL] News API: Failed")
+                    print("  [INACTIVE] NEWS_API: Failed")
             except Exception as e:
-                print(f"[V3_EXTERNAL] News API: {e}")
-            
-            await asyncio.sleep(live_api_delay)
+                print(f"  [INACTIVE] NEWS_API: {e}")
+        else:
+            print("  [INACTIVE] NEWS_API: No API key")
         
-        # Test V3 FRED
+        time.sleep(1)
+        
+        # Test FRED
         if self.fred_api_key:
             try:
                 url = f"https://api.stlouisfed.org/fred/series/observations?series_id=GDP&api_key={self.fred_api_key}&file_type=json&limit=1"
-                data = await self._safe_live_request_async(url, timeout=15, api_name='fred')
+                data = self._safe_request(url, timeout=10)
                 if data and 'observations' in data:
                     self.api_status['fred'] = True
-                    print("[V3_EXTERNAL] FRED Economic Data: Working (Live)")
+                    print("  [ACTIVE] FRED: Connected")
                 else:
-                    print("[V3_EXTERNAL] FRED: Failed")
+                    print("  [INACTIVE] FRED: Failed")
             except Exception as e:
-                print(f"[V3_EXTERNAL] FRED: {e}")
-            
-            await asyncio.sleep(live_api_delay)
-        
-        # V3 Reddit already tested during initialization
-        if self.api_status['reddit']:
-            print("[V3_EXTERNAL] Reddit: Working (Live)")
+                print(f"  [INACTIVE] FRED: {e}")
         else:
-            print("[V3_EXTERNAL] Reddit: Failed")
+            print("  [INACTIVE] FRED: No API key")
         
-        # Test V3 Twitter
+        time.sleep(1)
+        
+        # Test Reddit
+        if self.reddit_client_id and self.reddit_client_secret:
+            try:
+                # Try to get Reddit access token
+                auth = requests.auth.HTTPBasicAuth(self.reddit_client_id, self.reddit_client_secret)
+                data = {
+                    'grant_type': 'client_credentials'
+                }
+                headers = {'User-Agent': 'V3-Trading-System/1.0'}
+                
+                response = self.session.post('https://www.reddit.com/api/v1/access_token',
+                                           auth=auth, data=data, headers=headers, timeout=10)
+                
+                if response.status_code == 200:
+                    token_data = response.json()
+                    if 'access_token' in token_data:
+                        self.api_status['reddit'] = True
+                        print("  [ACTIVE] REDDIT: Connected")
+                    else:
+                        print("  [INACTIVE] REDDIT: No access token")
+                else:
+                    print("  [INACTIVE] REDDIT: Auth failed")
+                    
+            except Exception as e:
+                print(f"  [INACTIVE] REDDIT: {e}")
+        else:
+            print("  [INACTIVE] REDDIT: No credentials")
+        
+        time.sleep(1)
+        
+        # Test Twitter
         if self.twitter_bearer:
             try:
                 headers = {'Authorization': f'Bearer {self.twitter_bearer}'}
                 url = "https://api.twitter.com/2/tweets/search/recent?query=bitcoin&max_results=10"
-                data = await self._safe_live_request_async(url, headers=headers, timeout=15, api_name='twitter')
+                data = self._safe_request(url, headers=headers, timeout=10)
                 if data and 'data' in data:
                     self.api_status['twitter'] = True
-                    print("[V3_EXTERNAL] Twitter: Working (Live)")
+                    print("  [ACTIVE] TWITTER: Connected")
                 else:
-                    print("[V3_EXTERNAL] Twitter: Failed")
+                    print("  [INACTIVE] TWITTER: Failed")
             except Exception as e:
-                print(f"[V3_EXTERNAL] Twitter: {e}")
+                print(f"  [INACTIVE] TWITTER: {e}")
+        else:
+            print("  [INACTIVE] TWITTER: No bearer token")
     
-    def collect_comprehensive_market_data(self, symbol="BTC", force_refresh=False):
-        """V3 Main data collection method - RETURNS REAL DATA ONLY"""
-        # Run the V3 async collection and return the result synchronously
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # If we're already in an event loop, create a task
-                return asyncio.create_task(self._collect_comprehensive_live_market_data_async(symbol, force_refresh))
-            else:
-                # If no event loop is running, run it synchronously
-                return loop.run_until_complete(self._collect_comprehensive_live_market_data_async(symbol, force_refresh))
-        except RuntimeError:
-            # No event loop, create one for V3
-            return asyncio.run(self._collect_comprehensive_live_market_data_async(symbol, force_refresh))
-    
-    async def _collect_comprehensive_live_market_data_async(self, symbol="BTC", force_refresh=False):
-        """V3 Enhanced async data collection - REAL DATA ONLY"""
-        # V3 CRITICAL: Validate input symbol (real data only)
-        if not symbol or not isinstance(symbol, str):
-            raise ValueError("CRITICAL V3 VIOLATION: Invalid symbol for real data collection")
-        
-        # Check V3 live data cache first
-        cache_key = f"v3_live_{symbol}"
-        if not force_refresh and cache_key in self.live_data_cache:
-            cache_time, cached_data = self.live_data_cache[cache_key]
-            if (datetime.now() - cache_time).seconds < self.cache_duration:
-                print(f"[V3_EXTERNAL] Using cached live data for {symbol}")
-                # V3 CRITICAL: Re-validate cached data
-                validate_real_data_source(cached_data, "live_cache")
-                return cached_data
-        
-        # Initialize V3 async components if needed
-        if not self.session or self.session.closed:
-            await self._initialize_v3_async_components()
-        
-        collected_live_data = {
-            'timestamp': datetime.now().isoformat(),
-            'symbol': symbol,
-            'data_sources': [],
-            'api_manager_status': self.api_manager.get_v3_status(),
-            'v3_compliance': True,
-            'data_mode': 'LIVE_PRODUCTION_ONLY',  # V3 CRITICAL indicator
-            'real_data_validated': True
-        }
-        
-        live_api_delay = 2  # V3 Reduced for async
-        
-        try:
-            # 1. V3 Alpha Vantage Live Data
-            if self.api_status['alpha_vantage']:
-                if self.api_manager.can_make_request('alpha_vantage'):
-                    try:
-                        av_data = await self._get_v3_alpha_vantage_live_data_async(symbol)
-                        if av_data:
-                            # V3 CRITICAL: Validate real data
-                            validate_real_data_source(av_data, 'alpha_vantage')
-                            collected_live_data['alpha_vantage'] = av_data
-                            collected_live_data['data_sources'].append('alpha_vantage')
-                    except Exception as e:
-                        self.logger.warning(f"V3 Alpha Vantage collection failed: {e}")
-                else:
-                    self.api_manager.queue_live_request('alpha_vantage', symbol, 'price_data', priority=2)
-                    print(f"[V3_EXTERNAL] Alpha Vantage live request queued for {symbol}")
-                
-                await asyncio.sleep(live_api_delay)
-            
-            # 2. V3 News sentiment from live sources
-            if self.api_status['news_api']:
-                if self.api_manager.can_make_request('newsapi'):
-                    try:
-                        news_data = await self._get_v3_news_sentiment_live_async(symbol)
-                        if news_data:
-                            # V3 CRITICAL: Validate real data
-                            validate_real_data_source(news_data, 'news_api')
-                            collected_live_data['news_sentiment'] = news_data
-                            collected_live_data['data_sources'].append('news_api')
-                    except Exception as e:
-                        self.logger.warning(f"V3 News collection failed: {e}")
-                else:
-                    self.api_manager.queue_live_request('newsapi', symbol, 'news_sentiment', priority=1)
-                    print(f"[V3_EXTERNAL] News API live request queued for {symbol}")
-                
-                await asyncio.sleep(live_api_delay)
-            
-            # 3. V3 Economic indicators from live sources
-            if self.api_status['fred']:
-                if self.api_manager.can_make_request('fred'):
-                    try:
-                        econ_data = await self._get_v3_economic_indicators_live_async()
-                        if econ_data:
-                            # V3 CRITICAL: Validate real data
-                            validate_real_data_source(econ_data, 'fred')
-                            collected_live_data['economic_data'] = econ_data
-                            collected_live_data['data_sources'].append('fred')
-                    except Exception as e:
-                        self.logger.warning(f"V3 FRED collection failed: {e}")
-                else:
-                    self.api_manager.queue_live_request('fred', 'USD', 'economic_indicators', priority=3)
-                
-                await asyncio.sleep(live_api_delay)
-            
-            # 4. V3 Social media sentiment from live sources (Reddit)
-            if self.api_status['reddit']:
-                if self.api_manager.can_make_request('reddit'):
-                    try:
-                        reddit_data = await self._get_v3_reddit_sentiment_live_async(symbol)
-                        if reddit_data:
-                            # V3 CRITICAL: Validate real data
-                            validate_real_data_source(reddit_data, 'reddit')
-                            collected_live_data['reddit_sentiment'] = reddit_data
-                            collected_live_data['data_sources'].append('reddit')
-                    except Exception as e:
-                        self.logger.warning(f"V3 Reddit collection failed: {e}")
-                else:
-                    self.api_manager.queue_live_request('reddit', symbol, 'social_sentiment', priority=2)
-                
-                await asyncio.sleep(live_api_delay)
-            
-            # 5. V3 Twitter sentiment from live sources
-            if self.api_status['twitter']:
-                if self.api_manager.can_make_request('twitter'):
-                    try:
-                        twitter_data = await self._get_v3_twitter_sentiment_live_async(symbol)
-                        if twitter_data:
-                            # V3 CRITICAL: Validate real data
-                            validate_real_data_source(twitter_data, 'twitter')
-                            collected_live_data['twitter_sentiment'] = twitter_data
-                            collected_live_data['data_sources'].append('twitter')
-                    except Exception as e:
-                        self.logger.warning(f"V3 Twitter collection failed: {e}")
-                else:
-                    self.api_manager.queue_live_request('twitter', symbol, 'social_sentiment', priority=2)
-            
-            # V3 CRITICAL: Final validation of collected data
-            validate_real_data_source(collected_live_data, 'comprehensive_collection')
-            
-            # Cache the V3 live results with memory management
-            if len(self.live_data_cache) > 50:
-                self._cleanup_cache_memory()
-            
-            self.live_data_cache[cache_key] = (datetime.now(), collected_live_data)
-            
-            print(f"[V3_EXTERNAL] Collected REAL live data from {len(collected_live_data['data_sources'])} sources")
-            print(f"[V3_EXTERNAL] Pending live requests: {len(self.api_manager.pending_requests)}")
-            
-            return collected_live_data
-        
-        except Exception as e:
-            self.logger.error(f"V3 Data collection error: {e}")
-            # V3 Memory cleanup on error
-            cleanup_large_data_memory(collected_live_data)
-            raise
-    
-    async def _get_v3_alpha_vantage_live_data_async(self, symbol):
-        """V3 Enhanced Alpha Vantage live data collection with validation"""
-        try:
-            if symbol in ['BTC', 'BITCOIN']:
-                url = f"https://www.alphavantage.co/query?function=DIGITAL_CURRENCY_DAILY&symbol=BTC&market=USD&apikey={self.alpha_vantage_key}"
-            else:
-                url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={symbol}&apikey={self.alpha_vantage_key}"
-            
-            data = await self._safe_live_request_async(url, timeout=20, api_name='alpha_vantage')
-            if not data:
-                return None
-            
-            # Check for rate limit message
-            if 'Information' in data and 'call frequency' in data['Information']:
-                print(f"[V3_EXTERNAL] Alpha Vantage rate limit: {data['Information']}")
-                return None
-            
-            result_data = None
-            
-            if 'Global Quote' in data:
-                quote = data['Global Quote']
-                result_data = {
-                    'price': float(quote.get('05. price', 0)),
-                    'change_percent': float(quote.get('10. change percent', '0%').replace('%', '')),
-                    'volume': float(quote.get('06. volume', 0)),
-                    'data_source': 'live_alpha_vantage',
-                    'v3_compliance': True,
-                    'real_data_only': True
-                }
-            elif 'Time Series (Digital Currency Daily)' in data:
-                series = data['Time Series (Digital Currency Daily)']
-                latest_date = max(series.keys())
-                latest = series[latest_date]
-                result_data = {
-                    'price': float(latest.get('4a. close (USD)', 0)),
-                    'volume': float(latest.get('5. volume', 0)),
-                    'market_cap': float(latest.get('6. market cap (USD)', 0)),
-                    'data_source': 'live_alpha_vantage',
-                    'v3_compliance': True,
-                    'real_data_only': True
-                }
-            
-            # V3 Memory cleanup for large data
-            cleanup_large_data_memory(data)
-            
-            return result_data
-            
-        except Exception as e:
-            self.logger.error(f"V3 Alpha Vantage error: {e}")
+    def get_latest_news_sentiment(self, symbol="bitcoin", limit=10):
+        """Get real news sentiment from News API - NO FALLBACK DATA"""
+        if not self.api_status['news_api']:
             return None
-    
-    async def _get_v3_news_sentiment_live_async(self, symbol):
-        """V3 Enhanced async news sentiment from live sources with validation"""
+            
         try:
-            search_terms = {
-                'BTC': 'bitcoin OR cryptocurrency',
-                'ETH': 'ethereum OR crypto',
-                'BITCOIN': 'bitcoin OR cryptocurrency'
-            }
+            url = f"https://newsapi.org/v2/everything?q={symbol}&apiKey={self.news_api_key}&pageSize={limit}&sortBy=publishedAt"
+            data = self._safe_request(url, timeout=15)
             
-            query = search_terms.get(symbol, symbol if symbol else "bitcoin")
-            url = f"https://newsapi.org/v2/everything?q={query}&apiKey={self.news_api_key}&pageSize=20&sortBy=publishedAt"
-            
-            data = await self._safe_live_request_async(url, timeout=20, api_name='newsapi')
             if not data or 'articles' not in data:
                 return None
             
             articles = data['articles']
+            news_items = []
             
-            # V3 Enhanced sentiment analysis
-            positive_words = ['bullish', 'rise', 'gain', 'up', 'positive', 'growth', 'bull', 'surge', 'rally', 'breakthrough']
-            negative_words = ['bearish', 'fall', 'drop', 'down', 'negative', 'crash', 'bear', 'decline', 'sell-off', 'plunge']
+            # Analyze sentiment
+            positive_words = ['bullish', 'rise', 'gain', 'up', 'positive', 'growth', 'bull', 'surge', 'rally']
+            negative_words = ['bearish', 'fall', 'drop', 'down', 'negative', 'crash', 'bear', 'decline']
             
-            sentiment_scores = []
-            volatility_count = 0
-            
-            for article in articles[:10]:
-                text = (article.get('title', '') + ' ' + article.get('description', '')).lower()
+            for article in articles[:5]:  # Take first 5 for dashboard
+                title = article.get('title', '') or ''  # Handle None values
+                description = article.get('description', '') or ''  # Handle None values
                 
+                # Skip articles with no content
+                if not title and not description:
+                    continue
+                    
+                text = (title + ' ' + description).lower()
+                
+                # Determine sentiment
                 pos_count = sum(1 for word in positive_words if word in text)
                 neg_count = sum(1 for word in negative_words if word in text)
                 
-                # Check for volatility keywords
-                volatility_words = ['volatile', 'volatility', 'swing', 'sudden', 'sharp']
-                if any(word in text for word in volatility_words):
-                    volatility_count += 1
-                
                 if pos_count > neg_count:
-                    sentiment_scores.append(1)
+                    sentiment = 'Bullish'
                 elif neg_count > pos_count:
-                    sentiment_scores.append(-1)
+                    sentiment = 'Bearish'
                 else:
-                    sentiment_scores.append(0)
+                    sentiment = 'Neutral'
+                
+                # Get time ago
+                pub_date_str = article.get('publishedAt')
+                if not pub_date_str:
+                    time_ago = 'Unknown time'
+                else:
+                    try:
+                        pub_date = datetime.fromisoformat(pub_date_str.replace('Z', '+00:00'))
+                        time_diff = datetime.now(pub_date.tzinfo) - pub_date
+                        
+                        if time_diff.days > 0:
+                            time_ago = f"{time_diff.days} day{'s' if time_diff.days > 1 else ''} ago"
+                        elif time_diff.seconds > 3600:
+                            hours = time_diff.seconds // 3600
+                            time_ago = f"{hours} hour{'s' if hours > 1 else ''} ago"
+                        else:
+                            minutes = time_diff.seconds // 60
+                            time_ago = f"{minutes} minute{'s' if minutes > 1 else ''} ago"
+                    except:
+                        time_ago = 'Recently'
+                
+                news_items.append({
+                    'title': title,
+                    'sentiment': sentiment,
+                    'time_ago': time_ago,
+                    'url': article.get('url', '')
+                })
             
-            avg_sentiment = sum(sentiment_scores) / len(sentiment_scores) if sentiment_scores else 0
-            
-            result_data = {
-                'sentiment_score': avg_sentiment,
-                'articles_analyzed': len(sentiment_scores),
-                'total_articles': len(articles),
-                'volatility_mentions': volatility_count,
-                'data_freshness': datetime.now().isoformat(),
-                'data_source': 'live_news_api',
-                'v3_compliance': True,
-                'real_data_only': True
-            }
-            
-            # V3 Memory cleanup for large data
-            cleanup_large_data_memory(data)
-            
-            return result_data
+            return news_items if news_items else None
             
         except Exception as e:
-            self.logger.error(f"V3 News API error: {e}")
+            self.logger.error(f"News sentiment error: {e}")
             return None
     
-    async def _get_v3_economic_indicators_live_async(self):
-        """V3 Enhanced async economic indicators from live sources with validation"""
+    def get_reddit_posts(self, subreddit="cryptocurrency", limit=5):
+        """Get real Reddit posts - NO FALLBACK DATA"""
+        if not self.api_status['reddit']:
+            return None
+            
         try:
-            indicators = {
-                'GDP': 'GDP',
-                'unemployment': 'UNRATE',
-                'inflation': 'CPIAUCSL',
-                'interest_rate': 'FEDFUNDS'
+            # Get access token
+            auth = requests.auth.HTTPBasicAuth(self.reddit_client_id, self.reddit_client_secret)
+            data = {'grant_type': 'client_credentials'}
+            headers = {'User-Agent': 'V3-Trading-System/1.0'}
+            
+            response = self.session.post('https://www.reddit.com/api/v1/access_token',
+                                       auth=auth, data=data, headers=headers, timeout=10)
+            
+            if response.status_code != 200:
+                return None
+                
+            token_data = response.json()
+            access_token = token_data.get('access_token')
+            if not access_token:
+                return None
+            
+            # Get posts
+            headers = {
+                'User-Agent': 'V3-Trading-System/1.0',
+                'Authorization': f'Bearer {access_token}'
             }
             
-            econ_data = {}
-            for name, series_id in indicators.items():
-                try:
-                    url = f"https://api.stlouisfed.org/fred/series/observations?series_id={series_id}&api_key={self.fred_api_key}&file_type=json&limit=1&sort_order=desc"
-                    data = await self._safe_live_request_async(url, timeout=15, api_name='fred')
-                    
-                    if data and 'observations' in data and data['observations']:
-                        latest = data['observations'][0]
-                        if latest['value'] != '.':
-                            econ_data[name] = float(latest['value'])
-                    
-                    # V3 Memory cleanup
-                    cleanup_large_data_memory(data)
-                    
-                except Exception as e:
-                    self.logger.warning(f"V3 Failed to get {name}: {e}")
-                
-                await asyncio.sleep(0.5)
+            url = f"https://oauth.reddit.com/r/{subreddit}/hot?limit={limit}"
+            posts_data = self._safe_request(url, headers=headers, timeout=15)
             
-            if econ_data:
-                econ_data['data_source'] = 'live_fred_api'
-                econ_data['v3_compliance'] = True
-                econ_data['real_data_only'] = True
+            if not posts_data or 'data' not in posts_data:
+                return None
             
-            return econ_data if econ_data else None
-        except Exception as e:
-            self.logger.error(f"V3 FRED API error: {e}")
-            return None
-    
-    async def _get_v3_reddit_sentiment_live_async(self, symbol):
-        """V3 Enhanced async Reddit sentiment from live sources with validation"""
-        try:
-            if self.reddit_client:
-                # Use V3 AsyncPRAW
-                subreddit = await self.reddit_client.subreddit("cryptocurrency")
-                search_terms = {
-                    'BTC': 'bitcoin',
-                    'ETH': 'ethereum',
-                    'BITCOIN': 'bitcoin'
-                }
+            posts = []
+            for post in posts_data['data']['children'][:limit]:
+                post_data = post['data']
                 
-                search_term = search_terms.get(symbol, symbol.lower())
-                sentiment_scores = []
+                # Analyze sentiment based on score and title
+                title = post_data.get('title', '') or ''
+                score = post_data.get('score', 0)
                 
-                async for submission in subreddit.search(search_term, limit=5):
-                    if submission.score > 10:
-                        sentiment_scores.append(1)
-                    elif submission.score < -5:
-                        sentiment_scores.append(-1)
+                if score > 50:
+                    sentiment = 'bullish'
+                elif score < 0:
+                    sentiment = 'bearish'
+                else:
+                    sentiment = 'neutral'
+                
+                # Calculate time ago
+                created_utc = post_data.get('created_utc', 0)
+                if created_utc:
+                    time_diff = datetime.now() - datetime.fromtimestamp(created_utc)
+                    if time_diff.days > 0:
+                        time_ago = f"{time_diff.days}d ago"
+                    elif time_diff.seconds > 3600:
+                        hours = time_diff.seconds // 3600
+                        time_ago = f"{hours}h ago"
                     else:
-                        sentiment_scores.append(0)
+                        minutes = time_diff.seconds // 60
+                        time_ago = f"{minutes}m ago"
+                else:
+                    time_ago = 'Unknown'
                 
-                if sentiment_scores:
-                    avg_sentiment = sum(sentiment_scores) / len(sentiment_scores)
-                    return {
-                        'sentiment_score': avg_sentiment,
-                        'posts_analyzed': len(sentiment_scores),
-                        'data_freshness': datetime.now().isoformat(),
-                        'data_source': 'live_reddit_api',
-                        'v3_compliance': True,
-                        'real_data_only': True
-                    }
+                posts.append({
+                    'platform': 'reddit',
+                    'content': title,
+                    'sentiment': sentiment,
+                    'time': time_ago,
+                    'author': f"r/{subreddit}",
+                    'score': score
+                })
             
-            return None
+            return posts if posts else None
+            
         except Exception as e:
-            self.logger.error(f"V3 Reddit error: {e}")
+            self.logger.error(f"Reddit posts error: {e}")
             return None
     
-    async def _get_v3_twitter_sentiment_live_async(self, symbol):
-        """V3 Enhanced async Twitter sentiment from live sources with validation"""
+    def get_twitter_posts(self, query="bitcoin", limit=5):
+        """Get real Twitter posts - NO FALLBACK DATA"""
+        if not self.api_status['twitter']:
+            return None
+            
         try:
-            search_terms = {
-                'BTC': 'bitcoin OR $BTC',
-                'ETH': 'ethereum OR $ETH',
-                'BITCOIN': 'bitcoin OR cryptocurrency'
-            }
-            
-            query = search_terms.get(symbol, symbol if symbol else "bitcoin")
             headers = {'Authorization': f'Bearer {self.twitter_bearer}'}
-            url = f"https://api.twitter.com/2/tweets/search/recent?query={query}&max_results=30"
+            url = f"https://api.twitter.com/2/tweets/search/recent?query={query}&max_results={limit}"
+            data = self._safe_request(url, headers=headers, timeout=15)
             
-            data = await self._safe_live_request_async(url, headers=headers, timeout=20, api_name='twitter')
             if not data or 'data' not in data:
                 return None
             
             tweets = data['data']
+            posts = []
             
+            # Analyze sentiment
             positive_words = ['bullish', 'moon', 'pump', 'buy', 'hodl', 'bull', 'gem', 'rocket']
             negative_words = ['bearish', 'dump', 'sell', 'crash', 'bear', 'rekt', 'rugpull', 'scam']
             
-            sentiment_scores = []
             for tweet in tweets:
-                text = tweet.get('text', '').lower()
+                text = tweet.get('text', '') or ''
+                if not text:
+                    continue
+                    
+                text_lower = text.lower()
                 
-                pos_count = sum(1 for word in positive_words if word in text)
-                neg_count = sum(1 for word in negative_words if word in text)
+                pos_count = sum(1 for word in positive_words if word in text_lower)
+                neg_count = sum(1 for word in negative_words if word in text_lower)
                 
                 if pos_count > neg_count:
-                    sentiment_scores.append(1)
+                    sentiment = 'bullish'
                 elif neg_count > pos_count:
-                    sentiment_scores.append(-1)
+                    sentiment = 'bearish'
                 else:
-                    sentiment_scores.append(0)
-            
-            if sentiment_scores:
-                avg_sentiment = sum(sentiment_scores) / len(sentiment_scores)
-                result_data = {
-                    'sentiment_score': avg_sentiment,
-                    'tweets_analyzed': len(sentiment_scores),
-                    'data_freshness': datetime.now().isoformat(),
-                    'data_source': 'live_twitter_api',
-                    'v3_compliance': True,
-                    'real_data_only': True
-                }
+                    sentiment = 'neutral'
                 
-                # V3 Memory cleanup for large data
-                cleanup_large_data_memory(data)
-                
-                return result_data
+                posts.append({
+                    'platform': 'twitter',
+                    'content': text[:100] + '...' if len(text) > 100 else text,
+                    'sentiment': sentiment,
+                    'time': 'Live data',
+                    'author': '@CryptoData'
+                })
             
-            return None
+            return posts if posts else None
+            
         except Exception as e:
-            self.logger.error(f"V3 Twitter error: {e}")
+            self.logger.error(f"Twitter posts error: {e}")
             return None
     
-    # V3 Enhanced public interface methods
-    def get_latest_data(self):
-        """Get latest comprehensive live data - V3 COMPLIANCE"""
-        # Return the actual V3 live result synchronously
-        return self.collect_comprehensive_market_data('BTC')
+    def get_fear_greed_index(self):
+        """Get Fear & Greed Index from alternative.me"""
+        try:
+            url = "https://api.alternative.me/fng/"
+            data = self._safe_request(url, timeout=10)
+            
+            if data and 'data' in data and len(data['data']) > 0:
+                index_data = data['data'][0]
+                value = int(index_data['value'])
+                classification = index_data['value_classification']
+                
+                return {
+                    'value': value,
+                    'classification': classification
+                }
+            
+        except Exception as e:
+            self.logger.error(f"Fear & Greed Index error: {e}")
+        
+        return None  # Return None instead of fallback
     
-    def get_api_status(self):
-        """Get V3 enhanced API status including rate limiting info"""
-        base_status = {
-            'total_apis': len(self.api_status),
+    def collect_comprehensive_market_data(self, symbol="BTC", force_refresh=False):
+        """Main data collection method - returns real data only, NO FALLBACK"""
+        
+        data = {
+            'timestamp': datetime.now().isoformat(),
+            'symbol': symbol,
+            'data_sources': [],
+            'api_status': self.api_status.copy(),
             'working_apis': sum(self.api_status.values()),
-            'api_details': self.api_status,
-            'data_quality': 'HIGH' if sum(self.api_status.values()) >= 3 else 'MEDIUM' if sum(self.api_status.values()) >= 2 else 'LOW',
-            'v3_compliance': True,
-            'data_mode': 'LIVE_PRODUCTION_ONLY',
-            'real_data_validation': True,
-            'memory_cleanup_enabled': True
+            'total_apis': len(self.api_status)
         }
         
-        base_status.update(self.api_manager.get_v3_status())
-        return base_status
+        # Get real news if available - NO FALLBACK
+        if self.api_status['news_api']:
+            news_data = self.get_latest_news_sentiment(symbol.lower())
+            if news_data:
+                data['news_sentiment'] = news_data
+                data['data_sources'].append('news_api')
+        
+        # Get real Reddit posts if available - NO FALLBACK
+        if self.api_status['reddit']:
+            reddit_posts = self.get_reddit_posts()
+            if reddit_posts:
+                data['reddit_posts'] = reddit_posts
+                data['data_sources'].append('reddit')
+        
+        # Get real Twitter posts if available - NO FALLBACK
+        if self.api_status['twitter']:
+            twitter_posts = self.get_twitter_posts()
+            if twitter_posts:
+                data['twitter_posts'] = twitter_posts
+                data['data_sources'].append('twitter')
+        
+        # Get Fear & Greed Index - NO FALLBACK
+        fg_data = self.get_fear_greed_index()
+        if fg_data:
+            data['fear_greed_index'] = fg_data
+            data['data_sources'].append('alternative_me')
+        
+        print(f"[V3_EXTERNAL] Collected data from {len(data['data_sources'])} sources")
+        return data
     
-    def get_pending_live_requests_count(self) -> int:
-        """Get number of pending live requests"""
-        return len(self.api_manager.pending_requests)
+    def get_api_status(self):
+        """Get current API status"""
+        return {
+            'total_apis': len(self.api_status),
+            'working_apis': sum(self.api_status.values()),
+            'api_status': self.api_status.copy(),
+            'data_quality': 'HIGH' if sum(self.api_status.values()) >= 3 else 'MEDIUM' if sum(self.api_status.values()) >= 2 else 'LOW'
+        }
     
-    def force_process_pending_live(self) -> int:
-        """Force process pending live requests"""
-        return self.api_manager.process_pending_live_requests()
-    
-    def cleanup_v3(self):
-        """V3 Enhanced cleanup with proper session management"""
-        try:
-            self.background_running = False
-            self.api_manager.cleanup()
-            
-            # Close V3 aiohttp session
-            if self.session and not self.session.closed:
-                asyncio.create_task(self.session.close())
-            
-            # Close V3 Reddit client
-            if self.reddit_client:
-                if hasattr(self.reddit_client, 'close'):
-                    asyncio.create_task(self.reddit_client.close())
-            
-            # V3 Memory cleanup
-            cleanup_large_data_memory(self.live_data_cache)
-            self.live_data_cache.clear()
-            gc.collect()
-                    
-        except Exception as e:
-            self.logger.error(f"V3 Error during cleanup: {e}")
-    
-    def __del__(self):
-        """Ensure V3 cleanup on destruction"""
-        self.cleanup_v3()
+    def get_latest_data(self):
+        """Get latest comprehensive data"""
+        return self.collect_comprehensive_market_data('BTC')
 
-# V3 Test the enhanced collector
+# Test if run directly
 if __name__ == "__main__":
     from dotenv import load_dotenv
     load_dotenv()
     
-    async def test_v3_collector():
-        collector = ExternalDataCollector()
-        
-        try:
-            print("\n[V3_EXTERNAL] Testing enhanced async live data collection...")
-            data = await collector._collect_comprehensive_live_market_data_async('BTC')
-            
-            print(f"\n[V3_EXTERNAL] REAL live data collected from {len(data.get('data_sources', []))} sources:")
-            for source in data.get('data_sources', []):
-                print(f"  {source}")
-            
-            print(f"\n[V3_EXTERNAL] API Status:")
-            status = collector.get_api_status()
-            print(f"  Working APIs: {status['working_apis']}/{status['total_apis']}")
-            print(f"  Pending live requests: {status['pending_live_requests']}")
-            print(f"  Data Quality: {status['data_quality']}")
-            print(f"  V3 Compliance: {status['v3_compliance']}")
-            print(f"  Real Data Validation: {status['real_data_validation']}")
-        
-        finally:
-            collector.cleanup_v3()
-    
-    asyncio.run(test_v3_collector())
+    collector = ExternalDataCollector()
+    data = collector.get_latest_data()
+    print(f"\nCollected data from {data.get('working_apis', 0)} APIs")
+    print(f"Data sources: {data.get('data_sources', [])}")
