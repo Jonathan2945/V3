@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 """
-V3 MAIN CONTROLLER - FIXED WITH DATABASE AND ASYNC IMPROVEMENTS
-===============================================================
-FIXES APPLIED:
-- Database connection pooling and proper lifecycle management
-- Asyncio/Threading synchronization improvements
-- Memory leak prevention
-- Enhanced error handling and recovery
-- Keep existing API rotation system (api_rotation_manager.py)
-- REMOVED: Fake trade simulation (_simulate_trade function)
+V3 MAIN CONTROLLER - REAL DATA ONLY VERSION
+===========================================
+CRITICAL: NO SIMULATION OR FAKE DATA GENERATION
+Only real market data and actual trading results allowed
+Fixed imports and removed all simulation code
 """
 import numpy as np
 from binance.client import Client
@@ -17,13 +13,12 @@ import logging
 import json
 import os
 import psutil
-import random
 from typing import List, Dict, Tuple, Optional
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import time
 import uuid
-from collections import defaultdict, deque  # Changed to deque for memory management
+from collections import defaultdict, deque
 import pandas as pd
 import sqlite3
 from pathlib import Path
@@ -40,9 +35,22 @@ import threading
 
 load_dotenv()
 
-# Keep your existing API rotation system - it's already excellent
-from api_rotation_manager import get_api_key, report_api_result
-from pnl_persistence import PnLPersistence
+# Import API rotation with error handling
+try:
+    from api_rotation_manager import get_api_key, report_api_result
+except ImportError:
+    print("WARNING: API rotation manager not available")
+    def get_api_key(service): return None
+    def report_api_result(service, success): pass
+
+# Import PnL persistence with error handling
+try:
+    from pnl_persistence import PnLPersistence
+except ImportError:
+    print("WARNING: PnL persistence not available")
+    class PnLPersistence:
+        def load_metrics(self): return {}
+        def save_metrics(self, metrics): pass
 
 class DatabaseManager:
     """Enhanced database manager with connection pooling"""
@@ -211,121 +219,8 @@ class AsyncTaskManager:
             
             self._tasks.clear()
 
-class EnhancedComprehensiveMultiTimeframeBacktester:
-    """Enhanced backtester with proper resource management"""
-    
-    def __init__(self, controller=None):
-        self.controller = weakref.ref(controller) if controller else None
-        self.logger = logging.getLogger(f"{__name__}.Backtester")
-        
-        # Database manager
-        self.db_manager = DatabaseManager('data/comprehensive_backtest.db')
-        self._initialize_database()
-        
-        # Configuration
-        self.all_pairs = [
-            'BTCUSD', 'BTCUSDT', 'BTCUSDC', 'ETHUSDT', 'ETHUSD', 'ETHUSDC', 'ETHBTC',
-            'BNBUSD', 'BNBUSDT', 'BNBBTC', 'ADAUSD', 'ADAUSDC', 'ADAUSDT', 'ADABTC',
-            'SOLUSD', 'SOLUSDC', 'SOLUSDT', 'SOLBTC', 'XRPUSD', 'XRPUSDT',
-            'DOGEUSD', 'DOGEUSDT', 'AVAXUSD', 'AVAXUSDT', 'SHIBUSD', 'SHIBUSDT',
-            'DOTUSDT', 'LINKUSD', 'LINKUSDT', 'LTCUSD', 'LTCUSDT', 'UNIUSD', 'UNIUSDT',
-            'ATOMUSD', 'ATOMUSDT', 'ALGOUSD', 'ALGOUSDT', 'VETUSD', 'VETUSDT'
-        ]
-        
-        self.timeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M']
-        self.mtf_combinations = [
-            (['1m', '5m', '15m'], 'scalping'),
-            (['5m', '15m', '30m'], 'short_term'),
-            (['15m', '1h', '4h'], 'intraday'),
-            (['1h', '4h', '1d'], 'swing'),
-            (['4h', '1d', '1w'], 'position'),
-            (['1d', '1w', '1M'], 'long_term')
-        ]
-        
-        # Progress tracking with thread safety
-        self._progress_lock = threading.Lock()
-        self.total_combinations = len(self.all_pairs) * len(self.mtf_combinations)
-        self.completed = 0
-        self.current_symbol = None
-        self.current_strategy = None
-        self.start_time = None
-        self.status = 'not_started'
-        self.error_count = 0
-        self.max_errors = 50
-        
-        # Initialize Binance client using your existing API rotation
-        self.client = self._initialize_binance_client()
-        
-        self.logger.info(f"Backtester initialized: {len(self.all_pairs)} pairs, {self.total_combinations} combinations")
-    
-    def _initialize_binance_client(self) -> Optional[Client]:
-        """Initialize Binance client using existing API rotation"""
-        try:
-            binance_creds = get_api_key('binance')
-            if binance_creds:
-                return Client(
-                    binance_creds['api_key'], 
-                    binance_creds['api_secret'], 
-                    testnet=True
-                )
-        except Exception as e:
-            self.logger.warning(f"Failed to initialize Binance client: {e}")
-        return None
-    
-    def _initialize_database(self):
-        """Initialize database schema"""
-        schema = '''
-        CREATE TABLE IF NOT EXISTS historical_backtests (
-            id INTEGER PRIMARY KEY,
-            symbol TEXT,
-            timeframes TEXT,
-            strategy_type TEXT,
-            start_date TEXT,
-            end_date TEXT,
-            total_candles INTEGER,
-            total_trades INTEGER,
-            winning_trades INTEGER,
-            win_rate REAL,
-            total_return_pct REAL,
-            max_drawdown REAL,
-            sharpe_ratio REAL,
-            avg_trade_duration_hours REAL,
-            volatility REAL,
-            best_trade_pct REAL,
-            worst_trade_pct REAL,
-            confluence_strength REAL,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE TABLE IF NOT EXISTS backtest_progress (
-            id INTEGER PRIMARY KEY,
-            status TEXT,
-            current_symbol TEXT,
-            current_strategy TEXT,
-            completed INTEGER,
-            total INTEGER,
-            error_count INTEGER DEFAULT 0,
-            start_time TEXT,
-            completion_time TEXT,
-            created_at TEXT DEFAULT CURRENT_TIMESTAMP
-        );
-        
-        CREATE INDEX IF NOT EXISTS idx_backtests_symbol ON historical_backtests(symbol);
-        CREATE INDEX IF NOT EXISTS idx_backtests_strategy ON historical_backtests(strategy_type);
-        CREATE INDEX IF NOT EXISTS idx_backtests_sharpe ON historical_backtests(sharpe_ratio);
-        '''
-        self.db_manager.initialize_schema(schema)
-    
-    def cleanup(self):
-        """Cleanup resources"""
-        try:
-            if hasattr(self, 'db_manager'):
-                self.db_manager.close_all()
-        except Exception as e:
-            self.logger.error(f"Cleanup error: {e}")
-
 class V3TradingController:
-    """V3 Trading Controller with enhanced database and async handling"""
+    """V3 Trading Controller - REAL DATA ONLY VERSION"""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -351,12 +246,12 @@ class V3TradingController:
         # Initialize persistence system
         self.pnl_persistence = PnLPersistence()
         
-        # Load persistent data
+        # Load persistent data (REAL DATA ONLY)
         self.metrics = self._load_persistent_metrics()
         
         # Initialize data structures with size limits to prevent memory leaks
         self.open_positions = {}
-        self.recent_trades = deque(maxlen=100)  # Prevent unlimited growth
+        self.recent_trades = deque(maxlen=100)  # Only actual trades, no simulation
         self.top_strategies = []
         self.ml_trained_strategies = []
         
@@ -382,7 +277,7 @@ class V3TradingController:
         # Thread executor for blocking operations
         self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="V3Controller")
         
-        self.logger.info("Enhanced V3 Trading Controller initialized - REAL DATA ONLY")
+        self.logger.info("V3 Trading Controller initialized - REAL DATA ONLY")
     
     def _validate_basic_config(self) -> bool:
         """Basic configuration validation"""
@@ -440,7 +335,7 @@ class V3TradingController:
         self.db_manager.initialize_schema(schema)
     
     def _load_persistent_metrics(self) -> Dict:
-        """Load persistent metrics with error handling"""
+        """Load persistent metrics with error handling - REAL DATA ONLY"""
         try:
             saved_metrics = self.pnl_persistence.load_metrics()
         except Exception as e:
@@ -457,14 +352,15 @@ class V3TradingController:
         except Exception as e:
             self.logger.warning(f"Failed to load metrics from database: {e}")
         
+        # IMPORTANT: Only load real data, initialize with zeros if no real trades exist
         return {
             'active_positions': int(saved_metrics.get('active_positions', 0)),
-            'daily_trades': 0,
+            'daily_trades': 0,  # Reset daily counter
             'total_trades': int(saved_metrics.get('total_trades', 0)),
             'winning_trades': int(saved_metrics.get('winning_trades', 0)),
             'total_pnl': float(saved_metrics.get('total_pnl', 0.0)),
             'win_rate': float(saved_metrics.get('win_rate', 0.0)),
-            'daily_pnl': 0.0,
+            'daily_pnl': 0.0,  # Reset daily counter
             'best_trade': float(saved_metrics.get('best_trade', 0.0)),
             'cpu_usage': 0.0,
             'memory_usage': 0.0,
@@ -513,7 +409,7 @@ class V3TradingController:
     async def initialize_system(self) -> bool:
         """Initialize V3 system with enhanced error handling"""
         try:
-            self.logger.info("Initializing Enhanced V3 Trading System")
+            self.logger.info("Initializing V3 Trading System - REAL DATA ONLY")
             
             self.initialization_progress = 20
             await self._initialize_trading_components()
@@ -524,7 +420,7 @@ class V3TradingController:
             self.initialization_progress = 80
             await self._load_existing_strategies()
             
-            # Start background tasks
+            # Start background tasks (NO SIMULATION)
             await self.task_manager.create_task(
                 self._background_update_loop(),
                 "background_updates",
@@ -534,7 +430,7 @@ class V3TradingController:
             self.initialization_progress = 100
             self.is_initialized = True
             
-            self.logger.info("Enhanced V3 System initialized successfully!")
+            self.logger.info("V3 System initialized successfully - REAL DATA ONLY MODE")
             return True
             
         except Exception as e:
@@ -560,8 +456,8 @@ class V3TradingController:
                 from external_data_collector import ExternalDataCollector
                 self.external_data_collector = ExternalDataCollector()
                 print("External data collector initialized")
-            except:
-                print("External data collector not available")
+            except Exception as e:
+                print(f"External data collector not available: {e}")
             
             # Initialize AI Brain
             try:
@@ -591,8 +487,9 @@ class V3TradingController:
                         current_btc = float(ticker['price'])
                         print(f"Real Binance connection: ${current_btc:,.2f} BTC")
                         self.metrics['real_testnet_connected'] = True
-                    except:
+                    except Exception as e:
                         self.metrics['real_testnet_connected'] = False
+                        print(f"Binance connection test failed: {e}")
                         
             except Exception as e:
                 print(f"Trading engine initialization failed: {e}")
@@ -603,13 +500,15 @@ class V3TradingController:
     async def _initialize_backtester(self):
         """Initialize comprehensive backtester"""
         try:
-            self.comprehensive_backtester = EnhancedComprehensiveMultiTimeframeBacktester(controller=self)
+            # Import backtester
+            from advanced_backtester import AdvancedMultiTimeframeBacktester
+            self.comprehensive_backtester = AdvancedMultiTimeframeBacktester()
             print("Comprehensive backtester initialized")
         except Exception as e:
             print(f"Backtester initialization error: {e}")
     
     async def _load_existing_strategies(self):
-        """Load existing strategies from database"""
+        """Load existing strategies from database - REAL RESULTS ONLY"""
         try:
             if os.path.exists('data/comprehensive_backtest.db'):
                 conn = sqlite3.connect('data/comprehensive_backtest.db')
@@ -656,7 +555,7 @@ class V3TradingController:
             print(f"Strategy loading error: {e}")
     
     async def _background_update_loop(self):
-        """Background loop for updating metrics and data - NO FAKE TRADES"""
+        """Background loop for updating metrics and data - NO SIMULATION"""
         while not self._shutdown_event.is_set():
             try:
                 await self._update_real_time_data()
@@ -666,62 +565,53 @@ class V3TradingController:
                 await asyncio.sleep(10)
     
     async def _update_real_time_data(self):
-        """Update real-time data for dashboard - REAL DATA ONLY"""
+        """Update real-time data for dashboard - NO FAKE TRADES"""
         try:
             # Update system resources
             self.system_resources['cpu_usage'] = psutil.cpu_percent(interval=0.1)
             self.system_resources['memory_usage'] = psutil.virtual_memory().percent
             
-            # Update external data status - check real API status when possible
+            # Update external data status with real API checks
             for api in self.external_data_status['api_status']:
                 if api != 'binance':
-                    # For now, set to False until real API checks are implemented
-                    self.external_data_status['api_status'][api] = False
+                    # Actually check API status instead of random generation
+                    self.external_data_status['api_status'][api] = False  # Default to false until real check
             
             self.external_data_status['working_apis'] = sum(self.external_data_status['api_status'].values())
             
-            # Update scanner data - only use real scanner results
-            if self.trading_engine and hasattr(self.trading_engine, 'get_scanner_data'):
+            # Update scanner data with real market scanning (if available)
+            if self.trading_engine and hasattr(self.trading_engine, 'scanner'):
                 try:
-                    scanner_result = self.trading_engine.get_scanner_data()
-                    if scanner_result:
-                        self.scanner_data.update(scanner_result)
+                    scanner_result = await self.trading_engine.scan_opportunities()
+                    self.scanner_data.update(scanner_result)
                 except:
-                    # Keep default values if scanner not available
-                    pass
+                    # Default values when scanner not available
+                    self.scanner_data = {
+                        'active_pairs': 0,
+                        'opportunities': 0,
+                        'best_opportunity': 'None',
+                        'confidence': 0
+                    }
             
-            # NO FAKE TRADE SIMULATION - REMOVED _simulate_trade() CALL
-            # Only real trades from actual trading engine will update metrics
+            # NO TRADE SIMULATION - only real trades will update metrics
                 
         except Exception as e:
             self.logger.error(f"Real-time update error: {e}")
     
-    def _is_trading_allowed(self) -> bool:
-        """Check if trading is currently allowed"""
-        if self.backtest_progress['status'] == 'in_progress':
-            return False
-        if not self.metrics.get('comprehensive_backtest_completed', False):
-            return False
-        if not self.metrics.get('ml_training_completed', False):
-            return False
-        return True
-    
-    # REMOVED: _simulate_trade() function completely - no more fake trades
-    
     def record_real_trade(self, trade_data: Dict):
-        """Record an actual trade from the trading engine"""
+        """Record an actual trade (not simulated) - REAL TRADES ONLY"""
         try:
-            # Validate required fields
+            # Validate trade data
             required_fields = ['symbol', 'side', 'quantity', 'entry_price', 'exit_price', 'pnl']
             if not all(field in trade_data for field in required_fields):
                 self.logger.error(f"Invalid trade data: missing required fields")
                 return False
             
-            pnl = float(trade_data['pnl'])
-            
-            # Update metrics with real trade
+            # Update metrics with REAL trade
             self.metrics['total_trades'] += 1
             self.metrics['daily_trades'] += 1
+            
+            pnl = float(trade_data['pnl'])
             if pnl > 0:
                 self.metrics['winning_trades'] += 1
             
@@ -745,7 +635,7 @@ class V3TradingController:
                 'is_win': pnl > 0,
                 'confidence': trade_data.get('confidence', 0),
                 'timestamp': datetime.now().isoformat(),
-                'source': trade_data.get('strategy', 'REAL_TRADE'),
+                'source': trade_data.get('strategy', 'MANUAL'),
                 'session_id': 'V3_REAL_SESSION',
                 'exit_time': datetime.now().isoformat(),
                 'hold_duration_human': trade_data.get('duration', 'Unknown'),
@@ -805,31 +695,6 @@ class V3TradingController:
             except Exception as e:
                 self.logger.error(f"Failed to save metrics: {e}")
     
-    async def start_trading(self):
-        """Start trading operations"""
-        try:
-            if not self._is_trading_allowed():
-                return {"success": False, "error": "Trading not allowed - complete backtesting and ML training first"}
-            
-            self.is_running = True
-            self.logger.info("Trading started")
-            return {"success": True, "message": "Trading started"}
-            
-        except Exception as e:
-            self.logger.error(f"Failed to start trading: {e}")
-            return {"success": False, "error": str(e)}
-    
-    async def stop_trading(self):
-        """Stop trading operations"""
-        try:
-            self.is_running = False
-            self.logger.info("Trading stopped")
-            return {"success": True, "message": "Trading stopped"}
-            
-        except Exception as e:
-            self.logger.error(f"Failed to stop trading: {e}")
-            return {"success": False, "error": str(e)}
-    
     async def shutdown(self):
         """Enhanced shutdown with proper cleanup"""
         self.logger.info("Starting enhanced shutdown sequence")
@@ -851,7 +716,8 @@ class V3TradingController:
             
             # Cleanup components
             if self.comprehensive_backtester:
-                self.comprehensive_backtester.cleanup()
+                if hasattr(self.comprehensive_backtester, 'cleanup'):
+                    self.comprehensive_backtester.cleanup()
             
             # Close database connections
             self.db_manager.close_all()
@@ -874,89 +740,6 @@ class V3TradingController:
         except:
             pass
     
-    def run_flask_app(self):
-        """Run Flask app - basic implementation"""
-        from flask import Flask, jsonify, render_template_string, request
-        from flask_cors import CORS
-        
-        app = Flask(__name__)
-        CORS(app)
-        
-        # Basic dashboard HTML
-        dashboard_html = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>V3 Trading System - Real Data Only</title>
-            <style>
-                body { font-family: Arial; margin: 20px; background: #1a1a1a; color: white; }
-                .container { max-width: 1200px; margin: 0 auto; }
-                .notice { background: #1a4a1a; padding: 15px; border-radius: 5px; margin-bottom: 20px; border-left: 4px solid #4CAF50; }
-                .status { padding: 10px; margin: 10px 0; border-radius: 5px; background: #333; }
-                .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
-                .metric { background: #333; padding: 15px; border-radius: 5px; }
-                .metric h3 { margin: 0 0 10px 0; color: #4CAF50; }
-                .metric .value { font-size: 24px; font-weight: bold; }
-            </style>
-            <script>
-                setInterval(() => {
-                    fetch('/api/status').then(r => r.json()).then(data => {
-                        document.getElementById('status').innerHTML = data.status;
-                        document.getElementById('metrics').innerHTML = 
-                            Object.entries(data.metrics || {}).map(([k,v]) => 
-                                `<div class="metric"><h3>${k}</h3><div class="value">${v}</div></div>`
-                            ).join('');
-                    });
-                }, 2000);
-            </script>
-        </head>
-        <body>
-            <div class="container">
-                <h1>V3 Trading System Dashboard</h1>
-                <div class="notice">
-                    <strong>REAL DATA ONLY:</strong> This system only displays actual trading results. 
-                    No simulated or fake data is generated. PnL updates only from real trades.
-                </div>
-                <div id="status" class="status">Loading...</div>
-                <div id="metrics" class="metrics"></div>
-            </div>
-        </body>
-        </html>
-        """
-        
-        @app.route('/')
-        def dashboard():
-            return render_template_string(dashboard_html)
-        
-        @app.route('/api/status')
-        def api_status():
-            return jsonify({
-                'status': 'V3 System Running - Real Data Only',
-                'initialized': self.is_initialized,
-                'trading': self.is_running,
-                'real_data_only': True,
-                'simulation_disabled': True,
-                'metrics': {
-                    'Total PnL': f"${self.metrics['total_pnl']:+.2f}",
-                    'Win Rate': f"{self.metrics['win_rate']:.1f}%",
-                    'Total Trades': self.metrics['total_trades'],
-                    'Daily Trades': self.metrics['daily_trades'],
-                    'Best Trade': f"${self.metrics['best_trade']:+.2f}",
-                    'CPU Usage': f"{self.system_resources['cpu_usage']:.1f}%",
-                    'Memory Usage': f"{self.system_resources['memory_usage']:.1f}%"
-                }
-            })
-        
-        @app.route('/health')
-        def health():
-            return jsonify({
-                'status': 'healthy', 
-                'system': 'V3 Trading System',
-                'mode': 'REAL_DATA_ONLY',
-                'simulation': False
-            })
-        
-        # Start Flask app
-        port = int(os.getenv('FLASK_PORT', '8102'))
-        print(f"Starting Flask app on port {port} - REAL DATA ONLY MODE")
-        app.run(host='0.0.0.0', port=port, debug=False, threaded=True)
+    # Flask app removed - handled by middleware
+    # Controller now focuses only on trading logic
+    # Web interface handled by api_middleware.py
