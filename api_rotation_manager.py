@@ -1,27 +1,16 @@
 #!/usr/bin/env python3
 """
-SINGLE/MULTIPLE KEY ADAPTIVE FIX
-===============================
-This patch fixes the API rotation manager to properly handle any number of available keys (1, 2, or 3).
-The issue is that the current logic is too aggressive with cooldowns for single-key setups.
-"""
-
-import os
-import shutil
-from datetime import datetime
-
-def create_fixed_api_rotation_manager():
-    """Create a fixed version of the API rotation manager"""
-    
-    fixed_content = '''#!/usr/bin/env python3
-"""
-API ROTATION MANAGER - FIXED FOR ADAPTIVE KEY HANDLING
-======================================================
-FIXES APPLIED:
-- Adaptive cooldown logic based on number of available keys
-- Single key mode: no cooldowns, always return available key
-- Multiple keys: normal rotation with shorter cooldowns
-- Better error handling and fallbacks
+API ROTATION MANAGER - INTELLIGENT API KEY CYCLING - COMPLETE FIX
+================================================================
+Manages multiple API keys for each service with intelligent rotation
+Features:
+- Round-robin rotation
+- Rate limit detection and switching
+- Health monitoring for each API key
+- Only uses valid/filled API keys
+- Automatic failover and recovery
+- FIXED: Proper single-key handling with adaptive cooldowns
+- FIXED: Legacy key method handles Binance services
 """
 
 import os
@@ -43,7 +32,7 @@ class APIRotationStrategy(Enum):
     ROUND_ROBIN = "ROUND_ROBIN"
     RATE_LIMIT_TRIGGER = "RATE_LIMIT_TRIGGER"
     LOAD_BALANCED = "LOAD_BALANCED"
-    ADAPTIVE = "ADAPTIVE"  # New: Adapts to number of available keys
+    ADAPTIVE = "ADAPTIVE"  # New: Auto-adapts to key count
 
 @dataclass
 class APIKeyStatus:
@@ -70,7 +59,7 @@ class APIServiceConfig:
     health_check_interval: int
 
 class APIRotationManager:
-    """Intelligent API key rotation and management system - FIXED VERSION"""
+    """Intelligent API key rotation and management system - COMPLETE FIX"""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -78,15 +67,15 @@ class APIRotationManager:
         # Configuration from .env
         self.rotation_enabled = os.getenv('API_ROTATION_ENABLED', 'true').lower() == 'true'
         
-        # NEW: Adaptive strategy detection
-        strategy_str = os.getenv('API_ROTATION_STRATEGY', 'ADAPTIVE')
+        # Enhanced strategy handling
+        strategy_str = os.getenv('API_ROTATION_STRATEGY', 'RATE_LIMIT_TRIGGER')
         try:
             self.rotation_strategy = APIRotationStrategy(strategy_str)
         except ValueError:
-            self.rotation_strategy = APIRotationStrategy.ADAPTIVE
+            self.rotation_strategy = APIRotationStrategy.RATE_LIMIT_TRIGGER
             
         self.rate_limit_threshold = int(os.getenv('API_RATE_LIMIT_THRESHOLD', '80'))
-        self.cooldown_period = int(os.getenv('API_COOLDOWN_PERIOD', '10'))  # Reduced default
+        self.cooldown_period = int(os.getenv('API_COOLDOWN_PERIOD', '10'))
         self.health_check_interval = int(os.getenv('API_HEALTH_CHECK_INTERVAL', '60'))
         
         # API services configuration
@@ -105,66 +94,29 @@ class APIRotationManager:
         
         self.logger.info(f"[API_ROTATION] Manager initialized with {len(self.services)} services")
         self.logger.info(f"[API_ROTATION] Strategy: {self.rotation_strategy.value}")
+        self.logger.info(f"[API_ROTATION] Rotation enabled: {self.rotation_enabled}")
         
         # Log key counts for diagnostic
         for service_name, service in self.services.items():
-            self.logger.info(f"[API_ROTATION] {service_name}: {len(service.keys)} keys available")
+            key_count = len(service.keys)
+            self.logger.info(f"[API_ROTATION] {service_name}: {key_count} keys available")
+            if key_count == 1:
+                self.logger.info(f"[API_ROTATION] {service_name}: Single key mode - adaptive cooldowns enabled")
     
     def _initialize_api_services(self):
         """Initialize all API services with their keys"""
         
-        # Binance API (testnet)
-        binance_keys = self._get_binance_key_pairs()
-        if binance_keys:
-            # ADAPTIVE: Shorter cooldown for single keys
-            adaptive_cooldown = 5 if len(binance_keys) == 1 else self.cooldown_period
-            
-            self.services['binance'] = APIServiceConfig(
-                service_name='binance',
-                keys=binance_keys,
-                current_index=0,
-                rate_limit_threshold=1200,
-                cooldown_period=adaptive_cooldown,
-                health_check_interval=120
-            )
-            self._initialize_key_status('binance', binance_keys)
-            
-            self.logger.info(f"[API_ROTATION] Binance testnet: {len(binance_keys)} keys, cooldown: {adaptive_cooldown}s")
-        else:
-            self.logger.warning("[API_ROTATION] No valid Binance testnet keys found")
-        
-        # Binance Live API
-        binance_live_keys = self._get_binance_live_key_pairs()
-        if binance_live_keys:
-            adaptive_cooldown = 5 if len(binance_live_keys) == 1 else self.cooldown_period
-            
-            self.services['binance_live'] = APIServiceConfig(
-                service_name='binance_live',
-                keys=binance_live_keys,
-                current_index=0,
-                rate_limit_threshold=1200,
-                cooldown_period=adaptive_cooldown,
-                health_check_interval=120
-            )
-            self._initialize_key_status('binance_live', binance_live_keys)
-            
-            self.logger.info(f"[API_ROTATION] Binance live: {len(binance_live_keys)} keys, cooldown: {adaptive_cooldown}s")
-        
-        # Initialize other APIs with same adaptive logic
-        self._initialize_other_apis()
-    
-    def _initialize_other_apis(self):
-        """Initialize other API services"""
-        
         # Alpha Vantage API
         alpha_vantage_keys = self._get_valid_keys('ALPHA_VANTAGE_API_KEY')
         if alpha_vantage_keys:
+            # Adaptive cooldown: shorter for single keys
+            cooldown = 30 if len(alpha_vantage_keys) == 1 else 60
             self.services['alpha_vantage'] = APIServiceConfig(
                 service_name='alpha_vantage',
                 keys=alpha_vantage_keys,
                 current_index=0,
-                rate_limit_threshold=5,
-                cooldown_period=30 if len(alpha_vantage_keys) == 1 else 60,
+                rate_limit_threshold=5,  # 5 calls per minute
+                cooldown_period=cooldown,
                 health_check_interval=300
             )
             self._initialize_key_status('alpha_vantage', alpha_vantage_keys)
@@ -172,12 +124,13 @@ class APIRotationManager:
         # News API
         news_api_keys = self._get_valid_keys('NEWS_API_KEY')
         if news_api_keys:
+            cooldown = 1800 if len(news_api_keys) == 1 else 3600
             self.services['news_api'] = APIServiceConfig(
                 service_name='news_api',
                 keys=news_api_keys,
                 current_index=0,
-                rate_limit_threshold=1000,
-                cooldown_period=1800 if len(news_api_keys) == 1 else 3600,
+                rate_limit_threshold=1000,  # 1000 calls per day
+                cooldown_period=cooldown,
                 health_check_interval=1800
             )
             self._initialize_key_status('news_api', news_api_keys)
@@ -185,12 +138,13 @@ class APIRotationManager:
         # FRED API
         fred_api_keys = self._get_valid_keys('FRED_API_KEY')
         if fred_api_keys:
+            cooldown = 1800 if len(fred_api_keys) == 1 else 3600
             self.services['fred'] = APIServiceConfig(
                 service_name='fred',
                 keys=fred_api_keys,
                 current_index=0,
-                rate_limit_threshold=100,
-                cooldown_period=1800 if len(fred_api_keys) == 1 else 3600,
+                rate_limit_threshold=100,  # 100 calls per day
+                cooldown_period=cooldown,
                 health_check_interval=3600
             )
             self._initialize_key_status('fred', fred_api_keys)
@@ -198,12 +152,13 @@ class APIRotationManager:
         # Twitter API
         twitter_keys = self._get_valid_keys('TWITTER_BEARER_TOKEN')
         if twitter_keys:
+            cooldown = 450 if len(twitter_keys) == 1 else 900
             self.services['twitter'] = APIServiceConfig(
                 service_name='twitter',
                 keys=twitter_keys,
                 current_index=0,
-                rate_limit_threshold=300,
-                cooldown_period=450 if len(twitter_keys) == 1 else 900,
+                rate_limit_threshold=300,  # 300 calls per 15 minutes
+                cooldown_period=cooldown,
                 health_check_interval=600
             )
             self._initialize_key_status('twitter', twitter_keys)
@@ -211,15 +166,56 @@ class APIRotationManager:
         # Reddit API (pairs of client_id and client_secret)
         reddit_keys = self._get_reddit_key_pairs()
         if reddit_keys:
+            cooldown = 30 if len(reddit_keys) == 1 else 60
             self.services['reddit'] = APIServiceConfig(
                 service_name='reddit',
                 keys=reddit_keys,
                 current_index=0,
-                rate_limit_threshold=60,
-                cooldown_period=30 if len(reddit_keys) == 1 else 60,
+                rate_limit_threshold=60,  # 60 calls per minute
+                cooldown_period=cooldown,
                 health_check_interval=300
             )
             self._initialize_key_status('reddit', reddit_keys)
+        
+        # Binance API - CRITICAL FIX FOR SINGLE KEY
+        binance_keys = self._get_binance_key_pairs()
+        if binance_keys:
+            # ADAPTIVE: Much shorter cooldown for single keys, longer for multiple
+            if len(binance_keys) == 1:
+                cooldown = 5  # Only 5 seconds for single key!
+                self.logger.info("[API_ROTATION] Binance: Single key detected - using 5 second cooldowns")
+            else:
+                cooldown = 60  # Normal cooldown for multiple keys
+                
+            self.services['binance'] = APIServiceConfig(
+                service_name='binance',
+                keys=binance_keys,
+                current_index=0,
+                rate_limit_threshold=1200,  # 1200 calls per minute
+                cooldown_period=cooldown,
+                health_check_interval=120
+            )
+            self._initialize_key_status('binance', binance_keys)
+        
+        # Binance Live API - CRITICAL FIX FOR SINGLE KEY
+        binance_live_keys = self._get_binance_live_key_pairs()
+        if binance_live_keys:
+            # ADAPTIVE: Much shorter cooldown for single keys
+            if len(binance_live_keys) == 1:
+                cooldown = 5  # Only 5 seconds for single key!
+                self.logger.info("[API_ROTATION] Binance Live: Single key detected - using 5 second cooldowns")
+            else:
+                cooldown = 60  # Normal cooldown for multiple keys
+                
+            self.services['binance_live'] = APIServiceConfig(
+                service_name='binance_live',
+                keys=binance_live_keys,
+                current_index=0,
+                rate_limit_threshold=1200,
+                cooldown_period=cooldown,
+                health_check_interval=120
+            )
+            self._initialize_key_status('binance_live', binance_live_keys)
     
     def _get_valid_keys(self, base_key_name: str) -> List[str]:
         """Get valid API keys for a service (only non-empty keys)"""
@@ -317,71 +313,68 @@ class APIRotationManager:
             )
     
     def get_api_key(self, service_name: str) -> Optional[Any]:
-        """Get the current API key for a service - FIXED ADAPTIVE VERSION"""
+        """Get the current API key for a service - FIXED FOR SINGLE KEYS"""
         
-        # If rotation is disabled, use legacy method
-        if not self.rotation_enabled:
-            return self._get_legacy_key(service_name)
+        # CRITICAL FIX: Always try service-based lookup first, even if rotation disabled
+        if service_name in self.services:
+            service = self.services[service_name]
+            
+            if service.keys:
+                # If rotation is disabled or single key, use simple logic
+                if not self.rotation_enabled or len(service.keys) == 1:
+                    return self._get_single_key(service)
+                
+                # Apply rotation strategy for multiple keys with rotation enabled
+                if self.rotation_strategy == APIRotationStrategy.ROUND_ROBIN:
+                    return self._get_round_robin_key(service)
+                elif self.rotation_strategy == APIRotationStrategy.RATE_LIMIT_TRIGGER:
+                    return self._get_rate_limit_aware_key(service)
+                elif self.rotation_strategy == APIRotationStrategy.LOAD_BALANCED:
+                    return self._get_load_balanced_key(service)
+                elif self.rotation_strategy == APIRotationStrategy.ADAPTIVE:
+                    return self._get_adaptive_key(service)
+                
+                return service.keys[service.current_index]
         
-        if service_name not in self.services:
-            self.logger.warning(f"[API_ROTATION] Service {service_name} not configured")
-            return self._get_legacy_key(service_name)
-        
-        service = self.services[service_name]
-        
+        # Fallback to legacy method
+        return self._get_legacy_key(service_name)
+    
+    def _get_single_key(self, service: APIServiceConfig) -> Any:
+        """Handle single key services with minimal cooldowns"""
         if not service.keys:
-            self.logger.warning(f"[API_ROTATION] No valid keys for {service_name}")
             return None
         
-        # ADAPTIVE STRATEGY: Choose best method based on key count and strategy
-        if self.rotation_strategy == APIRotationStrategy.ADAPTIVE:
-            return self._get_adaptive_key(service)
-        elif self.rotation_strategy == APIRotationStrategy.ROUND_ROBIN:
-            return self._get_round_robin_key(service)
-        elif self.rotation_strategy == APIRotationStrategy.RATE_LIMIT_TRIGGER:
-            return self._get_rate_limit_aware_key(service)
-        elif self.rotation_strategy == APIRotationStrategy.LOAD_BALANCED:
-            return self._get_load_balanced_key(service)
+        key = service.keys[0]
         
-        # Fallback: return first available key
-        return service.keys[0] if service.keys else None
+        if isinstance(key, dict):
+            key_id = key.get('key_id', f"{service.service_name}_0")
+        else:
+            key_id = f"{service.service_name}_0"
+        
+        status = self.key_status.get(key_id)
+        
+        # For single keys, only respect very short cooldowns
+        if status and status.rate_limit_hit and status.rate_limit_reset:
+            time_until_reset = (status.rate_limit_reset - datetime.now()).total_seconds()
+            
+            # Only wait if cooldown is very short (< 30 seconds)
+            if time_until_reset > 0 and time_until_reset <= 30:
+                self.logger.debug(f"[API_ROTATION] Single key short cooldown: {time_until_reset:.1f}s for {key_id}")
+                # Don't actually wait, just log it
+            else:
+                # Clear long cooldowns for single keys
+                if time_until_reset > 30:
+                    self.logger.info(f"[API_ROTATION] Single key: clearing long cooldown for {key_id}")
+                status.rate_limit_hit = False
+                status.rate_limit_reset = None
+        
+        self.logger.debug(f"[API_ROTATION] Single key: returning {key_id}")
+        return key
     
     def _get_adaptive_key(self, service: APIServiceConfig) -> Any:
-        """NEW: Adaptive key selection based on number of available keys"""
-        
-        if not service.keys:
-            return None
-        
-        # SINGLE KEY MODE: Always return the key, ignore cooldowns if necessary
+        """Adaptive strategy that changes based on key count"""
         if len(service.keys) == 1:
-            key = service.keys[0]
-            
-            if isinstance(key, dict):
-                key_id = key.get('key_id', f"{service.service_name}_0")
-            else:
-                key_id = f"{service.service_name}_0"
-            
-            status = self.key_status.get(key_id)
-            
-            # For single key, only respect cooldown if it's very recent (< 30 seconds)
-            if status and status.rate_limit_hit and status.rate_limit_reset:
-                time_until_reset = (status.rate_limit_reset - datetime.now()).total_seconds()
-                if time_until_reset > 30:
-                    # Reset the rate limit for single key mode
-                    self.logger.info(f"[API_ROTATION] Single key mode: ignoring long cooldown for {key_id}")
-                    status.rate_limit_hit = False
-                    status.rate_limit_reset = None
-                elif time_until_reset > 0:
-                    # Short cooldown, wait it out
-                    self.logger.info(f"[API_ROTATION] Single key mode: waiting {time_until_reset:.1f}s for {key_id}")
-                    time.sleep(min(time_until_reset + 1, 5))  # Max 5 second wait
-                    status.rate_limit_hit = False
-                    status.rate_limit_reset = None
-            
-            self.logger.debug(f"[API_ROTATION] Single key mode: returning {key_id}")
-            return key
-        
-        # MULTIPLE KEY MODE: Use rate-limit aware strategy
+            return self._get_single_key(service)
         else:
             return self._get_rate_limit_aware_key(service)
     
@@ -408,11 +401,15 @@ class APIRotationManager:
         return current_key
     
     def _get_rate_limit_aware_key(self, service: APIServiceConfig) -> Any:
-        """Get key with rate limit awareness - IMPROVED VERSION"""
+        """Get key with rate limit awareness - FIXED FOR SINGLE KEYS"""
         if not service.keys:
             return None
         
-        # Find a key that hasn't hit rate limit
+        # CRITICAL FIX: For single key services, always return the key
+        if len(service.keys) == 1:
+            return self._get_single_key(service)
+        
+        # Find a key that hasn't hit rate limit (for multiple keys)
         attempts = 0
         while attempts < len(service.keys):
             current_key = service.keys[service.current_index]
@@ -439,16 +436,9 @@ class APIRotationManager:
             service.current_index = (service.current_index + 1) % len(service.keys)
             attempts += 1
         
-        # FALLBACK: If all keys are rate limited, return the "best" one
-        # For single key services, always return the key
-        if len(service.keys) == 1:
-            key = service.keys[0]
-            self.logger.info(f"[API_ROTATION] Single key fallback for {service.service_name}")
-            return key
-        
-        # For multiple keys, return the one with the soonest reset time
+        # FALLBACK: Return the "best" available key
         best_key = service.keys[0]
-        best_reset_time = datetime.now() + timedelta(hours=1)  # Default far future
+        best_reset_time = datetime.now() + timedelta(hours=1)
         
         for i, key in enumerate(service.keys):
             if isinstance(key, dict):
@@ -470,6 +460,10 @@ class APIRotationManager:
         if not service.keys:
             return None
         
+        # Single key optimization
+        if len(service.keys) == 1:
+            return self._get_single_key(service)
+        
         # Find key with lowest usage
         best_key_index = 0
         best_score = float('inf')
@@ -485,7 +479,7 @@ class APIRotationManager:
                 continue
             
             # Skip if rate limited (unless single key)
-            if status.rate_limit_hit and len(service.keys) > 1:
+            if status.rate_limit_hit:
                 continue
             
             # Score based on usage and health
@@ -498,8 +492,8 @@ class APIRotationManager:
         service.current_index = best_key_index
         return service.keys[best_key_index]
     
-    def _get_legacy_key(self, service_name: str) -> Optional[str]:
-        """Get legacy API key for backward compatibility"""
+    def _get_legacy_key(self, service_name: str) -> Optional[Any]:
+        """Get legacy API key for backward compatibility - FIXED FOR BINANCE"""
         legacy_map = {
             'alpha_vantage': 'ALPHA_VANTAGE_API_KEY',
             'news_api': 'NEWS_API_KEY',
@@ -510,12 +504,35 @@ class APIRotationManager:
         if service_name in legacy_map:
             return os.getenv(legacy_map[service_name])
         
+        # CRITICAL FIX: Handle Binance services even when rotation is disabled
+        elif service_name == 'binance':
+            api_key = os.getenv('BINANCE_API_KEY_1', '').strip()
+            api_secret = os.getenv('BINANCE_API_SECRET_1', '').strip()
+            if api_key and api_secret:
+                self.logger.debug(f"[API_ROTATION] Legacy fallback: returning Binance key")
+                return {
+                    'api_key': api_key,
+                    'api_secret': api_secret,
+                    'key_id': 'binance_1'
+                }
+        
+        elif service_name == 'binance_live':
+            api_key = os.getenv('BINANCE_LIVE_API_KEY_1', '').strip()
+            api_secret = os.getenv('BINANCE_LIVE_API_SECRET_1', '').strip()
+            if api_key and api_secret:
+                self.logger.debug(f"[API_ROTATION] Legacy fallback: returning Binance Live key")
+                return {
+                    'api_key': api_key,
+                    'api_secret': api_secret,
+                    'key_id': 'binance_live_1'
+                }
+        
         return None
     
     def report_api_call_result(self, service_name: str, success: bool, 
                               response_time: float = 0.0, rate_limited: bool = False,
                               error_code: Optional[str] = None):
-        """Report the result of an API call for tracking - IMPROVED VERSION"""
+        """Report the result of an API call for tracking - FIXED FOR SINGLE KEYS"""
         if service_name not in self.services:
             return
         
@@ -550,13 +567,13 @@ class APIRotationManager:
             status.consecutive_failures += 1
             status.health_score = max(0.0, status.health_score - 0.2)
         
-        # Handle rate limiting with adaptive cooldown
+        # Handle rate limiting - ADAPTIVE COOLDOWNS
         if rate_limited:
             status.rate_limit_hit = True
             
-            # ADAPTIVE COOLDOWN: Shorter for single keys
+            # ADAPTIVE: Much shorter cooldowns for single keys
             if len(service.keys) == 1:
-                cooldown_time = min(service.cooldown_period, 30)  # Max 30 seconds for single key
+                cooldown_time = 5  # Only 5 seconds for single key
                 self.logger.info(f"[API_ROTATION] Single key rate limit: {cooldown_time}s cooldown for {key_id}")
             else:
                 cooldown_time = service.cooldown_period
@@ -564,29 +581,11 @@ class APIRotationManager:
             
             status.rate_limit_reset = datetime.now() + timedelta(seconds=cooldown_time)
             
-            # Auto-rotate to next key (if available)
+            # Auto-rotate to next key (only if multiple keys available)
             if len(service.keys) > 1:
                 old_index = service.current_index
                 service.current_index = (service.current_index + 1) % len(service.keys)
                 self.logger.info(f"[API_ROTATION] Rotated {service_name} from key {old_index} to {service.current_index}")
-    
-    def reset_rate_limits(self, service_name: Optional[str] = None):
-        """Reset rate limit flags for a service or all services"""
-        if service_name:
-            services_to_reset = [service_name] if service_name in self.services else []
-        else:
-            services_to_reset = list(self.services.keys())
-        
-        reset_count = 0
-        for svc_name in services_to_reset:
-            for key_id, status in self.key_status.items():
-                if status.service == svc_name and status.rate_limit_hit:
-                    status.rate_limit_hit = False
-                    status.rate_limit_reset = None
-                    reset_count += 1
-        
-        self.logger.info(f"[API_ROTATION] Reset rate limits for {reset_count} keys")
-        return reset_count
     
     def get_service_status(self, service_name: str) -> Dict[str, Any]:
         """Get detailed status for a service"""
@@ -599,7 +598,8 @@ class APIRotationManager:
             'total_keys': len(service.keys),
             'current_key_index': service.current_index,
             'rotation_strategy': self.rotation_strategy.value,
-            'adaptive_mode': len(service.keys) == 1,
+            'single_key_mode': len(service.keys) == 1,
+            'adaptive_cooldowns': len(service.keys) == 1,
             'keys_status': []
         }
         
@@ -633,7 +633,191 @@ class APIRotationManager:
             for service_name in self.services.keys()
         }
     
-    # ... (rest of the methods remain the same)
+    async def health_check_all_services(self):
+        """Perform health checks on all API services"""
+        if not self.session:
+            self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
+        
+        self.logger.info("[API_ROTATION] Starting health checks for all services")
+        
+        tasks = []
+        for service_name in self.services.keys():
+            if service_name in ['alpha_vantage', 'news_api', 'fred']:
+                tasks.append(self._health_check_service(service_name))
+        
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+        
+        self.last_health_check = datetime.now()
+        self.logger.info("[API_ROTATION] Health checks completed")
+    
+    async def _health_check_service(self, service_name: str):
+        """Perform health check for a specific service"""
+        try:
+            service = self.services.get(service_name)
+            if not service:
+                return
+            
+            # Test endpoints for different services
+            test_urls = {
+                'alpha_vantage': 'https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=IBM&interval=1min&outputsize=compact&apikey=',
+                'news_api': 'https://newsapi.org/v2/everything?q=test&pageSize=1&apiKey=',
+                'fred': 'https://api.stlouisfed.org/fred/series?series_id=GDP&api_key='
+            }
+            
+            if service_name not in test_urls:
+                return
+            
+            base_url = test_urls[service_name]
+            
+            # Test each key
+            for i, key in enumerate(service.keys):
+                if isinstance(key, dict):
+                    api_key = key.get('api_key', '')
+                    key_id = key.get('key_id', f"{service_name}_{i}")
+                else:
+                    api_key = key
+                    key_id = f"{service_name}_{i}"
+                
+                if not api_key:
+                    continue
+                
+                try:
+                    start_time = time.time()
+                    
+                    # Special handling for different APIs
+                    if service_name == 'fred':
+                        test_url = f"{base_url}{api_key}&file_type=json&limit=1"
+                    else:
+                        test_url = f"{base_url}{api_key}"
+                    
+                    async with self.session.get(test_url) as response:
+                        response_time = time.time() - start_time
+                        
+                        # Update key status based on response
+                        status = self.key_status.get(key_id)
+                        if status:
+                            if response.status == 200:
+                                status.health_score = min(1.0, status.health_score + 0.1)
+                                status.consecutive_failures = 0
+                            elif response.status == 429:  # Rate limited
+                                # For single keys, use shorter cooldown
+                                cooldown = 5 if len(service.keys) == 1 else service.cooldown_period
+                                status.rate_limit_hit = True
+                                status.rate_limit_reset = datetime.now() + timedelta(seconds=cooldown)
+                            else:
+                                status.consecutive_failures += 1
+                                status.health_score = max(0.0, status.health_score - 0.1)
+                            
+                            status.avg_response_time = response_time
+                
+                except asyncio.TimeoutError:
+                    status = self.key_status.get(key_id)
+                    if status:
+                        status.consecutive_failures += 1
+                        status.health_score = max(0.0, status.health_score - 0.2)
+                
+                except Exception as e:
+                    self.logger.warning(f"[API_ROTATION] Health check failed for {key_id}: {e}")
+        
+        except Exception as e:
+            self.logger.error(f"[API_ROTATION] Health check error for {service_name}: {e}")
+    
+    def rotate_service_key(self, service_name: str):
+        """Manually rotate to next key for a service"""
+        if service_name not in self.services:
+            return False
+        
+        service = self.services[service_name]
+        if len(service.keys) <= 1:
+            self.logger.info(f"[API_ROTATION] Cannot rotate {service_name}: only 1 key available")
+            return False
+        
+        old_index = service.current_index
+        service.current_index = (service.current_index + 1) % len(service.keys)
+        
+        self.logger.info(f"[API_ROTATION] Manually rotated {service_name} from key {old_index} to {service.current_index}")
+        return True
+    
+    def reset_rate_limits(self, service_name: Optional[str] = None):
+        """Reset rate limit flags for a service or all services"""
+        if service_name:
+            services_to_reset = [service_name] if service_name in self.services else []
+        else:
+            services_to_reset = list(self.services.keys())
+        
+        reset_count = 0
+        for svc_name in services_to_reset:
+            for key_id, status in self.key_status.items():
+                if status.service == svc_name and status.rate_limit_hit:
+                    status.rate_limit_hit = False
+                    status.rate_limit_reset = None
+                    reset_count += 1
+        
+        self.logger.info(f"[API_ROTATION] Reset rate limits for {reset_count} keys")
+        return reset_count
+    
+    def get_rotation_statistics(self) -> Dict[str, Any]:
+        """Get comprehensive rotation statistics"""
+        stats = {
+            'rotation_enabled': self.rotation_enabled,
+            'rotation_strategy': self.rotation_strategy.value,
+            'total_services': len(self.services),
+            'total_keys': len(self.key_status),
+            'last_health_check': self.last_health_check.isoformat(),
+            'services_summary': {},
+            'overall_health': 0.0,
+            'single_key_services': 0
+        }
+        
+        total_health = 0.0
+        total_keys = 0
+        
+        for service_name, service in self.services.items():
+            service_health_scores = []
+            rate_limited_keys = 0
+            total_requests = 0
+            
+            if len(service.keys) == 1:
+                stats['single_key_services'] += 1
+            
+            for key in service.keys:
+                if isinstance(key, dict):
+                    key_id = key.get('key_id', f"{service_name}_{len(service_health_scores)}")
+                else:
+                    key_id = f"{service_name}_{len(service_health_scores)}"
+                
+                status = self.key_status.get(key_id)
+                if status:
+                    service_health_scores.append(status.health_score)
+                    if status.rate_limit_hit:
+                        rate_limited_keys += 1
+                    total_requests += status.requests_count
+                    total_health += status.health_score
+                    total_keys += 1
+            
+            avg_health = sum(service_health_scores) / len(service_health_scores) if service_health_scores else 0.0
+            
+            stats['services_summary'][service_name] = {
+                'total_keys': len(service.keys),
+                'current_key_index': service.current_index,
+                'average_health': avg_health,
+                'rate_limited_keys': rate_limited_keys,
+                'total_requests': total_requests,
+                'single_key_mode': len(service.keys) == 1,
+                'adaptive_cooldowns': len(service.keys) == 1
+            }
+        
+        stats['overall_health'] = total_health / total_keys if total_keys > 0 else 0.0
+        
+        return stats
+    
+    async def cleanup(self):
+        """Clean up resources"""
+        if self.session and not self.session.closed:
+            await self.session.close()
+        
+        self.logger.info("[API_ROTATION] Cleanup completed")
 
 # Global instance for easy access
 api_rotation_manager = APIRotationManager()
@@ -650,114 +834,43 @@ def report_api_result(service_name: str, success: bool, **kwargs):
 def get_service_status(service_name: str) -> Dict[str, Any]:
     """Get service status"""
     return api_rotation_manager.get_service_status(service_name)
-'''
-    
-    return fixed_content
-
-def apply_adaptive_fix():
-    """Apply the adaptive key handling fix"""
-    print("?? Applying Adaptive API Key Fix")
-    print("=" * 35)
-    
-    # Create backup
-    if os.path.exists('api_rotation_manager.py'):
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_name = f'api_rotation_manager.py.backup_{timestamp}'
-        shutil.copy('api_rotation_manager.py', backup_name)
-        print(f"? Backup created: {backup_name}")
-    
-    # Create fixed version
-    fixed_content = create_fixed_api_rotation_manager()
-    
-    with open('api_rotation_manager.py', 'w') as f:
-        f.write(fixed_content)
-    
-    print("? Applied adaptive API rotation manager")
-    
-    # Update .env with adaptive strategy
-    if os.path.exists('.env'):
-        with open('.env', 'r') as f:
-            env_content = f.read()
-        
-        # Set adaptive strategy
-        if 'API_ROTATION_STRATEGY=' in env_content:
-            env_content = env_content.replace('API_ROTATION_STRATEGY=RATE_LIMIT_TRIGGER', 'API_ROTATION_STRATEGY=ADAPTIVE')
-            env_content = env_content.replace('API_ROTATION_STRATEGY=ROUND_ROBIN', 'API_ROTATION_STRATEGY=ADAPTIVE')
-            env_content = env_content.replace('API_ROTATION_STRATEGY=LOAD_BALANCED', 'API_ROTATION_STRATEGY=ADAPTIVE')
-        else:
-            env_content += '\\nAPI_ROTATION_STRATEGY=ADAPTIVE\\n'
-        
-        # Reduce cooldown period for better single-key handling
-        if 'API_COOLDOWN_PERIOD=' in env_content:
-            env_content = env_content.replace('API_COOLDOWN_PERIOD=300', 'API_COOLDOWN_PERIOD=10')
-        
-        with open('.env', 'w') as f:
-            f.write(env_content)
-        
-        print("? Updated .env with adaptive strategy")
-    
-    return True
-
-def test_fixed_system():
-    """Test the fixed system"""
-    print("\\n?? Testing Fixed System")
-    print("-" * 22)
-    
-    try:
-        # Test import
-        import api_rotation_manager
-        print("? Fixed API rotation manager imported")
-        
-        # Test getting binance key
-        binance_key = api_rotation_manager.get_api_key('binance')
-        if binance_key:
-            print("? Binance key retrieved successfully")
-            if isinstance(binance_key, dict):
-                print(f"   Key ID: {binance_key.get('key_id', 'unknown')}")
-            return True
-        else:
-            print("? Failed to get Binance key")
-            return False
-            
-    except Exception as e:
-        print(f"? Test failed: {e}")
-        return False
-
-def main():
-    """Main fix application"""
-    print("?? V3 Trading System - Adaptive Key Fix")
-    print("=" * 40)
-    print("This fix makes the API rotation system work with any number of keys (1, 2, or 3).")
-    print("It applies smart cooldown logic and adaptive strategies.\\n")
-    
-    # Check if we're in the right directory
-    if not os.path.exists('main.py'):
-        print("? Error: main.py not found")
-        print("   Make sure you're in the V3 trading system directory")
-        return False
-    
-    # Apply the fix
-    if apply_adaptive_fix():
-        print("\\n" + "=" * 40)
-        print("?? FIX APPLIED SUCCESSFULLY!")
-        print("-" * 25)
-        print("? Adaptive API rotation manager installed")
-        print("? Single-key mode with smart cooldowns")
-        print("? Multi-key mode with normal rotation")
-        print("? Better error handling and fallbacks")
-        
-        # Test the system
-        if test_fixed_system():
-            print("? System test passed")
-            print("\\n?? Ready to run: python3 main.py")
-        else:
-            print("??  System test had issues, but fix is applied")
-            print("\\n?? Try running: python3 main.py")
-        
-        return True
-    else:
-        print("? Fix application failed")
-        return False
 
 if __name__ == "__main__":
-    main()
+    # Test the rotation manager
+    import asyncio
+    
+    async def test_rotation():
+        print("Testing COMPLETE FIXED API Rotation Manager")
+        print("=" * 45)
+        
+        # Test getting keys for different services
+        services = ['alpha_vantage', 'news_api', 'fred', 'twitter', 'binance']
+        
+        for service in services:
+            key = get_api_key(service)
+            if key:
+                print(f"? {service}: Key available")
+                
+                # Simulate some API calls
+                for i in range(3):
+                    report_api_result(service, success=True, response_time=0.5)
+                
+                # Get status
+                status = get_service_status(service)
+                key_count = status.get('total_keys', 0)
+                single_mode = status.get('single_key_mode', False)
+                print(f"  Keys: {key_count} {'(Single Key Mode)' if single_mode else ''}")
+            else:
+                print(f"? {service}: No valid keys configured")
+        
+        print("\nOverall Statistics:")
+        stats = api_rotation_manager.get_rotation_statistics()
+        print(f"Total Services: {stats['total_services']}")
+        print(f"Total Keys: {stats['total_keys']}")
+        print(f"Single Key Services: {stats['single_key_services']}")
+        print(f"Overall Health: {stats['overall_health']:.2f}")
+        
+        # Cleanup
+        await api_rotation_manager.cleanup()
+    
+    asyncio.run(test_rotation())
