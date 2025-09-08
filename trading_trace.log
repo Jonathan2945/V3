@@ -1,0 +1,213 @@
+2025-09-08 10:16:51,036 - binance_exchange_manager - INFO - LIVE TRADING - Binance US connected
+2025-09-08 10:16:51,241 - main.SystemManager - INFO - V3 System Manager logging initialized
+2025-09-08 10:16:51,241 - asyncio - DEBUG - Using selector: EpollSelector
+2025-09-08 10:16:51,242 - main.SystemManager - INFO - ============================================================
+2025-09-08 10:16:51,242 - main.SystemManager - INFO - V3 TRADING SYSTEM - STARTUP
+2025-09-08 10:16:51,242 - main.SystemManager - INFO - ============================================================
+2025-09-08 10:16:51,242 - main.SystemManager - INFO - USE_REAL_DATA_ONLY: true
+2025-09-08 10:16:51,242 - main.SystemManager - INFO - MOCK_DATA_DISABLED: true
+2025-09-08 10:16:51,242 - main.SystemManager - INFO - FLASK_PORT: 8102
+2025-09-08 10:16:51,244 - main.SystemManager - INFO - Environment validation passed
+2025-09-08 10:16:51,264 - main.SystemManager - INFO - Step 1: Initializing V3 Trading Controller...
+2025-09-08 10:16:54,446 - main.SystemManager - INFO - Creating V3TradingController instance...
+2025-09-08 10:16:54,457 - pnl_persistence - INFO - PnL Persistence initialized - REAL DATA ONLY
+2025-09-08 10:16:55,064 - main_controller.RealDataCollector - INFO - REAL Binance connection established - BTC: $111,972.77
+2025-09-08 10:16:55,064 - main_controller - INFO - V3 Trading Controller initialized with REAL DATA ONLY
+2025-09-08 10:16:55,064 - main_controller - INFO - Initializing V3 Trading System - REAL DATA ONLY
+2025-09-08 10:16:55,064 - main_controller - INFO - REAL DATA ONLY mode validated
+2025-09-08 10:16:55,299 - main_controller - INFO - REAL Binance connection verified - BTC: $111,972.77
+2025-09-08 10:16:55,299 - main_controller - INFO - Loaded 2 strategies, 2 ML-ready
+2025-09-08 10:16:55,300 - main_controller - INFO - V3 System initialized successfully with REAL DATA ONLY!
+2025-09-08 10:16:55,300 - main.SystemManager - INFO - Testing controller API methods...
+2025-09-08 10:16:55,300 - main.SystemManager - INFO - Trading Status: 2 trades, $0.09 P&L
+2025-09-08 10:16:55,300 - main.SystemManager - INFO - System Status: 2 strategies loaded
+2025-09-08 10:16:55,300 - main.SystemManager - INFO - Controller initialized successfully
+2025-09-08 10:16:55,300 - main.SystemManager - INFO - Step 2: Initializing API Middleware...
+2025-09-08 10:16:55,976 - main.SystemManager - INFO - Creating APIMiddleware instance on 0.0.0.0:8102...
+2025-09-08 10:17:08,393 - external_data_collector - ERROR - Request error for https://api.twitter.com/2/tweets/search/recent?query=bitcoin&max_results=10: HTTPSConnectionPool(host='api.twitter.com', port=443): Max retries exceeded with url: /2/tweets/search/recent?query=bitcoin&max_results=10 (Caused by ResponseError('too many 429 error responses'))
+2025-09-08 10:17:08,402 - api_middleware - INFO - External data collector initialized successfully
+2025-09-08 10:17:08,699 - api_middleware - INFO - API Middleware initialized with external data support
+2025-09-08 10:17:08,700 - main.SystemManager - INFO - Registered 12 API routes
+2025-09-08 10:17:08,700 - main.SystemManager - INFO - Flask app initialized with 15 routes
+2025-09-08 10:17:08,700 - main.SystemManager - INFO - V3 API Middleware initialized
+2025-09-08 10:17:08,700 - main.SystemManager - INFO - Flask app created with 15 total routes, 12 API routes
+2025-09-08 10:17:08,700 - main.SystemManager - INFO - Middleware initialized successfully
+2025-09-08 10:17:08,700 - main.SystemManager - INFO - Step 3: Registering controller with middleware...
+2025-09-08 10:17:08,701 - api_middleware - INFO - Real-time updates started
+2025-09-08 10:17:08,702 - api_middleware - INFO - Main controller registered with middleware
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - Controller successfully registered
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - Step 4: Verifying system integration...
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - get_trading_status: Working
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - get_system_status: Working
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - Integration verification passed
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - ============================================================
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - STARTING V3 TRADING SYSTEM SERVER
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - ============================================================
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - Dashboard URL: http://0.0.0.0:8102
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - API Endpoints: http://0.0.0.0:8102/api/
+2025-09-08 10:17:08,702 - main.SystemManager - INFO - Real Data Mode: ACTIVE
+2025-09-08 10:17:08,703 - main.SystemManager - INFO - Controller: V3TradingController
+2025-09-08 10:17:08,704 - main.SystemManager - INFO - Strategies Loaded: 2
+2025-09-08 10:17:08,704 - main.SystemManager - INFO - ML Strategies: 2
+2025-09-08 10:17:08,704 - main.SystemManager - INFO - ============================================================
+2025-09-08 10:17:08,704 - main.SystemManager - INFO - System Ready: True
+2025-09-08 10:17:08,704 - main.SystemManager - INFO - Trading Allowed: True
+2025-09-08 10:17:08,704 - main.SystemManager - INFO - Backtest Complete: True
+2025-09-08 10:17:08,704 - main.SystemManager - INFO - ML Training Complete: True
+2025-09-08 10:17:08,704 - main.SystemManager - INFO - Starting Flask server...
+2025-09-08 10:17:08,704 - main.SystemManager - INFO - V3 TRADING SYSTEM INITIALIZATION COMPLETE!
+2025-09-08 10:17:08,704 - main.SystemManager - INFO - ============================================================
+2025-09-08 10:17:08,705 - main.SystemManager - INFO - Starting Flask server...
+2025-09-08 10:17:08,705 - api_middleware - INFO - Starting API Middleware on 0.0.0.0:8102
+2025-09-08 10:17:09,324 - werkzeug - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8102
+ * Running on http://185.202.239.125:8102
+2025-09-08 10:17:09,325 - werkzeug - INFO - [33mPress CTRL+C to quit[0m
+2025-09-08 10:17:28,744 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:28] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:17:29,301 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:29] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:17:29,744 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:29] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:17:30,336 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:30] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:17:31,996 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:31] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:17:33,153 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:33] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:17:45,405 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:45] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-09-08 10:17:45,507 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:45] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:17:46,009 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:46] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:17:46,478 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:46] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:17:46,741 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:46] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:17:47,218 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:47] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:17:47,333 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:47] "POST /api/control/start_trading HTTP/1.1" 200 -
+2025-09-08 10:17:48,082 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:48] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:17:48,654 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:48] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:17:49,260 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:49] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:17:49,525 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:49] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:17:50,397 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:50] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:17:50,682 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:50] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:17:50,824 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:50] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:17:51,362 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:51] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:17:51,740 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:51] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:17:52,046 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:52] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:17:52,461 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:52] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:17:53,059 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:53] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:17:55,138 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:55] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:17:55,876 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:55] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:17:56,315 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:56] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:17:56,745 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:56] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:17:57,164 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:57] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:17:57,561 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:17:57] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:00,396 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:00] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:00,697 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:00] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:01,159 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:01] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:01,729 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:01] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:01,989 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:01] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:02,408 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:02] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:05,350 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:05] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:05,945 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:05] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:06,184 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:06] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:06,876 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:06] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:07,094 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:07] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:07,541 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:07] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:10,374 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:10] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:10,800 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:10] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:11,292 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:11] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:11,695 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:11] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:12,132 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:12] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:12,639 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:12] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:15,692 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:15] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:16,229 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:16] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:16,635 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:16] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:17,105 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:17] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:17,530 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:17] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:17,942 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:17] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:20,721 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:20] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:21,226 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:21] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:21,766 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:21] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:22,124 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:22] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:22,640 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:22] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:22,913 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:22] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:25,825 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:25] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:26,439 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:26] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:26,531 - pnl_persistence - DEBUG - Saved overall metrics to database
+2025-09-08 10:18:26,551 - main_controller - INFO - ML Trade executed: SELL BTCUSDT -> $+0.06 (+0.56%) | Strategy: trend_following
+2025-09-08 10:18:26,679 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:26] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:27,168 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:27] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:27,783 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:27] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:28,197 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:28] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:28,707 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:28] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:29,215 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:29] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:29,454 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:29] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:29,857 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:29] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:30,335 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:30] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:30,660 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:30] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:30,748 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:30] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:31,246 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:31] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:31,581 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:31] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:32,050 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:32] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:32,534 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:32] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:32,999 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:32] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:35,819 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:35] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:36,217 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:36] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:36,713 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:36] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:37,138 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:37] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:37,642 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:37] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:38,118 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:38] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:40,677 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:40] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:41,093 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:41] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:41,476 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:41] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:41,904 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:41] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:42,331 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:42] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:42,969 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:42] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:45,478 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:45] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:46,097 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:46] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:46,510 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:46] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:46,941 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:46] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:47,633 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:47] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:47,953 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:47] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:50,727 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:50] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:51,323 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:51] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:51,744 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:51] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:52,148 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:52] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:52,563 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:52] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:52,964 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:52] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:18:55,736 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:55] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:18:55,948 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:55] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:18:56,415 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:56] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:18:56,670 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:56] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:18:57,168 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:57] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:18:57,571 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:18:57] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:19:00,747 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:00] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:19:01,172 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:01] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:19:01,677 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:01] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:19:01,878 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:01] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:19:02,385 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:02] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:19:02,892 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:02] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:19:04,219 - pnl_persistence - DEBUG - Saved overall metrics to database
+2025-09-08 10:19:04,247 - main_controller - INFO - ML Trade executed: SELL BTCUSDT -> $+0.07 (+0.59%) | Strategy: trend_following
+2025-09-08 10:19:05,756 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:05] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:19:05,975 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:05] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:19:06,377 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:06] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:19:06,790 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:06] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:19:07,195 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:07] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:19:07,710 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:07] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:19:10,733 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:10] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:19:11,205 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:11] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:19:11,598 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:11] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:19:12,021 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:12] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:19:12,522 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:12] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:19:13,002 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:13] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:19:28,536 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:28] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:19:28,809 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:28] "GET /api/dashboard/overview HTTP/1.1" 200 -
+2025-09-08 10:19:29,129 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:29] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:19:29,130 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:29] "GET /api/system/status HTTP/1.1" 200 -
+2025-09-08 10:19:29,641 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:29] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:19:29,644 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:29] "GET /api/backtest/progress HTTP/1.1" 200 -
+2025-09-08 10:19:30,145 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:30] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:19:30,150 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:30] "GET /api/trading/recent-trades HTTP/1.1" 200 -
+2025-09-08 10:19:30,549 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:30] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:19:30,578 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:30] "GET /api/external/news HTTP/1.1" 200 -
+2025-09-08 10:19:31,070 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:31] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:19:31,074 - werkzeug - INFO - 72.193.163.2 - - [08/Sep/2025 10:19:31] "GET /api/social/posts HTTP/1.1" 200 -
+2025-09-08 10:20:14,369 - main.SystemManager - INFO - Received SIGINT (Ctrl+C) - initiating shutdown
+2025-09-08 10:20:14,370 - main.SystemManager - INFO - Initiating graceful shutdown...
+2025-09-08 10:20:14,696 - main.SystemManager - INFO - System completed successfully
+2025-09-08 10:20:14,696 - main.SystemManager - INFO - V3 Trading System shutdown complete

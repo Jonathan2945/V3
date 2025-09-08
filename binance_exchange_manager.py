@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Environment-aware Binance US manager - Switches between testnet/live via .env
+Compatible Binance US Exchange Manager - Maintains original interface
 """
 
 import logging
@@ -11,21 +11,17 @@ from ccxt_binance_wrapper import CCXTBinanceUSWrapper
 load_dotenv()
 
 class BinanceUSEnvManager:
-    """Binance US manager that respects TESTNET environment variable"""
+    """Environment-aware Binance US manager with original interface"""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
-        
-        # Read from environment like your original system
         self.testnet_mode = os.getenv('TESTNET', 'false').lower() == 'true'
         
         if self.testnet_mode:
-            # Use regular keys for testnet
             api_key = os.getenv('BINANCE_API_KEY_1', '')
             api_secret = os.getenv('BINANCE_API_SECRET_1', '')
             mode_name = "TESTNET"
         else:
-            # Use live keys for real trading
             api_key = os.getenv('BINANCE_LIVE_API_KEY_1', '')
             api_secret = os.getenv('BINANCE_LIVE_API_SECRET_1', '')
             mode_name = "LIVE"
@@ -79,22 +75,73 @@ class BinanceUSEnvManager:
             self.logger.error(f"Trade failed: {e}")
             return None
 
-# Test with current environment
+# Create the global exchange_manager instance that other files expect
+exchange_manager = BinanceUSEnvManager()
+
+# Provide the missing functions that other files import
+def get_tradeable_pairs():
+    """Get tradeable pairs from Binance US"""
+    try:
+        exchange_info = exchange_manager.client.get_exchange_info()
+        pairs = []
+        for symbol_info in exchange_info['symbols']:
+            if symbol_info['status'] == 'TRADING':
+                pairs.append(symbol_info['symbol'])
+        return pairs
+    except Exception as e:
+        logging.error(f"Failed to get tradeable pairs: {e}")
+        return ['BTCUSDT', 'ETHUSDT', 'BNBUSDT']  # Fallback pairs
+
+def calculate_position_size(symbol, usdt_amount, current_price=None):
+    """Calculate position size"""
+    try:
+        if current_price is None:
+            ticker = exchange_manager.client.get_symbol_ticker(symbol)
+            current_price = float(ticker['price'])
+        
+        quantity = usdt_amount / current_price
+        return quantity
+    except Exception as e:
+        logging.error(f"Failed to calculate position size: {e}")
+        return 0.0
+
+def validate_order(symbol, side, quantity):
+    """Validate order parameters"""
+    try:
+        if quantity <= 0:
+            return False, "Invalid quantity"
+        if side.upper() not in ['BUY', 'SELL']:
+            return False, "Invalid side"
+        return True, "Valid"
+    except Exception as e:
+        return False, f"Validation error: {e}"
+
+# Test the compatible interface
 if __name__ == "__main__":
     try:
-        manager = BinanceUSEnvManager()
+        print("Testing compatible interface...")
+        
+        # Test exchange_manager
+        balance = exchange_manager.get_account_balance('USDT')
+        print(f"USDT Balance: ${balance:.2f}")
+        
+        # Test get_tradeable_pairs
+        pairs = get_tradeable_pairs()
+        print(f"Available pairs: {len(pairs)}")
+        
+        # Test calculate_position_size
+        size = calculate_position_size('BTCUSDT', 2.0, 50000)
+        print(f"Position size for $2: {size:.6f} BTC")
+        
+        # Test validate_order
+        valid, msg = validate_order('BTCUSDT', 'BUY', 0.001)
+        print(f"Order validation: {valid} - {msg}")
         
         testnet = os.getenv('TESTNET', 'false').lower() == 'true'
         mode = "TESTNET" if testnet else "LIVE"
-        
-        print(f"SUCCESS - {mode} manager ready!")
-        
-        usdt_balance = manager.get_account_balance('USDT')
-        print(f"USDT Balance: ${usdt_balance:.2f}")
-        
-        print(f"\nTo switch modes:")
-        print(f"TESTNET=true   -> Uses virtual money")
-        print(f"TESTNET=false  -> Uses real money (current)")
+        print(f"SUCCESS - Compatible interface ready for {mode} trading!")
         
     except Exception as e:
         print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
