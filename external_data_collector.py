@@ -186,7 +186,7 @@ class EnhancedExternalDataCollector:
         
         return result
     
-    def collect_comprehensive_market_data(self):
+    def collect_comprehensive_market_data(self, symbol="BTC", force_refresh=False):
         """Compatibility method for API middleware"""
         try:
             result = self.collect_comprehensive_data()
@@ -238,3 +238,8 @@ if __name__ == "__main__":
     collector = EnhancedExternalDataCollector()
     result = collector.collect_comprehensive_data()
     print(f"Data collection completed: {result.source_count} sources, quality: {result.data_quality}")
+
+
+class ExternalDataCollector(EnhancedExternalDataCollector):
+    """Compatibility class - inherits from EnhancedExternalDataCollector"""
+    pass

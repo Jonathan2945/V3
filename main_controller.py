@@ -58,6 +58,8 @@ class AsyncTaskManager:
         self.tasks = {}
         self.running = True
         
+
+
     async def start_background_updates(self, controller):
         """Start background update tasks"""
         try:
@@ -772,3 +774,141 @@ if __name__ == "__main__":
     # Test the controller
     controller = V3TradingController()
     print(f"V3 Trading Controller initialized: {controller.get_system_status()}")
+
+
+    def start_trading(self):
+        """Start trading operations"""
+        try:
+            self.is_running = True
+            self.logger.info("[TRADING] Trading started")
+            return {"success": True, "message": "Trading started successfully"}
+        except Exception as e:
+            self.logger.error(f"[TRADING] Failed to start trading: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def stop_trading(self):
+        """Stop trading operations"""
+        try:
+            self.is_running = False
+            self.logger.info("[TRADING] Trading stopped")
+            return {"success": True, "message": "Trading stopped successfully"}
+        except Exception as e:
+            self.logger.error(f"[TRADING] Failed to stop trading: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def get_comprehensive_dashboard_data(self):
+        """Get comprehensive dashboard data"""
+        try:
+            return {
+                "overview": {
+                    "trading": {
+                        "is_running": getattr(self, 'is_running', False),
+                        "total_pnl": getattr(self, 'total_pnl', 0.0),
+                        "daily_pnl": getattr(self, 'daily_pnl', 0.0),
+                        "total_trades": getattr(self, 'total_trades', 0),
+                        "win_rate": getattr(self, 'win_rate', 0.0),
+                        "active_positions": getattr(self, 'active_positions', 0),
+                        "best_trade": getattr(self, 'best_trade', 0.0)
+                    },
+                    "system": {
+                        "controller_connected": True,
+                        "ml_training_completed": getattr(self, 'ml_training_completed', False),
+                        "backtest_completed": getattr(self, 'backtest_completed', True),
+                        "api_rotation_active": True
+                    },
+                    "scanner": {
+                        "active_pairs": len(getattr(self, 'active_pairs', [])),
+                        "opportunities": getattr(self, 'opportunities', 0),
+                        "best_opportunity": getattr(self, 'best_opportunity', 'None'),
+                        "confidence": getattr(self, 'confidence', 0)
+                    },
+                    "external_data": {
+                        "working_apis": getattr(self, 'working_apis', 1),
+                        "total_apis": 5,
+                        "api_status": getattr(self, 'api_status', {})
+                    }
+                }
+            }
+        except Exception as e:
+            self.logger.error(f"[DASHBOARD] Error getting dashboard data: {e}")
+            return {"overview": {"error": str(e)}}
+    
+    def load_strategies(self):
+        """Load strategies from database"""
+        try:
+            strategies = []
+            
+            # Try to load from comprehensive backtest database
+            import sqlite3
+            db_paths = ['data/comprehensive_backtest.db', 'comprehensive_backtest.db']
+            
+            for db_path in db_paths:
+                if os.path.exists(db_path):
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+                    
+                    # Get strategies from historical_backtests table
+                    cursor.execute("""
+                        SELECT DISTINCT strategy_name, pair, timeframe, 
+                               avg(total_return) as avg_return,
+                               avg(sharpe_ratio) as avg_sharpe,
+                               count(*) as backtest_count
+                        FROM historical_backtests 
+                        WHERE strategy_name IS NOT NULL
+                        GROUP BY strategy_name, pair, timeframe
+                        ORDER BY avg_return DESC
+                    """)
+                    
+                    rows = cursor.fetchall()
+                    for row in rows:
+                        strategy = {
+                            'name': row[0],
+                            'pair': row[1], 
+                            'timeframe': row[2],
+                            'avg_return': row[3],
+                            'sharpe_ratio': row[4],
+                            'backtest_count': row[5]
+                        }
+                        strategies.append(strategy)
+                    
+                    conn.close()
+                    break
+            
+            # Store loaded strategies
+            self.strategies = strategies
+            self.logger.info(f"[STRATEGIES] Loaded {len(strategies)} strategies from database")
+            
+            return strategies
+            
+        except Exception as e:
+            self.logger.error(f"[STRATEGIES] Error loading strategies: {e}")
+            return []
+    
+    def get_trading_status(self):
+        """Get current trading status"""
+        try:
+            return {
+                "is_running": getattr(self, 'is_running', False),
+                "total_trades": getattr(self, 'total_trades', 0),
+                "total_pnl": getattr(self, 'total_pnl', 0.0),
+                "active_positions": getattr(self, 'active_positions', 0),
+                "strategies_loaded": len(getattr(self, 'strategies', [])),
+                "win_rate": getattr(self, 'win_rate', 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"[STATUS] Error getting trading status: {e}")
+            return {"error": str(e)}
+    
+    def get_system_status(self):
+        """Get system status"""
+        try:
+            return {
+                "controller_connected": True,
+                "strategies_loaded": len(getattr(self, 'strategies', [])),
+                "trading_active": getattr(self, 'is_running', False),
+                "ml_ready": getattr(self, 'ml_training_completed', False),
+                "backtest_ready": getattr(self, 'backtest_completed', True)
+            }
+        except Exception as e:
+            self.logger.error(f"[SYSTEM] Error getting system status: {e}")
+            return {"error": str(e)}
