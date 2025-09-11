@@ -35,6 +35,7 @@ import threading
 load_dotenv()
 
 # Import your existing modules
+from ccxt_wrapper import CCXTBinanceWrapper
 from api_rotation_manager import get_api_key, report_api_result
 from pnl_persistence import PnLPersistence
 
@@ -459,9 +460,17 @@ class V3TradingController:
     def _initialize_backtester(self):
         """Initialize real backtester"""
         try:
-            from advanced_backtester import AdvancedBacktester
-            backtester = AdvancedBacktester(controller=self)
-            self.logger.info("Backtester initialized")
+            from advanced_backtester import AdvancedMultiTimeframeBacktester
+            backtester = AdvancedMultiTimeframeBacktester(controller=self)
+            
+            # Pass the working Binance client to the backtester
+            if self.exchange_manager and hasattr(self.exchange_manager, 'client'):
+                # Wrap CCXT client to be compatible with python-binance methods
+                backtester.client = CCXTBinanceWrapper(self.exchange_manager.client)
+                self.logger.info("Backtester initialized with wrapped CCXT client")
+            else:
+                self.logger.warning("No Binance client available for backtester")
+            
             return backtester
         except Exception as e:
             self.logger.error(f"Failed to initialize backtester: {e}")
@@ -601,7 +610,7 @@ class V3TradingController:
     def _load_persistent_metrics(self) -> Dict:
         """Load real persistent metrics"""
         try:
-            saved_metrics = self.pnl_persistence.load_metrics()
+            saved_metrics = self.pnl_persistence.get_performance_summary()
         except Exception as e:
             self.logger.warning(f"Failed to load PnL persistence: {e}")
             saved_metrics = {}
@@ -662,7 +671,7 @@ class V3TradingController:
                             )
                 
                 # Also save via PnL persistence
-                self.pnl_persistence.save_metrics(self.metrics)
+                self.pnl_persistence.save_performance_snapshot()
                 
             except Exception as e:
                 self.logger.error(f"Failed to save metrics: {e}")

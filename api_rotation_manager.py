@@ -125,7 +125,7 @@ class APIRotationManager:
             return self.get_alpha_vantage_key()
         return None
 
-    def report_api_result(self, service: str, api_key: str, success: bool, error_message: str = None):
+    def report_api_result(service, success, error_message=None, **kwargs):
         """Compatibility function - report API result"""
         pass
 
@@ -138,7 +138,7 @@ def get_api_key(service: str, key_type: str = 'default'):
     except:
         return None
 
-def report_api_result(service: str, api_key: str, success: bool, error_message: str = None):
+def report_api_result(service, success, error_message=None, **kwargs):
     """Global function - report API result"""
     pass
 
