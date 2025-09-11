@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-V3 MAIN CONTROLLER - REAL DATA ONLY
-===================================
-Real market data, real backtesting, paper trading, and live trading
-NO FAKE/SIMULATED DATA
+V3 MAIN CONTROLLER - REAL DATA ONLY (NO SIMULATIONS)
+===================================================
+CRITICAL FIXES:
+- Removed all _simulate_trade() methods
+- Removed fake scanner data generation
+- Removed simulated external API status
+- Only uses real Binance data and actual API responses
 """
 import numpy as np
 from binance.client import Client
@@ -12,6 +15,7 @@ import logging
 import json
 import os
 import psutil
+import random
 from typing import List, Dict, Tuple, Optional
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
@@ -34,8 +38,7 @@ import threading
 
 load_dotenv()
 
-# Import your existing modules
-from ccxt_wrapper import CCXTBinanceWrapper
+# Keep your existing API rotation system - it's already excellent
 from api_rotation_manager import get_api_key, report_api_result
 from pnl_persistence import PnLPersistence
 
@@ -58,6 +61,7 @@ class DatabaseManager:
             check_same_thread=False,
             isolation_level='DEFERRED'
         )
+        # Enable WAL mode for better concurrency
         conn.execute('PRAGMA journal_mode=WAL')
         conn.execute('PRAGMA synchronous=NORMAL') 
         conn.execute('PRAGMA cache_size=10000')
@@ -69,14 +73,17 @@ class DatabaseManager:
         """Get a database connection from the pool"""
         conn = None
         try:
+            # Try to get connection from pool
             try:
                 conn = self._pool.get_nowait()
             except queue.Empty:
+                # Create new connection if pool is empty and we haven't hit max
                 with self._lock:
                     if self._active_connections < self._max_connections:
                         conn = self._create_connection()
                         self._active_connections += 1
                     else:
+                        # Wait for connection from pool
                         conn = self._pool.get(timeout=10)
             
             yield conn
@@ -92,8 +99,10 @@ class DatabaseManager:
             if conn:
                 try:
                     conn.commit()
+                    # Return connection to pool
                     self._pool.put_nowait(conn)
                 except queue.Full:
+                    # Pool is full, close connection
                     conn.close()
                     with self._lock:
                         self._active_connections -= 1
@@ -119,464 +128,286 @@ class DatabaseManager:
                 break
         self._active_connections = 0
 
-class RealMarketDataManager:
-    """Real market data manager - NO SIMULATION"""
+class AsyncTaskManager:
+    """Enhanced async task manager with proper lifecycle and error handling"""
     
-    def __init__(self, client: Client):
-        self.client = client
-        self.logger = logging.getLogger(f"{__name__}.MarketData")
-        self._cache = {}
-        self._cache_timestamps = {}
-        self._cache_ttl = 30  # 30 seconds cache
+    def __init__(self):
+        self._tasks: Dict[str, asyncio.Task] = {}
+        self._cleanup_lock = asyncio.Lock()
+        self._shutdown_event = asyncio.Event()
+        self._logger = logging.getLogger(f"{__name__}.AsyncTaskManager")
         
-    def get_real_price(self, symbol: str) -> float:
-        """Get real current price from Binance"""
-        try:
-            cache_key = f"price_{symbol}"
-            now = time.time()
+    async def create_task(self, coro, name: str, error_callback=None):
+        """Create and track an async task with error handling"""
+        async def wrapped_coro():
+            try:
+                return await coro
+            except asyncio.CancelledError:
+                self._logger.info(f"Task {name} was cancelled")
+                raise
+            except Exception as e:
+                self._logger.error(f"Task {name} failed: {e}", exc_info=True)
+                if error_callback:
+                    try:
+                        await error_callback(e)
+                    except Exception as cb_error:
+                        self._logger.error(f"Error callback for {name} failed: {cb_error}")
+                raise
+        
+        async with self._cleanup_lock:
+            # Cancel existing task with same name
+            if name in self._tasks and not self._tasks[name].done():
+                self._tasks[name].cancel()
+                try:
+                    await self._tasks[name]
+                except asyncio.CancelledError:
+                    pass
             
-            # Check cache
-            if (cache_key in self._cache and 
-                now - self._cache_timestamps.get(cache_key, 0) < self._cache_ttl):
-                return self._cache[cache_key]
+            # Create new task
+            task = asyncio.create_task(wrapped_coro(), name=name)
+            self._tasks[name] = task
             
-            # Get real price from Binance
-            ticker = self.client.get_symbol_ticker(symbol=symbol)
-            price = float(ticker['price'])
-            
-            # Cache the result
-            self._cache[cache_key] = price
-            self._cache_timestamps[cache_key] = now
-            
-            return price
-            
-        except Exception as e:
-            self.logger.error(f"Failed to get real price for {symbol}: {e}")
-            return 0.0
+            # Clean up completed tasks
+            completed_tasks = [k for k, v in self._tasks.items() if v.done()]
+            for k in completed_tasks:
+                del self._tasks[k]
+                
+        return task
     
-    def get_real_historical_data(self, symbol: str, interval: str, days: int = 30) -> pd.DataFrame:
-        """Get real historical data from Binance"""
-        try:
-            # Calculate start time
-            start_time = int((datetime.now() - timedelta(days=days)).timestamp() * 1000)
-            
-            # Get real historical klines from Binance
-            klines = self.client.get_historical_klines(
-                symbol, interval, start_str=start_time
-            )
-            
-            if not klines:
-                return pd.DataFrame()
-            
-            # Convert to DataFrame
-            df = pd.DataFrame(klines, columns=[
-                'timestamp', 'open', 'high', 'low', 'close', 'volume',
-                'close_time', 'quote_asset_volume', 'number_of_trades',
-                'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
-            ])
-            
-            # Convert to proper types
-            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-            for col in ['open', 'high', 'low', 'close', 'volume']:
-                df[col] = pd.to_numeric(df[col])
-            
-            return df
-            
-        except Exception as e:
-            self.logger.error(f"Failed to get historical data for {symbol}: {e}")
-            return pd.DataFrame()
+    async def cancel_task(self, name: str):
+        """Cancel a specific task"""
+        async with self._cleanup_lock:
+            if name in self._tasks and not self._tasks[name].done():
+                self._tasks[name].cancel()
+                try:
+                    await self._tasks[name]
+                except asyncio.CancelledError:
+                    pass
+                del self._tasks[name]
     
-    def get_market_depth(self, symbol: str) -> Dict:
-        """Get real market depth/order book"""
-        try:
-            depth = self.client.get_order_book(symbol=symbol, limit=20)
-            return {
-                'bids': [[float(bid[0]), float(bid[1])] for bid in depth['bids'][:10]],
-                'asks': [[float(ask[0]), float(ask[1])] for ask in depth['asks'][:10]],
-                'timestamp': time.time()
-            }
-        except Exception as e:
-            self.logger.error(f"Failed to get market depth for {symbol}: {e}")
-            return {'bids': [], 'asks': [], 'timestamp': time.time()}
+    async def shutdown_all(self, timeout: float = 5.0):
+        """Shutdown all tasks gracefully"""
+        self._shutdown_event.set()
+        
+        async with self._cleanup_lock:
+            if not self._tasks:
+                return
+            
+            # Cancel all tasks
+            for task in self._tasks.values():
+                if not task.done():
+                    task.cancel()
+            
+            # Wait for tasks to complete
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*self._tasks.values(), return_exceptions=True),
+                    timeout=timeout
+                )
+            except asyncio.TimeoutError:
+                self._logger.warning(f"Some tasks didn't complete within {timeout}s timeout")
+            
+            self._tasks.clear()
 
-class RealTradingEngine:
-    """Real trading engine with paper and live modes"""
+class EnhancedComprehensiveMultiTimeframeBacktester:
+    """Enhanced backtester with proper resource management"""
     
-    def __init__(self, client: Client, trading_mode: str = 'PAPER'):
-        self.client = client
-        self.trading_mode = trading_mode  # 'PAPER' or 'LIVE'
-        self.logger = logging.getLogger(f"{__name__}.TradingEngine")
-        self.market_data = RealMarketDataManager(client)
+    def __init__(self, controller=None):
+        self.controller = weakref.ref(controller) if controller else None
+        self.logger = logging.getLogger(f"{__name__}.Backtester")
         
-        # Real position tracking
-        self.positions = {}
-        self.orders = {}
-        self.trade_history = deque(maxlen=1000)
+        # Database manager
+        self.db_manager = DatabaseManager('data/comprehensive_backtest.db')
+        self._initialize_database()
         
-        # Real account info
-        self._update_account_info()
+        # Configuration
+        self.all_pairs = [
+            'BTCUSD', 'BTCUSDT', 'BTCUSDC', 'ETHUSDT', 'ETHUSD', 'ETHUSDC', 'ETHBTC',
+            'BNBUSD', 'BNBUSDT', 'BNBBTC', 'ADAUSD', 'ADAUSDC', 'ADAUSDT', 'ADABTC',
+            'SOLUSD', 'SOLUSDC', 'SOLUSDT', 'SOLBTC', 'XRPUSD', 'XRPUSDT',
+            'DOGEUSD', 'DOGEUSDT', 'AVAXUSD', 'AVAXUSDT', 'SHIBUSD', 'SHIBUSDT',
+            'DOTUSDT', 'LINKUSD', 'LINKUSDT', 'LTCUSD', 'LTCUSDT', 'UNIUSD', 'UNIUSDT',
+            'ATOMUSD', 'ATOMUSDT', 'ALGOUSD', 'ALGOUSDT', 'VETUSD', 'VETUSDT'
+        ]
         
-    def _update_account_info(self):
-        """Update real account information"""
-        try:
-            if self.trading_mode == 'LIVE':
-                account = self.client.get_account()
-                self.account_balance = {
-                    balance['asset']: float(balance['free'])
-                    for balance in account['balances']
-                    if float(balance['free']) > 0
-                }
-            else:
-                # Paper trading - start with test balance
-                self.account_balance = {
-                    'USDT': 10000.0,  # Start with $10k for paper trading
-                    'BTC': 0.0,
-                    'ETH': 0.0
-                }
-        except Exception as e:
-            self.logger.error(f"Failed to update account info: {e}")
-            self.account_balance = {'USDT': 10000.0}
+        self.timeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M']
+        self.mtf_combinations = [
+            (['1m', '5m', '15m'], 'scalping'),
+            (['5m', '15m', '30m'], 'short_term'),
+            (['15m', '1h', '4h'], 'intraday'),
+            (['1h', '4h', '1d'], 'swing'),
+            (['4h', '1d', '1w'], 'position'),
+            (['1d', '1w', '1M'], 'long_term')
+        ]
+        
+        # Progress tracking with thread safety
+        self._progress_lock = threading.Lock()
+        self.total_combinations = len(self.all_pairs) * len(self.mtf_combinations)
+        self.completed = 0
+        self.current_symbol = None
+        self.current_strategy = None
+        self.start_time = None
+        self.status = 'not_started'
+        self.error_count = 0
+        self.max_errors = 50
+        
+        # Initialize Binance client using your existing API rotation
+        self.client = self._initialize_binance_client()
+        
+        self.logger.info(f"Backtester initialized: {len(self.all_pairs)} pairs, {self.total_combinations} combinations")
     
-    def place_order(self, symbol: str, side: str, quantity: float, 
-                   order_type: str = 'MARKET', price: float = None) -> Dict:
-        """Place real or paper order"""
+    def _initialize_binance_client(self) -> Optional[Client]:
+        """Initialize Binance client using existing API rotation"""
         try:
-            order_id = str(uuid.uuid4())
-            current_price = self.market_data.get_real_price(symbol)
-            
-            if self.trading_mode == 'LIVE':
-                # Place real order on Binance
-                if order_type == 'MARKET':
-                    order = self.client.order_market_buy(
-                        symbol=symbol,
-                        quantity=quantity
-                    ) if side == 'BUY' else self.client.order_market_sell(
-                        symbol=symbol,
-                        quantity=quantity
-                    )
-                else:
-                    order = self.client.order_limit_buy(
-                        symbol=symbol,
-                        quantity=quantity,
-                        price=str(price)
-                    ) if side == 'BUY' else self.client.order_limit_sell(
-                        symbol=symbol,
-                        quantity=quantity,
-                        price=str(price)
-                    )
-                
-                # Process real order response
-                order_result = {
-                    'order_id': order['orderId'],
-                    'symbol': symbol,
-                    'side': side,
-                    'quantity': float(order['executedQty']),
-                    'price': float(order['fills'][0]['price']) if order['fills'] else current_price,
-                    'status': order['status'],
-                    'timestamp': datetime.now().isoformat(),
-                    'mode': 'LIVE'
-                }
-                
-            else:
-                # Paper trading with real market prices
-                execution_price = price if price and order_type == 'LIMIT' else current_price
-                
-                # Simulate realistic fills with slippage
-                if order_type == 'MARKET':
-                    slippage = 0.001  # 0.1% slippage for market orders
-                    execution_price = current_price * (1 + slippage if side == 'BUY' else 1 - slippage)
-                
-                order_result = {
-                    'order_id': order_id,
-                    'symbol': symbol,
-                    'side': side,
-                    'quantity': quantity,
-                    'price': execution_price,
-                    'status': 'FILLED',
-                    'timestamp': datetime.now().isoformat(),
-                    'mode': 'PAPER'
-                }
-                
-                # Update paper trading balances
-                self._update_paper_balance(symbol, side, quantity, execution_price)
-            
-            # Store order
-            self.orders[order_result['order_id']] = order_result
-            self.trade_history.append(order_result)
-            
-            return order_result
-            
+            binance_creds = get_api_key('binance')
+            if binance_creds:
+                return Client(
+                    binance_creds['api_key'], 
+                    binance_creds['api_secret'], 
+                    testnet=True
+                )
         except Exception as e:
-            self.logger.error(f"Failed to place order: {e}")
-            return {'error': str(e)}
+            self.logger.warning(f"Failed to initialize Binance client: {e}")
+        return None
     
-    def _update_paper_balance(self, symbol: str, side: str, quantity: float, price: float):
-        """Update paper trading balances"""
-        try:
-            base_asset = symbol.replace('USDT', '').replace('BUSD', '').replace('BTC', '')
-            quote_asset = 'USDT' if 'USDT' in symbol else 'BUSD' if 'BUSD' in symbol else 'BTC'
-            
-            cost = quantity * price * 1.001  # Include 0.1% fees
-            
-            if side == 'BUY':
-                # Deduct quote asset, add base asset
-                self.account_balance[quote_asset] = self.account_balance.get(quote_asset, 0) - cost
-                self.account_balance[base_asset] = self.account_balance.get(base_asset, 0) + quantity
-            else:
-                # Deduct base asset, add quote asset
-                self.account_balance[base_asset] = self.account_balance.get(base_asset, 0) - quantity
-                self.account_balance[quote_asset] = self.account_balance.get(quote_asset, 0) + (quantity * price * 0.999)
-                
-        except Exception as e:
-            self.logger.error(f"Failed to update paper balance: {e}")
+    def _initialize_database(self):
+        """Initialize database schema"""
+        schema = '''
+        CREATE TABLE IF NOT EXISTS historical_backtests (
+            id INTEGER PRIMARY KEY,
+            symbol TEXT,
+            timeframes TEXT,
+            strategy_type TEXT,
+            start_date TEXT,
+            end_date TEXT,
+            total_candles INTEGER,
+            total_trades INTEGER,
+            winning_trades INTEGER,
+            win_rate REAL,
+            total_return_pct REAL,
+            max_drawdown REAL,
+            sharpe_ratio REAL,
+            avg_trade_duration_hours REAL,
+            volatility REAL,
+            best_trade_pct REAL,
+            worst_trade_pct REAL,
+            confluence_strength REAL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE IF NOT EXISTS backtest_progress (
+            id INTEGER PRIMARY KEY,
+            status TEXT,
+            current_symbol TEXT,
+            current_strategy TEXT,
+            completed INTEGER,
+            total INTEGER,
+            error_count INTEGER DEFAULT 0,
+            start_time TEXT,
+            completion_time TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_backtests_symbol ON historical_backtests(symbol);
+        CREATE INDEX IF NOT EXISTS idx_backtests_strategy ON historical_backtests(strategy_type);
+        CREATE INDEX IF NOT EXISTS idx_backtests_sharpe ON historical_backtests(sharpe_ratio);
+        '''
+        self.db_manager.initialize_schema(schema)
     
-    def get_position_pnl(self, symbol: str) -> float:
-        """Calculate real P&L for position"""
+    def cleanup(self):
+        """Cleanup resources"""
         try:
-            if symbol not in self.positions:
-                return 0.0
-            
-            position = self.positions[symbol]
-            current_price = self.market_data.get_real_price(symbol)
-            
-            if position['side'] == 'LONG':
-                pnl = (current_price - position['avg_price']) * position['quantity']
-            else:
-                pnl = (position['avg_price'] - current_price) * position['quantity']
-            
-            return pnl
-            
+            if hasattr(self, 'db_manager'):
+                self.db_manager.close_all()
         except Exception as e:
-            self.logger.error(f"Failed to calculate PnL for {symbol}: {e}")
-            return 0.0
+            self.logger.error(f"Cleanup error: {e}")
 
 class V3TradingController:
     """V3 Trading Controller - REAL DATA ONLY"""
     
     def __init__(self):
-        self.logger = logging.getLogger('main_controller')
+        self.logger = logging.getLogger(__name__)
+        
+        # Validate configuration
+        if not self._validate_basic_config():
+            raise ValueError("Configuration validation failed")
+        
+        # Initialize managers
+        self.task_manager = AsyncTaskManager()
+        self.db_manager = DatabaseManager('data/trading_metrics.db')
+        self._initialize_database()
+        
+        # Thread-safe state management
+        self._state_lock = threading.Lock()
+        self._shutdown_event = threading.Event()
         
         # Initialize system state
         self.is_running = False
         self.is_initialized = False
+        self.initialization_progress = 0
         
-        # Trading mode configuration
-        self.trading_mode = os.getenv('DEFAULT_TRADING_MODE', 'PAPER_TRADING')
-        self.testnet_mode = os.getenv('TESTNET', 'true').lower() == 'true'
-        
-        # Initialize real Binance client
-        self.exchange_manager = self._initialize_exchange_manager()
-        
-        # Initialize real trading engine
-        if self.exchange_manager and hasattr(self.exchange_manager, 'client'):
-            self.trading_engine = RealTradingEngine(
-                self.exchange_manager.client, 
-                'PAPER' if self.trading_mode == 'PAPER_TRADING' else 'LIVE'
-            )
-        else:
-            self.trading_engine = None
-        
-        # Database and persistence
-        self.db_manager = DatabaseManager('data/trading_metrics.db')
-        self._initialize_database()
+        # Initialize persistence system
         self.pnl_persistence = PnLPersistence()
         
-        # Load real persistent data
+        # Load persistent data
         self.metrics = self._load_persistent_metrics()
         
-        # Real data structures
+        # Initialize data structures with size limits to prevent memory leaks
         self.open_positions = {}
         self.recent_trades = deque(maxlen=100)
         self.top_strategies = []
         self.ml_trained_strategies = []
         
-        # Initialize other components
-        self.external_data_collector = self._initialize_external_data_collector()
-        self.ai_brain = self._initialize_ml_engine()
-        self.scanner = self._initialize_scanner()
-        self.comprehensive_backtester = self._initialize_backtester()
-        
-        # Real-time data tracking
-        self.scanner_data = self._initialize_scanner_data()
-        self.system_resources = self._initialize_system_resources()
-        self.external_data_status = self._initialize_external_data_status()
+        # Progress tracking
         self.backtest_progress = self._initialize_backtest_progress()
         
-        # Thread management
-        self._state_lock = threading.Lock()
-        self._shutdown_event = threading.Event()
+        # System data - REAL ONLY
+        self.external_data_status = self._get_real_external_data_status()
+        self.scanner_data = self._get_real_scanner_data()
+        self.system_resources = {'cpu_usage': 0.0, 'memory_usage': 0.0, 'api_calls_today': 0, 'data_points_processed': 0}
+        
+        # Configuration
+        self.testnet_mode = os.getenv('TESTNET', 'true').lower() == 'true'
+        self.trading_mode = os.getenv('DEFAULT_TRADING_MODE', 'PAPER_TRADING')
+        self.max_positions = int(os.getenv('MAX_TOTAL_POSITIONS', '3'))
+        
+        # Components (lazy initialization)
+        self.ai_brain = None
+        self.trading_engine = None
+        self.external_data_collector = None
+        self.comprehensive_backtester = None
+        
+        # Thread executor for blocking operations
         self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="V3Controller")
         
-        self.logger.info("V3 Trading Controller initialized - REAL DATA MODE")
+        self.logger.info("V3 Trading Controller initialized - REAL DATA ONLY")
     
-    def _initialize_exchange_manager(self):
-        """Initialize real exchange manager"""
-        try:
-            from binance_exchange_manager import BinanceExchangeManager
-            exchange_manager = BinanceExchangeManager()
-            self.logger.info("Exchange manager initialized")
-            return exchange_manager
-        except Exception as e:
-            self.logger.error(f"Failed to initialize exchange manager: {e}")
-            return None
-    
-    def _initialize_external_data_collector(self):
-        """Initialize real external data collector"""
-        try:
-            from external_data_collector import ExternalDataCollector
-            collector = ExternalDataCollector()
-            self.logger.info("External data collector initialized")
-            return collector
-        except Exception as e:
-            self.logger.error(f"Failed to initialize external data collector: {e}")
-            return None
-    
-    def _initialize_ml_engine(self):
-        """Initialize real ML engine"""
-        try:
-            from advanced_ml_engine import AdvancedMLEngine
-            ml_engine = AdvancedMLEngine(
-                config={'real_data_mode': True, 'testnet': self.testnet_mode},
-                credentials={'binance_testnet': self.testnet_mode},
-                test_mode=False
-            )
-            self.logger.info("ML Engine initialized")
-            return ml_engine
-        except Exception as e:
-            self.logger.error(f"Failed to initialize ML engine: {e}")
-            return None
-    
-    def _initialize_scanner(self):
-        """Initialize real market scanner"""
-        try:
-            from multi_pair_scanner import MultiPairScanner
-            scanner = MultiPairScanner()
-            self.logger.info("Market scanner initialized")
-            return scanner
-        except Exception as e:
-            self.logger.error(f"Failed to initialize scanner: {e}")
-            return None
-    
-    def _initialize_backtester(self):
-        """Initialize real backtester"""
-        try:
-            from advanced_backtester import AdvancedMultiTimeframeBacktester
-            backtester = AdvancedMultiTimeframeBacktester(controller=self)
+    def _validate_basic_config(self) -> bool:
+        """Basic configuration validation"""
+        required_vars = ['BINANCE_API_KEY_1', 'BINANCE_API_SECRET_1']
+        missing_vars = [var for var in required_vars if not os.getenv(var)]
+        
+        if missing_vars:
+            self.logger.error(f"Missing required environment variables: {missing_vars}")
+            return False
             
-            # Pass the working Binance client to the backtester
-            if self.exchange_manager and hasattr(self.exchange_manager, 'client'):
-                # Wrap CCXT client to be compatible with python-binance methods
-                backtester.client = CCXTBinanceWrapper(self.exchange_manager.client)
-                self.logger.info("Backtester initialized with wrapped CCXT client")
-            else:
-                self.logger.warning("No Binance client available for backtester")
-            
-            return backtester
-        except Exception as e:
-            self.logger.error(f"Failed to initialize backtester: {e}")
-            return None
-    
-    def get_comprehensive_dashboard_data(self):
-        """Get comprehensive dashboard data - REAL DATA ONLY"""
+        # Validate numeric configs
         try:
-            # Get real metrics
-            metrics = getattr(self, 'metrics', {})
+            max_pos = int(os.getenv('MAX_TOTAL_POSITIONS', '3'))
+            if not 1 <= max_pos <= 50:
+                self.logger.error("MAX_TOTAL_POSITIONS must be between 1 and 50")
+                return False
+                
+            trade_amount = float(os.getenv('TRADE_AMOUNT_USDT', '10.0'))
+            if trade_amount <= 0:
+                self.logger.error("TRADE_AMOUNT_USDT must be positive")
+                return False
+                
+        except ValueError as e:
+            self.logger.error(f"Configuration validation error: {e}")
+            return False
             
-            # Get real positions
-            positions = getattr(self, 'open_positions', {})
-            
-            # Get real scanner data
-            scanner_data = self._get_real_scanner_data()
-            
-            # Get real external data status
-            external_status = self._get_real_external_data_status()
-            
-            # Get real system resources
-            system_resources = self._get_real_system_resources()
-            
-            return {
-                "overview": {
-                    "trading": {
-                        "is_running": getattr(self, 'is_running', False),
-                        "total_pnl": metrics.get('total_pnl', 0.0),
-                        "daily_pnl": metrics.get('daily_pnl', 0.0),
-                        "total_trades": metrics.get('total_trades', 0),
-                        "win_rate": metrics.get('win_rate', 0.0),
-                        "active_positions": len(positions),
-                        "best_trade": metrics.get('best_trade', 0.0),
-                        "trading_mode": self.trading_mode
-                    },
-                    "system": {
-                        "controller_connected": True,
-                        "ml_training_completed": metrics.get('ml_training_completed', False),
-                        "backtest_completed": metrics.get('comprehensive_backtest_completed', False),
-                        "api_rotation_active": True,
-                        "exchange_connected": self.exchange_manager is not None,
-                        "real_data_mode": True
-                    },
-                    "scanner": scanner_data,
-                    "external_data": external_status,
-                    "resources": system_resources,
-                    "timestamp": datetime.now().isoformat()
-                }
-            }
-        except Exception as e:
-            self.logger.error(f"Dashboard data error: {e}")
-            return {
-                "overview": {
-                    "error": str(e),
-                    "trading": {"is_running": False, "total_pnl": 0.0, "total_trades": 0, "trading_mode": self.trading_mode},
-                    "system": {"controller_connected": True, "real_data_mode": True},
-                    "timestamp": datetime.now().isoformat()
-                }
-            }
-    
-    def _get_real_scanner_data(self) -> Dict:
-        """Get real scanner data from market scanner"""
-        try:
-            if self.scanner and hasattr(self.scanner, 'get_current_opportunities'):
-                opportunities = self.scanner.get_current_opportunities()
-                return {
-                    'active_pairs': len(opportunities.get('active_pairs', [])),
-                    'opportunities': len(opportunities.get('opportunities', [])),
-                    'best_opportunity': opportunities.get('best_opportunity', {}).get('symbol', 'None'),
-                    'confidence': opportunities.get('best_opportunity', {}).get('confidence', 0)
-                }
-            else:
-                return {'active_pairs': 0, 'opportunities': 0, 'best_opportunity': 'None', 'confidence': 0}
-        except Exception as e:
-            self.logger.error(f"Scanner data error: {e}")
-            return {'active_pairs': 0, 'opportunities': 0, 'best_opportunity': 'None', 'confidence': 0}
-    
-    def _get_real_external_data_status(self) -> Dict:
-        """Get real external data API status"""
-        try:
-            if self.external_data_collector and hasattr(self.external_data_collector, 'api_status'):
-                status = self.external_data_collector.api_status
-                working_count = sum(1 for v in status.values() if v)
-                return {
-                    'working_apis': working_count,
-                    'total_apis': len(status),
-                    'api_status': status
-                }
-            else:
-                return {'working_apis': 1, 'total_apis': 5, 'api_status': {'binance': True}}
-        except Exception as e:
-            self.logger.error(f"External data status error: {e}")
-            return {'working_apis': 1, 'total_apis': 5, 'api_status': {'binance': True}}
-    
-    def _get_real_system_resources(self) -> Dict:
-        """Get real system resource usage"""
-        try:
-            return {
-                'cpu_usage': psutil.cpu_percent(interval=0.1),
-                'memory_usage': psutil.virtual_memory().percent,
-                'api_calls_today': getattr(self, '_api_calls_today', 0),
-                'data_points_processed': getattr(self, '_data_points_processed', 0)
-            }
-        except Exception as e:
-            self.logger.error(f"System resources error: {e}")
-            return {'cpu_usage': 0.0, 'memory_usage': 0.0, 'api_calls_today': 0, 'data_points_processed': 0}
+        return True
     
     def _initialize_database(self):
         """Initialize trading metrics database"""
@@ -598,8 +429,7 @@ class V3TradingController:
             pnl REAL,
             timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
             strategy TEXT,
-            confidence REAL,
-            trading_mode TEXT
+            confidence REAL
         );
         
         CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trade_history(timestamp);
@@ -608,12 +438,22 @@ class V3TradingController:
         self.db_manager.initialize_schema(schema)
     
     def _load_persistent_metrics(self) -> Dict:
-        """Load real persistent metrics"""
+        """Load persistent metrics with error handling"""
         try:
-            saved_metrics = self.pnl_persistence.get_performance_summary()
+            saved_metrics = self.pnl_persistence.load_metrics()
         except Exception as e:
             self.logger.warning(f"Failed to load PnL persistence: {e}")
             saved_metrics = {}
+        
+        # Load additional metrics from database
+        try:
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT key, value FROM trading_metrics')
+                db_metrics = {row[0]: row[1] for row in cursor.fetchall()}
+                saved_metrics.update(db_metrics)
+        except Exception as e:
+            self.logger.warning(f"Failed to load metrics from database: {e}")
         
         return {
             'active_positions': int(saved_metrics.get('active_positions', 0)),
@@ -624,24 +464,14 @@ class V3TradingController:
             'win_rate': float(saved_metrics.get('win_rate', 0.0)),
             'daily_pnl': 0.0,
             'best_trade': float(saved_metrics.get('best_trade', 0.0)),
+            'cpu_usage': 0.0,
+            'memory_usage': 0.0,
+            'enable_ml_enhancement': True,
+            'real_testnet_connected': False,
+            'multi_pair_scanning': True,
+            'api_rotation_active': True,
             'comprehensive_backtest_completed': bool(saved_metrics.get('comprehensive_backtest_completed', False)),
             'ml_training_completed': bool(saved_metrics.get('ml_training_completed', False))
-        }
-    
-    def _initialize_scanner_data(self) -> Dict:
-        """Initialize scanner data structure"""
-        return {'active_pairs': 0, 'opportunities': 0, 'best_opportunity': 'None', 'confidence': 0}
-    
-    def _initialize_system_resources(self) -> Dict:
-        """Initialize system resources tracking"""
-        return {'cpu_usage': 0.0, 'memory_usage': 0.0, 'api_calls_today': 0, 'data_points_processed': 0}
-    
-    def _initialize_external_data_status(self) -> Dict:
-        """Initialize external data status tracking"""
-        return {
-            'api_status': {'binance': True, 'alpha_vantage': False, 'news_api': False, 'fred_api': False, 'twitter_api': False, 'reddit_api': False},
-            'working_apis': 1,
-            'total_apis': 6
         }
     
     def _initialize_backtest_progress(self) -> Dict:
@@ -657,10 +487,497 @@ class V3TradingController:
             'error_count': 0
         }
     
+    def _get_real_external_data_status(self) -> Dict:
+        """Get REAL external API status - no simulation"""
+        return {
+            'api_status': {
+                'binance': self._test_binance_connection(),
+                'alpha_vantage': self._test_alpha_vantage_connection(),
+                'news_api': self._test_news_api_connection(),
+                'fred_api': self._test_fred_api_connection(),
+                'twitter_api': self._test_twitter_api_connection(),
+                'reddit_api': self._test_reddit_api_connection()
+            },
+            'working_apis': 0,  # Will be calculated from real tests
+            'total_apis': 6,
+            'latest_data': {
+                'market_sentiment': self._get_real_market_sentiment(),
+                'news_sentiment': self._get_real_news_sentiment(),
+                'economic_indicators': self._get_real_economic_indicators(),
+                'social_media_sentiment': self._get_real_social_sentiment()
+            }
+        }
+    
+    def _test_binance_connection(self) -> bool:
+        """Test real Binance connection"""
+        try:
+            if self.trading_engine and hasattr(self.trading_engine, 'client') and self.trading_engine.client:
+                self.trading_engine.client.get_symbol_ticker(symbol="BTCUSDT")
+                return True
+        except:
+            pass
+        return False
+    
+    def _test_alpha_vantage_connection(self) -> bool:
+        """Test real Alpha Vantage API"""
+        try:
+            from api_rotation_manager import get_api_key
+            alpha_key = get_api_key('alpha_vantage')
+            if alpha_key:
+                # Test real API connection
+                import requests
+                url = f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=IBM&apikey={alpha_key['api_key']}"
+                response = requests.get(url, timeout=5)
+                return response.status_code == 200
+        except:
+            pass
+        return False
+    
+    def _test_news_api_connection(self) -> bool:
+        """Test real News API connection"""
+        try:
+            from api_rotation_manager import get_api_key
+            news_key = get_api_key('news_api')
+            if news_key:
+                import requests
+                url = f"https://newsapi.org/v2/top-headlines?category=business&apiKey={news_key['api_key']}"
+                response = requests.get(url, timeout=5)
+                return response.status_code == 200
+        except:
+            pass
+        return False
+    
+    def _test_fred_api_connection(self) -> bool:
+        """Test real FRED API connection"""
+        try:
+            from api_rotation_manager import get_api_key
+            fred_key = get_api_key('fred_api')
+            if fred_key:
+                import requests
+                url = f"https://api.stlouisfed.org/fred/series/observations?series_id=GDP&api_key={fred_key['api_key']}&file_type=json&limit=1"
+                response = requests.get(url, timeout=5)
+                return response.status_code == 200
+        except:
+            pass
+        return False
+    
+    def _test_twitter_api_connection(self) -> bool:
+        """Test real Twitter API connection"""
+        try:
+            from api_rotation_manager import get_api_key
+            twitter_key = get_api_key('twitter_api')
+            if twitter_key:
+                import requests
+                headers = {"Authorization": f"Bearer {twitter_key['bearer_token']}"}
+                url = "https://api.twitter.com/2/tweets/search/recent?query=bitcoin&max_results=10"
+                response = requests.get(url, headers=headers, timeout=5)
+                return response.status_code == 200
+        except:
+            pass
+        return False
+    
+    def _test_reddit_api_connection(self) -> bool:
+        """Test real Reddit API connection"""
+        try:
+            from api_rotation_manager import get_api_key
+            reddit_key = get_api_key('reddit_api')
+            if reddit_key:
+                import requests
+                auth = requests.auth.HTTPBasicAuth(reddit_key['client_id'], reddit_key['client_secret'])
+                data = {'grant_type': 'client_credentials'}
+                headers = {'User-Agent': 'TradingBot/1.0'}
+                response = requests.post('https://www.reddit.com/api/v1/access_token', auth=auth, data=data, headers=headers, timeout=5)
+                return response.status_code == 200
+        except:
+            pass
+        return False
+    
+    def _get_real_scanner_data(self) -> Dict:
+        """Get REAL scanner data from multi-pair scanner"""
+        try:
+            from multi_pair_scanner import get_top_opportunities, get_scanner_status
+            
+            # Get real opportunities from scanner
+            opportunities = get_top_opportunities(10, 'BUY')
+            status = get_scanner_status()
+            
+            if opportunities:
+                best_opp = opportunities[0]
+                return {
+                    'active_pairs': status.get('cached_pairs', 0),
+                    'opportunities': len(opportunities),
+                    'best_opportunity': best_opp.symbol,
+                    'confidence': best_opp.confidence
+                }
+            else:
+                return {
+                    'active_pairs': status.get('cached_pairs', 0),
+                    'opportunities': 0,
+                    'best_opportunity': 'None',
+                    'confidence': 0
+                }
+        except Exception as e:
+            self.logger.warning(f"Real scanner data failed: {e}")
+            return {
+                'active_pairs': 0,
+                'opportunities': 0,
+                'best_opportunity': 'Scanner Offline',
+                'confidence': 0
+            }
+    
+    def _get_real_market_sentiment(self) -> Dict:
+        """Get real market sentiment data"""
+        try:
+            if self.external_data_collector:
+                sentiment = self.external_data_collector.get_market_sentiment()
+                return sentiment if sentiment else {'overall_sentiment': 0.0, 'bullish_indicators': 0, 'bearish_indicators': 0}
+        except:
+            pass
+        return {'overall_sentiment': 0.0, 'bullish_indicators': 0, 'bearish_indicators': 0}
+    
+    def _get_real_news_sentiment(self) -> Dict:
+        """Get real news sentiment data"""
+        try:
+            if self.external_data_collector:
+                news = self.external_data_collector.get_news_sentiment()
+                return news if news else {'articles_analyzed': 0, 'positive_articles': 0, 'negative_articles': 0}
+        except:
+            pass
+        return {'articles_analyzed': 0, 'positive_articles': 0, 'negative_articles': 0}
+    
+    def _get_real_economic_indicators(self) -> Dict:
+        """Get real economic indicators"""
+        try:
+            if self.external_data_collector:
+                econ = self.external_data_collector.get_economic_indicators()
+                return econ if econ else {'gdp_growth': 0.0, 'inflation_rate': 0.0, 'unemployment_rate': 0.0, 'interest_rate': 0.0}
+        except:
+            pass
+        return {'gdp_growth': 0.0, 'inflation_rate': 0.0, 'unemployment_rate': 0.0, 'interest_rate': 0.0}
+    
+    def _get_real_social_sentiment(self) -> Dict:
+        """Get real social media sentiment"""
+        try:
+            if self.external_data_collector:
+                social = self.external_data_collector.get_social_sentiment()
+                return social if social else {'twitter_mentions': 0, 'reddit_posts': 0, 'overall_social_sentiment': 0.0}
+        except:
+            pass
+        return {'twitter_mentions': 0, 'reddit_posts': 0, 'overall_social_sentiment': 0.0}
+
+    async def initialize_system(self) -> bool:
+        """Initialize V3 system with enhanced error handling"""
+        try:
+            self.logger.info("Initializing V3 Trading System - REAL DATA ONLY")
+            
+            self.initialization_progress = 20
+            await self._initialize_trading_components()
+            
+            self.initialization_progress = 60
+            await self._initialize_backtester()
+            
+            self.initialization_progress = 80
+            await self._load_existing_strategies()
+            
+            # Start background tasks
+            await self.task_manager.create_task(
+                self._background_update_loop(),
+                "background_updates",
+                self._handle_background_error
+            )
+            
+            self.initialization_progress = 100
+            self.is_initialized = True
+            
+            self.logger.info("V3 System initialized successfully - REAL DATA ONLY!")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"System initialization failed: {e}", exc_info=True)
+            return False
+    
+    async def _handle_background_error(self, error: Exception):
+        """Handle background task errors"""
+        self.logger.error(f"Background task error: {error}")
+        # Restart background tasks after a delay
+        await asyncio.sleep(10)
+        await self.task_manager.create_task(
+            self._background_update_loop(),
+            "background_updates",
+            self._handle_background_error
+        )
+    
+    async def _initialize_trading_components(self):
+        """Initialize trading components"""
+        try:
+            # Initialize external data collector
+            try:
+                from external_data_collector import ExternalDataCollector
+                self.external_data_collector = ExternalDataCollector()
+                print("External data collector initialized")
+            except:
+                print("External data collector not available")
+            
+            # Initialize AI Brain
+            try:
+                from advanced_ml_engine import AdvancedMLEngine
+                self.ai_brain = AdvancedMLEngine(
+                    config={'real_data_mode': True, 'testnet': self.testnet_mode},
+                    credentials={'binance_testnet': self.testnet_mode},
+                    test_mode=False
+                )
+                print("AI Brain initialized")
+            except Exception as e:
+                print(f"AI Brain initialization failed: {e}")
+            
+            # Initialize trading engine
+            try:
+                from intelligent_trading_engine import IntelligentTradingEngine
+                self.trading_engine = IntelligentTradingEngine(
+                    data_manager=None,
+                    data_collector=self.external_data_collector,
+                    market_analyzer=None,
+                    ml_engine=self.ai_brain
+                )
+                
+                if hasattr(self.trading_engine, 'client') and self.trading_engine.client:
+                    try:
+                        ticker = self.trading_engine.client.get_symbol_ticker(symbol="BTCUSDT")
+                        current_btc = float(ticker['price'])
+                        print(f"Real Binance connection: ${current_btc:,.2f} BTC")
+                        self.metrics['real_testnet_connected'] = True
+                    except:
+                        self.metrics['real_testnet_connected'] = False
+                        
+            except Exception as e:
+                print(f"Trading engine initialization failed: {e}")
+            
+        except Exception as e:
+            print(f"Component initialization error: {e}")
+    
+    async def _initialize_backtester(self):
+        """Initialize comprehensive backtester"""
+        try:
+            self.comprehensive_backtester = EnhancedComprehensiveMultiTimeframeBacktester(controller=self)
+            print("Comprehensive backtester initialized")
+        except Exception as e:
+            print(f"Backtester initialization error: {e}")
+    
+    async def _load_existing_strategies(self):
+        """Load existing strategies from database"""
+        try:
+            if os.path.exists('data/comprehensive_backtest.db'):
+                conn = sqlite3.connect('data/comprehensive_backtest.db')
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    SELECT symbol, timeframes, strategy_type, total_return_pct, win_rate, sharpe_ratio, total_trades
+                    FROM historical_backtests 
+                    WHERE total_trades >= 20 AND sharpe_ratio > 1.0
+                    ORDER BY sharpe_ratio DESC
+                    LIMIT 15
+                ''')
+                
+                strategies = cursor.fetchall()
+                self.top_strategies = []
+                self.ml_trained_strategies = []
+                
+                for strategy in strategies:
+                    strategy_data = {
+                        'name': f"{strategy[2]}_MTF",
+                        'symbol': strategy[0],
+                        'timeframes': strategy[1],
+                        'strategy_type': strategy[2],
+                        'return_pct': strategy[3],
+                        'win_rate': strategy[4],
+                        'sharpe_ratio': strategy[5],
+                        'total_trades': strategy[6],
+                        'expected_win_rate': strategy[4]
+                    }
+                    
+                    self.top_strategies.append(strategy_data)
+                    
+                    if strategy[4] > 60 and strategy[5] > 1.2:
+                        self.ml_trained_strategies.append(strategy_data)
+                
+                conn.close()
+                
+                if len(self.ml_trained_strategies) > 0:
+                    self.metrics['ml_training_completed'] = True
+                
+                print(f"Loaded {len(self.top_strategies)} strategies, {len(self.ml_trained_strategies)} ML-trained")
+            
+        except Exception as e:
+            print(f"Strategy loading error: {e}")
+    
+    async def _background_update_loop(self):
+        """Background loop for updating metrics and data"""
+        while not self._shutdown_event.is_set():
+            try:
+                await self._update_real_time_data()
+                await asyncio.sleep(5)
+            except Exception as e:
+                self.logger.error(f"Background update error: {e}")
+                await asyncio.sleep(10)
+    
+    async def _update_real_time_data(self):
+        """Update real-time data - NO SIMULATIONS"""
+        try:
+            # ? Update real system resources
+            self.system_resources['cpu_usage'] = psutil.cpu_percent(interval=0.1)
+            self.system_resources['memory_usage'] = psutil.virtual_memory().percent
+            
+            # ? Update REAL external data status
+            real_status = self._get_real_external_data_status()
+            self.external_data_status.update(real_status)
+            self.external_data_status['working_apis'] = sum(self.external_data_status['api_status'].values())
+            
+            # ? Update REAL scanner data
+            real_scanner = self._get_real_scanner_data()
+            self.scanner_data.update(real_scanner)
+            
+            # ? Get REAL recent trades from database (not simulated)
+            self._load_real_recent_trades()
+                
+        except Exception as e:
+            self.logger.error(f"Real-time update error: {e}")
+    
+    def _load_real_recent_trades(self):
+        """Load real recent trades from database"""
+        try:
+            with self.db_manager.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                    SELECT symbol, side, quantity, entry_price, exit_price, pnl, timestamp, strategy, confidence
+                    FROM trade_history 
+                    ORDER BY timestamp DESC 
+                    LIMIT 20
+                ''')
+                
+                trades = cursor.fetchall()
+                self.recent_trades.clear()
+                
+                for trade in trades:
+                    trade_data = {
+                        'symbol': trade[0],
+                        'side': trade[1],
+                        'quantity': trade[2],
+                        'entry_price': trade[3],
+                        'exit_price': trade[4],
+                        'profit_loss': trade[5],
+                        'profit_pct': (trade[5] / (trade[2] * trade[3])) * 100 if trade[2] and trade[3] else 0,
+                        'is_win': trade[5] > 0,
+                        'timestamp': trade[6],
+                        'source': trade[7] or 'REAL_TRADING',
+                        'confidence': trade[8] or 0
+                    }
+                    self.recent_trades.append(trade_data)
+                
+        except Exception as e:
+            self.logger.warning(f"Failed to load real trades: {e}")
+    
+    async def execute_real_paper_trade(self, signal: Dict):
+        """Execute REAL paper trade using actual Binance testnet"""
+        try:
+            if not self.trading_engine or not hasattr(self.trading_engine, 'client'):
+                return None
+            
+            # Execute real trade on testnet
+            result = await self.trading_engine.execute_real_paper_trade(signal)
+            
+            if result:
+                # Add to recent trades
+                trade_data = {
+                    'id': len(self.recent_trades) + 1,
+                    'symbol': result['symbol'],
+                    'side': result['side'],
+                    'quantity': result['quantity'],
+                    'entry_price': result['price'],
+                    'exit_price': result['price'],  # Will be updated when position closes
+                    'profit_loss': 0,  # Will be calculated when closed
+                    'profit_pct': 0,
+                    'is_win': None,  # TBD
+                    'confidence': signal.get('confidence', 70),
+                    'timestamp': result['timestamp'],
+                    'source': 'REAL_PAPER_TRADING',
+                    'order_id': result['order_id']
+                }
+                
+                self.recent_trades.append(trade_data)
+                
+                # Update metrics
+                self.metrics['total_trades'] += 1
+                self.metrics['daily_trades'] += 1
+                
+                # Save to database
+                with self.db_manager.get_connection() as conn:
+                    cursor = conn.cursor()
+                    cursor.execute('''
+                        INSERT INTO trade_history 
+                        (symbol, side, quantity, entry_price, exit_price, pnl, timestamp, strategy, confidence)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ''', (
+                        result['symbol'], result['side'], result['quantity'],
+                        result['price'], result['price'], 0,
+                        result['timestamp'], 'REAL_PAPER_TRADING', signal.get('confidence', 70)
+                    ))
+                
+                self.save_current_metrics()
+                
+                print(f"REAL Paper Trade: {result['side']} {result['quantity']:.6f} {result['symbol']} @ ${result['price']:.2f}")
+                
+                return result
+                
+        except Exception as e:
+            self.logger.error(f"Real paper trade execution failed: {e}")
+            return None
+
+    def get_comprehensive_dashboard_data(self) -> Dict:
+        """Get comprehensive dashboard data - REAL DATA ONLY"""
+        try:
+            return {
+                'overview': {
+                    'total_trades': self.metrics.get('total_trades', 0),
+                    'win_rate': self.metrics.get('win_rate', 0.0),
+                    'daily_pnl': self.metrics.get('daily_pnl', 0.0),
+                    'total_pnl': self.metrics.get('total_pnl', 0.0),
+                    'active_positions': self.metrics.get('active_positions', 0),
+                    'best_trade': self.metrics.get('best_trade', 0.0),
+                    'system_status': 'REAL_DATA_ONLY',
+                    'trading_mode': self.trading_mode,
+                    'data_source': 'REAL_BINANCE_API'
+                },
+                'real_time_metrics': {
+                    'cpu_usage': self.system_resources['cpu_usage'],
+                    'memory_usage': self.system_resources['memory_usage'],
+                    'api_calls_today': self.system_resources['api_calls_today'],
+                    'data_points_processed': self.system_resources['data_points_processed']
+                },
+                'external_data_status': self.external_data_status,
+                'scanner_data': self.scanner_data,
+                'recent_trades': list(self.recent_trades)[-10:],  # Last 10 real trades
+                'backtest_progress': self.backtest_progress,
+                'top_strategies': self.top_strategies,
+                'ml_trained_strategies': self.ml_trained_strategies
+            }
+        except Exception as e:
+            self.logger.error(f"Dashboard data error: {e}")
+            return {
+                'overview': {'error': str(e)},
+                'real_time_metrics': {},
+                'external_data_status': {},
+                'scanner_data': {},
+                'recent_trades': [],
+                'backtest_progress': {},
+                'top_strategies': [],
+                'ml_trained_strategies': []
+            }
+
     def save_current_metrics(self):
-        """Save current metrics to database"""
+        """Thread-safe metrics saving"""
         with self._state_lock:
             try:
+                # Save to database
                 with self.db_manager.get_connection() as conn:
                     cursor = conn.cursor()
                     for key, value in self.metrics.items():
@@ -671,33 +988,47 @@ class V3TradingController:
                             )
                 
                 # Also save via PnL persistence
-                self.pnl_persistence.save_performance_snapshot()
+                try:
+                    self.pnl_persistence.save_metrics(self.metrics)
+                except Exception as e:
+                    self.logger.warning(f"PnL persistence save failed: {e}")
                 
             except Exception as e:
                 self.logger.error(f"Failed to save metrics: {e}")
     
-    def shutdown(self):
-        """Shutdown the trading controller"""
+    async def shutdown(self):
+        """Enhanced shutdown with proper cleanup"""
         self.logger.info("Starting shutdown sequence")
         
         try:
+            # Set shutdown flag
             self._shutdown_event.set()
             
+            # Stop trading
             if self.is_running:
                 self.is_running = False
+                await asyncio.sleep(1)
             
+            # Shutdown task manager
+            await self.task_manager.shutdown_all(timeout=10.0)
+            
+            # Save final state
             self.save_current_metrics()
             
-            if hasattr(self, 'db_manager'):
-                self.db_manager.close_all()
+            # Cleanup components
+            if self.comprehensive_backtester:
+                self.comprehensive_backtester.cleanup()
             
-            if hasattr(self, '_executor'):
-                self._executor.shutdown(wait=True, timeout=5.0)
+            # Close database connections
+            self.db_manager.close_all()
             
-            self.logger.info("Shutdown completed")
+            # Shutdown thread executor
+            self._executor.shutdown(wait=True, timeout=5.0)
+            
+            self.logger.info("Shutdown completed successfully")
             
         except Exception as e:
-            self.logger.error(f"Error during shutdown: {e}")
+            self.logger.error(f"Error during shutdown: {e}", exc_info=True)
     
     def __del__(self):
         """Cleanup on destruction"""
@@ -708,3 +1039,41 @@ class V3TradingController:
                 self._executor.shutdown(wait=False)
         except:
             pass
+    
+    def start(self):
+        """Start the V3 trading system"""
+        try:
+            self.is_running = True
+            print("[V3_CONTROLLER] Trading system started - REAL DATA ONLY")
+        except Exception as e:
+            self.logger.error(f"Failed to start system: {e}")
+            return False
+        return True
+    
+    def stop(self):
+        """Stop the V3 trading system"""
+        try:
+            self.is_running = False
+            print("[V3_CONTROLLER] Trading system stopped")
+        except Exception as e:
+            self.logger.error(f"Failed to stop system: {e}")
+            return False
+        return True
+    
+    def get_status(self) -> Dict:
+        """Get system status"""
+        return {
+            'is_running': self.is_running,
+            'is_initialized': self.is_initialized,
+            'trading_mode': self.trading_mode,
+            'testnet_mode': self.testnet_mode,
+            'real_data_only': True,
+            'no_simulations': True,
+            'initialization_progress': self.initialization_progress,
+            'components': {
+                'trading_engine': self.trading_engine is not None,
+                'ai_brain': self.ai_brain is not None,
+                'external_data_collector': self.external_data_collector is not None,
+                'comprehensive_backtester': self.comprehensive_backtester is not None
+            }
+        }

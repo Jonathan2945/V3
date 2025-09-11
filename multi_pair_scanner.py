@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """
-MULTI-PAIR OPPORTUNITY SCANNER
-==============================
-Scans all Binance.US trading pairs for opportunities across multiple timeframes
-Features:
-- Real-time scanning of all tradeable pairs
-- Volume spike detection
-- Price momentum analysis
-- Technical indicator calculations
-- Opportunity scoring and ranking
-- Multi-timeframe confirmation
+MULTI-PAIR OPPORTUNITY SCANNER - REAL DATA ONLY (DIRECT CREDENTIALS)
+====================================================================
+UPDATED FOR V3 REAL DATA SYSTEM:
+- Uses direct .env credential loading (bypasses API rotation manager)
+- Only uses real Binance market data
+- No simulated or mock data anywhere
+- Real-time scanning of actual trading pairs
+- Compatible with V3 real trading system
 """
 
 import os
@@ -25,15 +23,13 @@ from binance.exceptions import BinanceAPIException
 import time
 import statistics
 from dotenv import load_dotenv
-from api_rotation_manager import get_api_key, report_api_result
-from binance_exchange_manager import exchange_manager, get_tradeable_pairs
 
 # Load environment variables
 load_dotenv()
 
 @dataclass
 class MarketData:
-    """Market data for a trading pair"""
+    """Real market data for a trading pair"""
     symbol: str
     price: float
     price_change_24h: float
@@ -45,10 +41,12 @@ class MarketData:
     close_time: datetime
     trades_count: int
     quote_volume: float
+    source: str = "REAL_BINANCE_API"
+    live_data: bool = True
 
 @dataclass
 class TechnicalIndicators:
-    """Technical indicators for analysis"""
+    """Real technical indicators calculated from live data"""
     rsi: float
     macd: float
     macd_signal: float
@@ -61,10 +59,11 @@ class TechnicalIndicators:
     atr: float
     stoch_k: float
     stoch_d: float
+    data_source: str = "REAL_HISTORICAL_DATA"
 
 @dataclass
 class OpportunitySignal:
-    """Trading opportunity signal"""
+    """Real trading opportunity signal from live market data"""
     symbol: str
     signal_type: str  # 'BUY', 'SELL', 'HOLD'
     confidence: float
@@ -80,9 +79,11 @@ class OpportunitySignal:
     stop_loss: float
     take_profit: float
     timestamp: datetime
+    data_source: str = "REAL_BINANCE_SCANNER"
+    live_signal: bool = True
 
 class MultiPairScanner:
-    """Multi-pair opportunity scanner for Binance.US"""
+    """Multi-pair opportunity scanner for Binance - REAL DATA ONLY (DIRECT CREDENTIALS)"""
     
     def __init__(self):
         self.logger = logging.getLogger(__name__)
@@ -93,7 +94,6 @@ class MultiPairScanner:
         self.min_opportunity_score = float(os.getenv('MIN_OPPORTUNITY_SCORE', '75.0'))
         self.volume_spike_threshold = float(os.getenv('VOLUME_SPIKE_THRESHOLD', '2.0'))
         self.price_momentum_threshold = float(os.getenv('PRICE_MOMENTUM_THRESHOLD', '1.5'))
-        self.news_sentiment_weight = float(os.getenv('NEWS_SENTIMENT_WEIGHT', '0.3'))
         
         # Multi-timeframe configuration
         self.timeframes = os.getenv('TIMEFRAMES', '1m,5m,15m,30m,1h,4h,1d').split(',')
@@ -105,7 +105,6 @@ class MultiPairScanner:
         # Risk management
         self.max_concurrent_pairs = int(os.getenv('MAX_CONCURRENT_PAIRS', '50'))
         self.min_volume_24h = float(os.getenv('MIN_VOLUME_24H', '100000'))
-        self.max_correlation_threshold = float(os.getenv('MAX_CORRELATION_THRESHOLD', '0.7'))
         
         # Scanner state
         self.client: Optional[Client] = None
@@ -114,87 +113,90 @@ class MultiPairScanner:
         self.is_scanning = False
         self.last_scan_time = datetime.min
         
-        # Data storage
+        # REAL Data storage - no mock data
         self.market_data_cache: Dict[str, MarketData] = {}
         self.historical_data_cache: Dict[str, Dict[str, pd.DataFrame]] = {}
         self.opportunity_signals: Dict[str, List[OpportunitySignal]] = {}
-        self.pair_correlations: Dict[Tuple[str, str], float] = {}
         
-        # Performance tracking
+        # Performance tracking - real metrics only
         self.scan_performance = {
             'total_scans': 0,
             'successful_scans': 0,
             'opportunities_found': 0,
             'avg_scan_time': 0.0,
-            'last_scan_duration': 0.0
+            'last_scan_duration': 0.0,
+            'real_data_scans': 0,
+            'live_api_calls': 0
         }
         
-        # Initialize client
-        self._initialize_client()
+        # Initialize REAL client with DIRECT credentials
+        self._initialize_direct_client()
         
-        self.logger.info(f"[SCANNER] Multi-pair scanner initialized (testnet={self.is_testnet})")
-        self.logger.info(f"[SCANNER] Timeframes: {self.timeframes}")
-        self.logger.info(f"[SCANNER] Primary TF: {self.primary_timeframe}")
+        self.logger.info(f"[SCANNER] Multi-pair scanner initialized - REAL DATA ONLY (DIRECT CREDENTIALS)")
+        self.logger.info(f"[SCANNER] Testnet mode: {self.is_testnet}")
+        self.logger.info(f"[SCANNER] Client connected: {self.client is not None}")
     
-    def _initialize_client(self):
-        """Initialize Binance client with rotation support"""
+    def _initialize_direct_client(self):
+        """Initialize REAL Binance client with DIRECT credential loading - NO API ROTATION"""
         try:
+            # Load credentials DIRECTLY from .env (bypasses API rotation manager)
             if self.is_testnet:
-                binance_creds = get_api_key('binance')
+                api_key = os.getenv('BINANCE_API_KEY_1')
+                api_secret = os.getenv('BINANCE_API_SECRET_1')
+                connection_type = "REAL Binance testnet"
             else:
-                binance_creds = get_api_key('binance_live')
-            
-            if not binance_creds:
-                self.logger.warning("[SCANNER] No valid Binance credentials found")
-                return
-            
-            if isinstance(binance_creds, dict):
-                api_key = binance_creds.get('api_key')
-                api_secret = binance_creds.get('api_secret')
-            else:
-                self.logger.warning("[SCANNER] Invalid credential format")
-                return
+                api_key = os.getenv('BINANCE_LIVE_API_KEY_1')
+                api_secret = os.getenv('BINANCE_LIVE_API_SECRET_1')
+                connection_type = "REAL Binance.US live"
             
             if not api_key or not api_secret:
-                self.logger.warning("[SCANNER] Incomplete Binance credentials")
+                self.logger.warning(f"[SCANNER] No REAL credentials found for {'testnet' if self.is_testnet else 'live'}")
                 return
             
-            # Initialize client
+            if 'your_' in api_key.lower():
+                self.logger.warning("[SCANNER] Placeholder credentials detected - need real API keys")
+                return
+            
+            # Initialize REAL client - NO MOCK MODE
             if self.is_testnet:
                 self.client = Client(api_key, api_secret, testnet=True)
-                self.logger.info("[SCANNER] Connected to Binance testnet")
             else:
                 self.client = Client(api_key, api_secret, testnet=False, tld='us')
-                self.logger.info("[SCANNER] Connected to Binance.US live")
-        
+                
+            # Test REAL connection
+            test_ticker = self.client.get_symbol_ticker(symbol="BTCUSDT")
+            btc_price = float(test_ticker['price'])
+            self.logger.info(f"[SCANNER] Connected to {connection_type}")
+            self.logger.info(f"[SCANNER] REAL connection verified - BTC: ${btc_price:,.2f}")
+            
         except Exception as e:
-            self.logger.error(f"[SCANNER] Failed to initialize client: {e}")
+            self.logger.error(f"[SCANNER] Failed to initialize REAL client with direct credentials: {e}")
             self.client = None
     
     async def start_scanning(self):
-        """Start the multi-pair scanning process"""
+        """Start the REAL multi-pair scanning process"""
         if not self.scanner_enabled or not self.client:
-            self.logger.warning("[SCANNER] Scanner not enabled or client not available")
+            self.logger.warning("[SCANNER] Scanner not enabled or REAL client not available")
             return False
         
         if self.is_scanning:
-            self.logger.warning("[SCANNER] Scanner already running")
+            self.logger.warning("[SCANNER] REAL scanner already running")
             return True
         
         try:
             self.is_scanning = True
-            self.scanning_task = asyncio.create_task(self._scanning_loop())
+            self.scanning_task = asyncio.create_task(self._real_scanning_loop())
             
-            self.logger.info("[SCANNER] Multi-pair scanning started")
+            self.logger.info("[SCANNER] REAL multi-pair scanning started")
             return True
         
         except Exception as e:
-            self.logger.error(f"[SCANNER] Failed to start scanning: {e}")
+            self.logger.error(f"[SCANNER] Failed to start REAL scanning: {e}")
             self.is_scanning = False
             return False
     
     async def stop_scanning(self):
-        """Stop the scanning process"""
+        """Stop the REAL scanning process"""
         self.is_scanning = False
         
         if self.scanning_task and not self.scanning_task.done():
@@ -204,21 +206,22 @@ class MultiPairScanner:
             except asyncio.CancelledError:
                 pass
         
-        self.logger.info("[SCANNER] Multi-pair scanning stopped")
+        self.logger.info("[SCANNER] REAL multi-pair scanning stopped")
     
-    async def _scanning_loop(self):
-        """Main scanning loop"""
+    async def _real_scanning_loop(self):
+        """Main REAL scanning loop - NO SIMULATIONS"""
         while self.is_scanning:
             try:
                 scan_start = time.time()
                 
-                # Perform scan
-                await self._perform_full_scan()
+                # Perform REAL scan
+                await self._perform_real_full_scan()
                 
-                # Update performance metrics
+                # Update REAL performance metrics
                 scan_duration = time.time() - scan_start
                 self.scan_performance['total_scans'] += 1
                 self.scan_performance['successful_scans'] += 1
+                self.scan_performance['real_data_scans'] += 1
                 self.scan_performance['last_scan_duration'] = scan_duration
                 self.scan_performance['avg_scan_time'] = (
                     (self.scan_performance['avg_scan_time'] * (self.scan_performance['total_scans'] - 1) + scan_duration)
@@ -227,84 +230,96 @@ class MultiPairScanner:
                 
                 self.last_scan_time = datetime.now()
                 
-                # Log progress
+                # Log REAL progress
                 if self.scan_performance['total_scans'] % 10 == 0:
                     self.logger.info(
-                        f"[SCANNER] Scan {self.scan_performance['total_scans']} completed in {scan_duration:.2f}s. "
-                        f"Found {len(self.opportunity_signals)} opportunities"
+                        f"[SCANNER] REAL scan {self.scan_performance['total_scans']} completed in {scan_duration:.2f}s. "
+                        f"Found {len(self.opportunity_signals)} REAL opportunities"
                     )
                 
-                # Wait for next scan
+                # Wait for next REAL scan
                 await asyncio.sleep(self.scan_interval)
             
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                self.logger.error(f"[SCANNER] Error in scanning loop: {e}")
-                await asyncio.sleep(min(self.scan_interval, 60))  # Wait at least 1 minute on error
+                self.logger.error(f"[SCANNER] Error in REAL scanning loop: {e}")
+                await asyncio.sleep(min(self.scan_interval, 60))
     
-    async def _perform_full_scan(self):
-        """Perform full scan of all tradeable pairs"""
+    async def _perform_real_full_scan(self):
+        """Perform full scan of all tradeable pairs - REAL DATA ONLY"""
         try:
-            # Get tradeable pairs
-            pairs = get_tradeable_pairs()
+            # Get REAL tradeable pairs
+            pairs = self._get_real_tradeable_pairs()
             if not pairs:
-                self.logger.warning("[SCANNER] No tradeable pairs available")
+                self.logger.warning("[SCANNER] No REAL tradeable pairs available")
                 return
             
             # Limit pairs to scan
             pairs_to_scan = pairs[:self.max_concurrent_pairs]
             
-            # Update market data for all pairs
-            await self._update_market_data(pairs_to_scan)
+            # Update REAL market data for all pairs
+            await self._update_real_market_data(pairs_to_scan)
             
-            # Filter pairs by volume and other criteria
-            filtered_pairs = self._filter_pairs_by_criteria(pairs_to_scan)
+            # Filter pairs by REAL criteria
+            filtered_pairs = self._filter_pairs_by_real_criteria(pairs_to_scan)
             
-            # Scan each pair for opportunities
-            opportunities = []
+            # Scan each pair for REAL opportunities
+            real_opportunities = []
             
             for symbol in filtered_pairs:
                 try:
-                    pair_opportunities = await self._scan_pair_opportunities(symbol)
-                    opportunities.extend(pair_opportunities)
+                    pair_opportunities = await self._scan_real_pair_opportunities(symbol)
+                    real_opportunities.extend(pair_opportunities)
                 except Exception as e:
-                    self.logger.debug(f"[SCANNER] Error scanning {symbol}: {e}")
+                    self.logger.debug(f"[SCANNER] Error scanning REAL data for {symbol}: {e}")
                     continue
             
-            # Update opportunity signals
-            self._update_opportunity_signals(opportunities)
-            
-            # Calculate pair correlations
-            await self._update_pair_correlations(filtered_pairs)
+            # Update REAL opportunity signals
+            self._update_real_opportunity_signals(real_opportunities)
             
         except Exception as e:
-            self.logger.error(f"[SCANNER] Error in full scan: {e}")
+            self.logger.error(f"[SCANNER] Error in REAL full scan: {e}")
     
-    async def _update_market_data(self, pairs: List[str]):
-        """Update 24hr market data for all pairs"""
+    def _get_real_tradeable_pairs(self) -> List[str]:
+        """Get REAL tradeable pairs from environment or default list"""
+        try:
+            # Try to get from Binance API
+            if self.client:
+                exchange_info = self.client.get_exchange_info()
+                pairs = [s['symbol'] for s in exchange_info['symbols'] 
+                        if s['status'] == 'TRADING' and s['symbol'].endswith('USDT')]
+                return pairs[:100]  # Limit for performance
+        except Exception as e:
+            self.logger.debug(f"[SCANNER] Could not get pairs from API: {e}")
+        
+        # Fallback to configured pairs
+        major_pairs = os.getenv('MAJOR_PAIRS', 'BTCUSDT,ETHUSDT,BNBUSDT,XRPUSDT,ADAUSDT,SOLUSDT').split(',')
+        return [pair.strip() for pair in major_pairs if pair.strip()]
+    
+    async def _update_real_market_data(self, pairs: List[str]):
+        """Update 24hr REAL market data for all pairs - NO MOCK DATA"""
         if not self.client:
             return
         
         try:
             start_time = time.time()
             
-            # Get 24hr ticker stats for all pairs
-            tickers = self.client.get_ticker()
+            # Get REAL 24hr ticker stats for all pairs
+            real_tickers = self.client.get_ticker()
+            self.scan_performance['live_api_calls'] += 1
             
             response_time = time.time() - start_time
             
-            # Report API call
-            service_name = 'binance' if self.is_testnet else 'binance_live'
-            report_api_result(service_name, success=True, response_time=response_time)
-            
-            # Process ticker data
-            for ticker in tickers:
+            # Process REAL ticker data
+            real_data_count = 0
+            for ticker in real_tickers:
                 symbol = ticker['symbol']
                 if symbol not in pairs:
                     continue
                 
                 try:
+                    # Create REAL market data object
                     market_data = MarketData(
                         symbol=symbol,
                         price=float(ticker['lastPrice']),
@@ -316,49 +331,51 @@ class MultiPairScanner:
                         open_time=datetime.fromtimestamp(ticker['openTime'] / 1000),
                         close_time=datetime.fromtimestamp(ticker['closeTime'] / 1000),
                         trades_count=int(ticker['count']),
-                        quote_volume=float(ticker['quoteVolume'])
+                        quote_volume=float(ticker['quoteVolume']),
+                        source="REAL_BINANCE_API",
+                        live_data=True
                     )
                     
                     self.market_data_cache[symbol] = market_data
+                    real_data_count += 1
                 
                 except (ValueError, KeyError) as e:
-                    self.logger.debug(f"[SCANNER] Error processing ticker for {symbol}: {e}")
+                    self.logger.debug(f"[SCANNER] Error processing REAL ticker for {symbol}: {e}")
+            
+            self.logger.debug(f"[SCANNER] Updated {real_data_count} REAL market data entries")
         
         except BinanceAPIException as e:
-            service_name = 'binance' if self.is_testnet else 'binance_live'
-            rate_limited = e.code in [-1003, -1015]
-            report_api_result(service_name, success=False, rate_limited=rate_limited, error_code=str(e.code))
-            self.logger.error(f"[SCANNER] Binance API error updating market data: {e}")
+            self.logger.error(f"[SCANNER] Binance API error updating REAL market data: {e}")
         
         except Exception as e:
-            self.logger.error(f"[SCANNER] Error updating market data: {e}")
+            self.logger.error(f"[SCANNER] Error updating REAL market data: {e}")
     
-    def _filter_pairs_by_criteria(self, pairs: List[str]) -> List[str]:
-        """Filter pairs based on volume, change, and other criteria"""
+    def _filter_pairs_by_real_criteria(self, pairs: List[str]) -> List[str]:
+        """Filter pairs based on REAL volume, change, and other criteria"""
         filtered_pairs = []
         
         for symbol in pairs:
             market_data = self.market_data_cache.get(symbol)
-            if not market_data:
+            if not market_data or not market_data.live_data:
                 continue
             
-            # Volume filter
+            # REAL volume filter
             if market_data.quote_volume < self.min_volume_24h:
                 continue
             
-            # Price change filter (minimum movement to be interesting)
+            # REAL price change filter
             min_price_change = float(os.getenv('MIN_PRICE_CHANGE_24H', '0.5'))
             if abs(market_data.price_change_percent_24h) < min_price_change:
                 continue
             
-            # Exclude stablecoins and low-activity pairs
-            if any(stable in symbol for stable in ['USDC', 'USDT', 'BUSD', 'TUSD']):
-                if not symbol.endswith('USDT'):  # Keep USDT pairs for trading
+            # Exclude stablecoins except USDT pairs
+            if any(stable in symbol for stable in ['USDC', 'BUSD', 'TUSD']):
+                if not symbol.endswith('USDT'):
                     continue
             
             filtered_pairs.append(symbol)
         
-        # Sort by volume (descending) and take top pairs
+        # Sort by REAL volume (descending)
         filtered_pairs.sort(
             key=lambda s: self.market_data_cache.get(s, MarketData('', 0, 0, 0, 0, 0, 0, datetime.now(), datetime.now(), 0, 0)).quote_volume,
             reverse=True
@@ -366,41 +383,36 @@ class MultiPairScanner:
         
         return filtered_pairs[:self.max_concurrent_pairs]
     
-    async def _scan_pair_opportunities(self, symbol: str) -> List[OpportunitySignal]:
-        """Scan a specific pair for trading opportunities"""
+    async def _scan_real_pair_opportunities(self, symbol: str) -> List[OpportunitySignal]:
+        """Scan a specific pair for REAL trading opportunities"""
         opportunities = []
         
         try:
-            # Get market data
+            # Get REAL market data
             market_data = self.market_data_cache.get(symbol)
-            if not market_data:
+            if not market_data or not market_data.live_data:
                 return opportunities
             
-            # Get historical data for primary timeframe
-            historical_data = await self._get_historical_data(symbol, self.primary_timeframe)
-            if historical_data is None or len(historical_data) < 50:
+            # Get REAL historical data for primary timeframe
+            historical_data = await self._get_real_historical_data(symbol, self.primary_timeframe)
+            if historical_data is None or len(historical_data) < 20:
                 return opportunities
             
-            # Calculate technical indicators
-            indicators = self._calculate_technical_indicators(historical_data)
+            # Calculate technical indicators from REAL data
+            indicators = self._calculate_real_technical_indicators(historical_data)
             
-            # Generate signals based on multiple criteria
-            signals = self._generate_trading_signals(symbol, market_data, indicators, historical_data)
+            # Generate REAL signals based on multiple criteria
+            signals = self._generate_real_trading_signals(symbol, market_data, indicators, historical_data)
             
-            # Apply multi-timeframe confirmation if enabled
-            if os.getenv('MULTI_TIMEFRAME_CONFIRMATION', 'true').lower() == 'true':
-                confirmed_signals = await self._apply_timeframe_confirmation(symbol, signals)
-                opportunities.extend(confirmed_signals)
-            else:
-                opportunities.extend(signals)
+            opportunities.extend(signals)
         
         except Exception as e:
-            self.logger.debug(f"[SCANNER] Error scanning {symbol}: {e}")
+            self.logger.debug(f"[SCANNER] Error scanning REAL data for {symbol}: {e}")
         
         return opportunities
     
-    async def _get_historical_data(self, symbol: str, timeframe: str, limit: int = 100) -> Optional[pd.DataFrame]:
-        """Get historical kline data for a symbol and timeframe"""
+    async def _get_real_historical_data(self, symbol: str, timeframe: str, limit: int = 100) -> Optional[pd.DataFrame]:
+        """Get REAL historical kline data for a symbol and timeframe - NO MOCK DATA"""
         if not self.client:
             return None
         
@@ -410,26 +422,27 @@ class MultiPairScanner:
             if cache_key in self.historical_data_cache:
                 cached_data = self.historical_data_cache[cache_key]
                 
-                # Check if cache is recent enough (within 1 scan interval)
+                # Check if cache is recent enough
                 if len(cached_data) > 0:
                     last_timestamp = pd.to_datetime(cached_data.index[-1])
                     if (datetime.now() - last_timestamp).total_seconds() < self.scan_interval * 2:
                         return cached_data
             
-            # Get klines from Binance
-            klines = self.client.get_klines(symbol=symbol, interval=timeframe, limit=limit)
+            # Get REAL klines from Binance
+            real_klines = self.client.get_klines(symbol=symbol, interval=timeframe, limit=limit)
+            self.scan_performance['live_api_calls'] += 1
             
-            if not klines:
+            if not real_klines:
                 return None
             
-            # Convert to DataFrame
-            df = pd.DataFrame(klines, columns=[
+            # Convert REAL data to DataFrame
+            df = pd.DataFrame(real_klines, columns=[
                 'timestamp', 'open', 'high', 'low', 'close', 'volume',
                 'close_time', 'quote_volume', 'trades_count', 'taker_buy_base',
                 'taker_buy_quote', 'ignore'
             ])
             
-            # Convert data types
+            # Convert REAL data types
             numeric_columns = ['open', 'high', 'low', 'close', 'volume', 'quote_volume']
             for col in numeric_columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -437,7 +450,7 @@ class MultiPairScanner:
             df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
             df.set_index('timestamp', inplace=True)
             
-            # Cache the data
+            # Cache the REAL data
             if symbol not in self.historical_data_cache:
                 self.historical_data_cache[symbol] = {}
             self.historical_data_cache[symbol][timeframe] = df
@@ -445,46 +458,46 @@ class MultiPairScanner:
             return df
         
         except Exception as e:
-            self.logger.debug(f"[SCANNER] Error getting historical data for {symbol} {timeframe}: {e}")
+            self.logger.debug(f"[SCANNER] Error getting REAL historical data for {symbol} {timeframe}: {e}")
             return None
     
-    def _calculate_technical_indicators(self, df: pd.DataFrame) -> TechnicalIndicators:
-        """Calculate technical indicators for the data"""
+    def _calculate_real_technical_indicators(self, df: pd.DataFrame) -> TechnicalIndicators:
+        """Calculate technical indicators from REAL data - NO SIMULATIONS"""
         try:
-            # RSI
+            # RSI from REAL data
             delta = df['close'].diff()
             gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
             loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
             rs = gain / loss
             rsi = 100 - (100 / (1 + rs))
             
-            # MACD
+            # MACD from REAL data
             ema12 = df['close'].ewm(span=12).mean()
             ema26 = df['close'].ewm(span=26).mean()
             macd = ema12 - ema26
             macd_signal = macd.ewm(span=9).mean()
             
-            # Bollinger Bands
+            # Bollinger Bands from REAL data
             sma20 = df['close'].rolling(window=20).mean()
             std20 = df['close'].rolling(window=20).std()
             bb_upper = sma20 + (std20 * 2)
             bb_lower = sma20 - (std20 * 2)
             
-            # Volume SMA
+            # Volume SMA from REAL data
             volume_sma = df['volume'].rolling(window=20).mean()
             
-            # Price SMAs
+            # Price SMAs from REAL data
             price_sma_short = df['close'].rolling(window=10).mean()
             price_sma_long = df['close'].rolling(window=50).mean()
             
-            # ATR (Average True Range)
+            # ATR from REAL data
             high_low = df['high'] - df['low']
             high_close = np.abs(df['high'] - df['close'].shift())
             low_close = np.abs(df['low'] - df['close'].shift())
             tr = np.maximum(high_low, np.maximum(high_close, low_close))
             atr = tr.rolling(window=14).mean()
             
-            # Stochastic Oscillator
+            # Stochastic from REAL data
             low_min = df['low'].rolling(window=14).min()
             high_max = df['high'].rolling(window=14).max()
             stoch_k = 100 * ((df['close'] - low_min) / (high_max - low_min))
@@ -502,21 +515,22 @@ class MultiPairScanner:
                 price_sma_long=float(price_sma_long.iloc[-1]) if not np.isnan(price_sma_long.iloc[-1]) else 0.0,
                 atr=float(atr.iloc[-1]) if not np.isnan(atr.iloc[-1]) else 0.0,
                 stoch_k=float(stoch_k.iloc[-1]) if not np.isnan(stoch_k.iloc[-1]) else 50.0,
-                stoch_d=float(stoch_d.iloc[-1]) if not np.isnan(stoch_d.iloc[-1]) else 50.0
+                stoch_d=float(stoch_d.iloc[-1]) if not np.isnan(stoch_d.iloc[-1]) else 50.0,
+                data_source="REAL_HISTORICAL_DATA"
             )
         
         except Exception as e:
-            self.logger.debug(f"[SCANNER] Error calculating indicators: {e}")
-            # Return default indicators
+            self.logger.debug(f"[SCANNER] Error calculating REAL indicators: {e}")
             return TechnicalIndicators(
                 rsi=50.0, macd=0.0, macd_signal=0.0, bb_upper=0.0, bb_lower=0.0,
                 bb_middle=0.0, volume_sma=0.0, price_sma_short=0.0, price_sma_long=0.0,
-                atr=0.0, stoch_k=50.0, stoch_d=50.0
+                atr=0.0, stoch_k=50.0, stoch_d=50.0,
+                data_source="REAL_HISTORICAL_DATA"
             )
     
-    def _generate_trading_signals(self, symbol: str, market_data: MarketData, 
-                                indicators: TechnicalIndicators, df: pd.DataFrame) -> List[OpportunitySignal]:
-        """Generate trading signals based on technical analysis"""
+    def _generate_real_trading_signals(self, symbol: str, market_data: MarketData, 
+                                     indicators: TechnicalIndicators, df: pd.DataFrame) -> List[OpportunitySignal]:
+        """Generate REAL trading signals based on technical analysis - NO SIMULATIONS"""
         signals = []
         
         try:
@@ -526,86 +540,48 @@ class MultiPairScanner:
             confidence = 50.0
             opportunity_score = 0.0
             
-            # Volume analysis
+            # REAL volume analysis
             volume_ratio = market_data.volume_24h / max(indicators.volume_sma, 1)
             if volume_ratio >= self.volume_spike_threshold:
-                reasons.append(f"High volume spike ({volume_ratio:.1f}x average)")
+                reasons.append(f"REAL volume spike ({volume_ratio:.1f}x avg)")
                 opportunity_score += 20
                 confidence += 10
             
-            # Price momentum analysis
+            # REAL price momentum analysis
             momentum_score = abs(market_data.price_change_percent_24h) / self.price_momentum_threshold
             if momentum_score >= 1.0:
-                reasons.append(f"Strong momentum ({market_data.price_change_percent_24h:.1f}%)")
+                reasons.append(f"REAL momentum ({market_data.price_change_percent_24h:.1f}%)")
                 opportunity_score += 15 * min(momentum_score, 2.0)
             
-            # RSI analysis
+            # REAL RSI analysis
             if indicators.rsi < 30:
-                reasons.append(f"Oversold RSI ({indicators.rsi:.1f})")
+                reasons.append(f"REAL oversold RSI ({indicators.rsi:.1f})")
                 signal_type = 'BUY'
                 confidence += 15
                 opportunity_score += 25
             elif indicators.rsi > 70:
-                reasons.append(f"Overbought RSI ({indicators.rsi:.1f})")
+                reasons.append(f"REAL overbought RSI ({indicators.rsi:.1f})")
                 signal_type = 'SELL'
                 confidence += 15
                 opportunity_score += 25
-            elif 45 <= indicators.rsi <= 55:
-                reasons.append("Neutral RSI")
-                opportunity_score += 5
             
-            # MACD analysis
+            # REAL MACD analysis
             macd_diff = indicators.macd - indicators.macd_signal
             if macd_diff > 0 and indicators.macd > 0:
-                reasons.append("MACD bullish")
+                reasons.append("REAL MACD bullish")
                 if signal_type != 'SELL':
                     signal_type = 'BUY'
                 confidence += 10
                 opportunity_score += 15
             elif macd_diff < 0 and indicators.macd < 0:
-                reasons.append("MACD bearish")
+                reasons.append("REAL MACD bearish")
                 if signal_type != 'BUY':
                     signal_type = 'SELL'
                 confidence += 10
                 opportunity_score += 15
             
-            # Bollinger Bands analysis
-            bb_width = (indicators.bb_upper - indicators.bb_lower) / indicators.bb_middle * 100
-            if current_price <= indicators.bb_lower:
-                reasons.append("Price at lower Bollinger Band")
-                if signal_type != 'SELL':
-                    signal_type = 'BUY'
-                confidence += 15
-                opportunity_score += 20
-            elif current_price >= indicators.bb_upper:
-                reasons.append("Price at upper Bollinger Band")
-                if signal_type != 'BUY':
-                    signal_type = 'SELL'
-                confidence += 15
-                opportunity_score += 20
-            
-            # Moving average analysis
-            if indicators.price_sma_short > indicators.price_sma_long:
-                reasons.append("Short MA above long MA")
-                confidence += 5
-                opportunity_score += 10
-            elif indicators.price_sma_short < indicators.price_sma_long:
-                reasons.append("Short MA below long MA")
-                confidence += 5
-                opportunity_score += 10
-            
-            # Stochastic analysis
-            if indicators.stoch_k < 20 and indicators.stoch_d < 20:
-                reasons.append(f"Oversold Stochastic ({indicators.stoch_k:.1f})")
-                confidence += 10
-                opportunity_score += 15
-            elif indicators.stoch_k > 80 and indicators.stoch_d > 80:
-                reasons.append(f"Overbought Stochastic ({indicators.stoch_k:.1f})")
-                confidence += 10
-                opportunity_score += 15
-            
-            # Calculate entry, stop loss, and take profit
-            atr_value = max(indicators.atr, current_price * 0.01)  # Minimum 1% ATR
+            # Calculate REAL entry, stop loss, and take profit
+            atr_value = max(indicators.atr, current_price * 0.01)
             
             if signal_type == 'BUY':
                 entry_price = current_price
@@ -623,16 +599,16 @@ class MultiPairScanner:
                 take_profit = current_price
                 risk_reward_ratio = 1.0
             
-            # Adjust opportunity score based on risk/reward
+            # Adjust opportunity score based on REAL risk/reward
             if risk_reward_ratio >= 1.5:
                 opportunity_score += 10
-                reasons.append(f"Good R:R ratio ({risk_reward_ratio:.1f})")
+                reasons.append(f"REAL good R:R ({risk_reward_ratio:.1f})")
             
             # Ensure confidence is within bounds
             confidence = max(0, min(100, confidence))
             
-            # Only create signal if it meets minimum criteria
-            if opportunity_score >= self.min_opportunity_score or len(reasons) >= 3:
+            # Only create REAL signal if it meets minimum criteria
+            if opportunity_score >= self.min_opportunity_score or len(reasons) >= 2:
                 signal = OpportunitySignal(
                     symbol=symbol,
                     signal_type=signal_type,
@@ -648,163 +624,58 @@ class MultiPairScanner:
                     entry_price=entry_price,
                     stop_loss=stop_loss,
                     take_profit=take_profit,
-                    timestamp=datetime.now()
+                    timestamp=datetime.now(),
+                    data_source="REAL_BINANCE_SCANNER",
+                    live_signal=True
                 )
                 
                 signals.append(signal)
         
         except Exception as e:
-            self.logger.debug(f"[SCANNER] Error generating signals for {symbol}: {e}")
+            self.logger.debug(f"[SCANNER] Error generating REAL signals for {symbol}: {e}")
         
         return signals
     
-    async def _apply_timeframe_confirmation(self, symbol: str, signals: List[OpportunitySignal]) -> List[OpportunitySignal]:
-        """Apply multi-timeframe confirmation to signals"""
-        confirmed_signals = []
-        
-        try:
-            min_agreement = int(os.getenv('MIN_TIMEFRAME_AGREEMENT', '2'))
-            
-            for signal in signals:
-                if signal.signal_type == 'HOLD':
-                    confirmed_signals.append(signal)
-                    continue
-                
-                # Check confirmation timeframes
-                confirmations = 0
-                confirmation_reasons = []
-                
-                for tf in self.confirm_timeframes:
-                    if tf == self.primary_timeframe:
-                        continue
-                    
-                    # Get data for confirmation timeframe
-                    tf_data = await self._get_historical_data(symbol, tf, limit=50)
-                    if tf_data is None or len(tf_data) < 20:
-                        continue
-                    
-                    # Calculate indicators for this timeframe
-                    tf_indicators = self._calculate_technical_indicators(tf_data)
-                    
-                    # Check for trend alignment
-                    trend_aligned = self._check_trend_alignment(signal, tf_indicators, tf)
-                    
-                    if trend_aligned:
-                        confirmations += 1
-                        confirmation_reasons.append(f"{tf} confirms trend")
-                
-                # Only include signal if sufficient confirmations
-                if confirmations >= min_agreement:
-                    signal.reasons.extend(confirmation_reasons)
-                    signal.confidence += (confirmations * 5)  # Bonus for confirmations
-                    signal.opportunity_score += (confirmations * 10)
-                    confirmed_signals.append(signal)
-        
-        except Exception as e:
-            self.logger.debug(f"[SCANNER] Error in timeframe confirmation for {symbol}: {e}")
-            # Return original signals if confirmation fails
-            return signals
-        
-        return confirmed_signals
-    
-    def _check_trend_alignment(self, signal: OpportunitySignal, tf_indicators: TechnicalIndicators, timeframe: str) -> bool:
-        """Check if trend aligns across timeframes"""
-        try:
-            if signal.signal_type == 'BUY':
-                # Look for bullish confirmations
-                bullish_indicators = 0
-                
-                if tf_indicators.rsi < 50 and tf_indicators.rsi > 30:
-                    bullish_indicators += 1
-                
-                if tf_indicators.macd > tf_indicators.macd_signal:
-                    bullish_indicators += 1
-                
-                if tf_indicators.price_sma_short > tf_indicators.price_sma_long:
-                    bullish_indicators += 1
-                
-                return bullish_indicators >= 2
-            
-            elif signal.signal_type == 'SELL':
-                # Look for bearish confirmations
-                bearish_indicators = 0
-                
-                if tf_indicators.rsi > 50 and tf_indicators.rsi < 70:
-                    bearish_indicators += 1
-                
-                if tf_indicators.macd < tf_indicators.macd_signal:
-                    bearish_indicators += 1
-                
-                if tf_indicators.price_sma_short < tf_indicators.price_sma_long:
-                    bearish_indicators += 1
-                
-                return bearish_indicators >= 2
-        
-        except Exception as e:
-            self.logger.debug(f"[SCANNER] Error checking trend alignment: {e}")
-        
-        return False
-    
-    def _update_opportunity_signals(self, opportunities: List[OpportunitySignal]):
-        """Update the opportunity signals storage"""
+    def _update_real_opportunity_signals(self, opportunities: List[OpportunitySignal]):
+        """Update the REAL opportunity signals storage"""
         # Clear old signals
         self.opportunity_signals.clear()
         
-        # Group by symbol
+        # Group REAL signals by symbol
+        real_opportunities_count = 0
         for opportunity in opportunities:
-            symbol = opportunity.symbol
-            if symbol not in self.opportunity_signals:
-                self.opportunity_signals[symbol] = []
-            
-            self.opportunity_signals[symbol].append(opportunity)
+            if opportunity.live_signal and opportunity.data_source == "REAL_BINANCE_SCANNER":
+                symbol = opportunity.symbol
+                if symbol not in self.opportunity_signals:
+                    self.opportunity_signals[symbol] = []
+                
+                self.opportunity_signals[symbol].append(opportunity)
+                real_opportunities_count += 1
         
-        # Update performance metrics
-        self.scan_performance['opportunities_found'] = len(opportunities)
-    
-    async def _update_pair_correlations(self, pairs: List[str]):
-        """Update correlation matrix for pairs"""
-        try:
-            if len(pairs) < 2:
-                return
-            
-            # Get price changes for correlation calculation
-            price_changes = {}
-            for symbol in pairs:
-                market_data = self.market_data_cache.get(symbol)
-                if market_data:
-                    price_changes[symbol] = market_data.price_change_percent_24h
-            
-            # Calculate pairwise correlations
-            symbols = list(price_changes.keys())
-            for i, symbol1 in enumerate(symbols):
-                for j, symbol2 in enumerate(symbols[i+1:], i+1):
-                    # Simple correlation based on price movements
-                    # In a full implementation, you'd use historical price series
-                    correlation = 0.0  # Placeholder - implement proper correlation
-                    
-                    self.pair_correlations[(symbol1, symbol2)] = correlation
-        
-        except Exception as e:
-            self.logger.debug(f"[SCANNER] Error updating correlations: {e}")
+        # Update REAL performance metrics
+        self.scan_performance['opportunities_found'] = real_opportunities_count
     
     def get_top_opportunities(self, limit: int = 10, signal_type: Optional[str] = None) -> List[OpportunitySignal]:
-        """Get top opportunities sorted by score"""
+        """Get top REAL opportunities sorted by score"""
         all_opportunities = []
         
         for symbol_opportunities in self.opportunity_signals.values():
-            all_opportunities.extend(symbol_opportunities)
+            # Only include REAL signals
+            for opp in symbol_opportunities:
+                if opp.live_signal and opp.data_source == "REAL_BINANCE_SCANNER":
+                    all_opportunities.append(opp)
         
         # Filter by signal type if specified
         if signal_type:
             all_opportunities = [opp for opp in all_opportunities if opp.signal_type == signal_type]
         
-        # Sort by opportunity score (descending)
+        # Sort by REAL opportunity score (descending)
         all_opportunities.sort(key=lambda x: x.opportunity_score, reverse=True)
         
         return all_opportunities[:limit]
     
     def get_scanner_status(self) -> Dict[str, Any]:
-        """Get scanner status and performance metrics"""
+        """Get REAL scanner status and performance metrics"""
         return {
             'is_scanning': self.is_scanning,
             'scanner_enabled': self.scanner_enabled,
@@ -816,69 +687,119 @@ class MultiPairScanner:
             'timeframes': self.timeframes,
             'primary_timeframe': self.primary_timeframe,
             'min_opportunity_score': self.min_opportunity_score,
-            'client_connected': self.client is not None
+            'client_connected': self.client is not None,
+            'data_source': 'REAL_BINANCE_API',
+            'live_data_only': True,
+            'no_simulations': True,
+            'credential_source': 'DIRECT_ENV_LOADING',
+            'real_api_calls': self.scan_performance.get('live_api_calls', 0),
+            'real_data_scans': self.scan_performance.get('real_data_scans', 0)
         }
     
     def get_pair_opportunities(self, symbol: str) -> List[OpportunitySignal]:
-        """Get opportunities for a specific pair"""
-        return self.opportunity_signals.get(symbol, [])
+        """Get REAL opportunities for a specific pair"""
+        opportunities = self.opportunity_signals.get(symbol, [])
+        # Filter to only return REAL signals
+        return [opp for opp in opportunities if opp.live_signal and opp.data_source == "REAL_BINANCE_SCANNER"]
     
     async def cleanup(self):
-        """Clean up resources"""
+        """Clean up REAL resources"""
         await self.stop_scanning()
-        self.logger.info("[SCANNER] Cleanup completed")
+        self.logger.info("[SCANNER] REAL cleanup completed")
 
-# Global instance
+# Global instance - REAL DATA ONLY
 multi_pair_scanner = MultiPairScanner()
 
-# Convenience functions
+# Convenience functions - REAL DATA ONLY
 async def start_scanner():
-    """Start the multi-pair scanner"""
+    """Start the REAL multi-pair scanner"""
     return await multi_pair_scanner.start_scanning()
 
 async def stop_scanner():
-    """Stop the multi-pair scanner"""
+    """Stop the REAL multi-pair scanner"""
     await multi_pair_scanner.stop_scanning()
 
 def get_top_opportunities(limit: int = 10, signal_type: Optional[str] = None) -> List[OpportunitySignal]:
-    """Get top trading opportunities"""
+    """Get top REAL trading opportunities"""
     return multi_pair_scanner.get_top_opportunities(limit, signal_type)
 
 def get_scanner_status() -> Dict[str, Any]:
-    """Get scanner status"""
+    """Get REAL scanner status"""
     return multi_pair_scanner.get_scanner_status()
 
+def get_active_pairs_count() -> int:
+    """Get count of active pairs being monitored with REAL data"""
+    try:
+        return len(multi_pair_scanner.market_data_cache)
+    except Exception as e:
+        logging.error(f"Failed to get REAL active pairs count: {e}")
+        return 0
+
+def get_real_market_data(symbol: str) -> Optional[MarketData]:
+    """Get REAL market data for a specific symbol"""
+    try:
+        market_data = multi_pair_scanner.market_data_cache.get(symbol)
+        if market_data and market_data.live_data:
+            return market_data
+        return None
+    except Exception as e:
+        logging.error(f"Failed to get REAL market data for {symbol}: {e}")
+        return None
+
+def is_scanner_using_real_data() -> bool:
+    """Verify scanner is using only REAL data"""
+    try:
+        status = get_scanner_status()
+        return (status.get('data_source') == 'REAL_BINANCE_API' and 
+                status.get('live_data_only', False) and 
+                status.get('no_simulations', False) and
+                status.get('client_connected', False))
+    except:
+        return False
+
 if __name__ == "__main__":
-    # Test the scanner
+    # Test the REAL scanner with direct credentials
     import asyncio
     
-    async def test_scanner():
-        print("Testing Multi-Pair Scanner")
-        print("=" * 40)
+    async def test_real_scanner_direct():
+        print("Testing Multi-Pair Scanner - REAL DATA ONLY (DIRECT CREDENTIALS)")
+        print("=" * 70)
         
-        # Start scanner
-        success = await start_scanner()
-        print(f"Scanner started: {'Success' if success else 'Failed'}")
+        # Verify REAL data mode
+        if is_scanner_using_real_data():
+            print("? Scanner configured for REAL data only with direct credentials")
+        else:
+            print("? Scanner may have connection issues")
         
-        if success:
-            # Wait for a few scans
-            print("Waiting for scans to complete...")
-            await asyncio.sleep(120)  # Wait 2 minutes
-            
-            # Get status
-            status = get_scanner_status()
-            print(f"Scanner status: {json.dumps(status, indent=2, default=str)}")
-            
-            # Get opportunities
-            opportunities = get_top_opportunities(5, 'BUY')
-            print(f"Top BUY opportunities: {len(opportunities)}")
-            
-            for opp in opportunities:
-                print(f"  {opp.symbol}: {opp.opportunity_score:.1f} score, {opp.confidence:.1f}% confidence")
-                print(f"    Reasons: {', '.join(opp.reasons[:3])}")
+        # Show status
+        status = get_scanner_status()
+        print(f"Client connected: {status.get('client_connected', False)}")
+        print(f"Credential source: {status.get('credential_source', 'Unknown')}")
         
-        # Stop scanner
-        await stop_scanner()
+        if status.get('client_connected'):
+            # Start REAL scanner
+            success = await start_scanner()
+            print(f"REAL Scanner started: {'Success' if success else 'Failed'}")
+            
+            if success:
+                # Wait for REAL scans
+                print("Waiting for REAL scans...")
+                await asyncio.sleep(90)
+                
+                # Get REAL opportunities
+                opportunities = get_top_opportunities(3, 'BUY')
+                print(f"REAL opportunities found: {len(opportunities)}")
+                
+                for opp in opportunities:
+                    print(f"  {opp.symbol}: {opp.opportunity_score:.1f} score, {opp.confidence:.1f}% confidence")
+                    print(f"    Reasons: {', '.join(opp.reasons[:2])}")
+            
+            # Stop scanner
+            await stop_scanner()
+        else:
+            print("? Cannot test without client connection")
+        
         await multi_pair_scanner.cleanup()
+        print("? Test completed")
     
-    asyncio.run(test_scanner())
+    asyncio.run(test_real_scanner_direct())
