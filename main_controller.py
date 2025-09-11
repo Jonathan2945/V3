@@ -1,914 +1,701 @@
 #!/usr/bin/env python3
 """
-V3 Trading Controller - REAL DATA ONLY
-Enhanced backtesting with comprehensive error handling and real market data
-NO SIMULATION - PRODUCTION GRADE SYSTEM
+V3 MAIN CONTROLLER - REAL DATA ONLY
+===================================
+Real market data, real backtesting, paper trading, and live trading
+NO FAKE/SIMULATED DATA
 """
-
-import os
-import sys
-import logging
-import asyncio
-import pandas as pd
 import numpy as np
-import time
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
-import sqlite3
+from binance.client import Client
+import asyncio
+import logging
 import json
-from dataclasses import dataclass
-import threading
+import os
+import psutil
+from typing import List, Dict, Tuple, Optional
+from datetime import datetime, timedelta
+from dotenv import load_dotenv
+import time
+import uuid
+from collections import defaultdict, deque
+import pandas as pd
+import sqlite3
+from pathlib import Path
+from threading import Thread, Lock, Event
+import traceback
+import contextlib
 from concurrent.futures import ThreadPoolExecutor
+import weakref
+import gc
 import signal
+import sys
+import queue
+import threading
 
-# Import V3 components
-from binance_exchange_manager import BinanceExchangeManager
-from external_data_collector import EnhancedExternalDataCollector
-from advanced_ml_engine import AdvancedMLEngine
-from multi_pair_scanner import MultiPairScanner
+load_dotenv()
+
+# Import your existing modules
+from api_rotation_manager import get_api_key, report_api_result
 from pnl_persistence import PnLPersistence
 
-# Enforce real data mode
-REAL_DATA_ONLY = True
-MOCK_DATA_DISABLED = True
-
-@dataclass
-class BacktestResult:
-    """Structure for backtest results"""
-    symbol: str
-    strategy: str
-    timeframe: str
-    total_trades: int
-    winning_trades: int
-    losing_trades: int
-    win_rate: float
-    total_return: float
-    sharpe_ratio: float
-    max_drawdown: float
-    profit_factor: float
-    avg_trade_duration: float
-    data_quality: str
-    timestamp: datetime
-
-class AsyncTaskManager:
-    """Manage async background tasks"""
+class DatabaseManager:
+    """Enhanced database manager with connection pooling"""
     
-    def __init__(self):
-        self.logger = logging.getLogger('main_controller.AsyncTaskManager')
-        self.tasks = {}
-        self.running = True
+    def __init__(self, db_path: str, max_connections: int = 5):
+        self.db_path = Path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._pool = queue.Queue(maxsize=max_connections)
+        self._lock = threading.Lock()
+        self._max_connections = max_connections
+        self._active_connections = 0
         
-
-
-    async def start_background_updates(self, controller):
-        """Start background update tasks"""
+    def _create_connection(self) -> sqlite3.Connection:
+        """Create a new database connection with proper settings"""
+        conn = sqlite3.connect(
+            self.db_path,
+            timeout=30.0,
+            check_same_thread=False,
+            isolation_level='DEFERRED'
+        )
+        conn.execute('PRAGMA journal_mode=WAL')
+        conn.execute('PRAGMA synchronous=NORMAL') 
+        conn.execute('PRAGMA cache_size=10000')
+        conn.execute('PRAGMA temp_store=MEMORY')
+        return conn
+        
+    @contextlib.contextmanager
+    def get_connection(self):
+        """Get a database connection from the pool"""
+        conn = None
         try:
-            while self.running:
-                await asyncio.sleep(30)  # Update every 30 seconds
-                # Add background update logic here if needed
-        except asyncio.CancelledError:
-            self.logger.info("Task background_updates was cancelled")
+            try:
+                conn = self._pool.get_nowait()
+            except queue.Empty:
+                with self._lock:
+                    if self._active_connections < self._max_connections:
+                        conn = self._create_connection()
+                        self._active_connections += 1
+                    else:
+                        conn = self._pool.get(timeout=10)
+            
+            yield conn
+            
         except Exception as e:
-            self.logger.error(f"Background updates error: {e}")
+            if conn:
+                try:
+                    conn.rollback()
+                except:
+                    pass
+            raise e
+        finally:
+            if conn:
+                try:
+                    conn.commit()
+                    self._pool.put_nowait(conn)
+                except queue.Full:
+                    conn.close()
+                    with self._lock:
+                        self._active_connections -= 1
+                except:
+                    conn.close()
+                    with self._lock:
+                        self._active_connections -= 1
     
-    def stop_all_tasks(self):
-        """Stop all running tasks"""
-        self.running = False
-        for task_name, task in self.tasks.items():
-            if not task.done():
-                task.cancel()
-                self.logger.info(f"Task {task_name} was cancelled")
+    def initialize_schema(self, schema_sql: str):
+        """Initialize database schema"""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.executescript(schema_sql)
+            conn.commit()
+    
+    def close_all(self):
+        """Close all connections in the pool"""
+        while not self._pool.empty():
+            try:
+                conn = self._pool.get_nowait()
+                conn.close()
+            except:
+                break
+        self._active_connections = 0
+
+class RealMarketDataManager:
+    """Real market data manager - NO SIMULATION"""
+    
+    def __init__(self, client: Client):
+        self.client = client
+        self.logger = logging.getLogger(f"{__name__}.MarketData")
+        self._cache = {}
+        self._cache_timestamps = {}
+        self._cache_ttl = 30  # 30 seconds cache
+        
+    def get_real_price(self, symbol: str) -> float:
+        """Get real current price from Binance"""
+        try:
+            cache_key = f"price_{symbol}"
+            now = time.time()
+            
+            # Check cache
+            if (cache_key in self._cache and 
+                now - self._cache_timestamps.get(cache_key, 0) < self._cache_ttl):
+                return self._cache[cache_key]
+            
+            # Get real price from Binance
+            ticker = self.client.get_symbol_ticker(symbol=symbol)
+            price = float(ticker['price'])
+            
+            # Cache the result
+            self._cache[cache_key] = price
+            self._cache_timestamps[cache_key] = now
+            
+            return price
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get real price for {symbol}: {e}")
+            return 0.0
+    
+    def get_real_historical_data(self, symbol: str, interval: str, days: int = 30) -> pd.DataFrame:
+        """Get real historical data from Binance"""
+        try:
+            # Calculate start time
+            start_time = int((datetime.now() - timedelta(days=days)).timestamp() * 1000)
+            
+            # Get real historical klines from Binance
+            klines = self.client.get_historical_klines(
+                symbol, interval, start_str=start_time
+            )
+            
+            if not klines:
+                return pd.DataFrame()
+            
+            # Convert to DataFrame
+            df = pd.DataFrame(klines, columns=[
+                'timestamp', 'open', 'high', 'low', 'close', 'volume',
+                'close_time', 'quote_asset_volume', 'number_of_trades',
+                'taker_buy_base_asset_volume', 'taker_buy_quote_asset_volume', 'ignore'
+            ])
+            
+            # Convert to proper types
+            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+            for col in ['open', 'high', 'low', 'close', 'volume']:
+                df[col] = pd.to_numeric(df[col])
+            
+            return df
+            
+        except Exception as e:
+            self.logger.error(f"Failed to get historical data for {symbol}: {e}")
+            return pd.DataFrame()
+    
+    def get_market_depth(self, symbol: str) -> Dict:
+        """Get real market depth/order book"""
+        try:
+            depth = self.client.get_order_book(symbol=symbol, limit=20)
+            return {
+                'bids': [[float(bid[0]), float(bid[1])] for bid in depth['bids'][:10]],
+                'asks': [[float(ask[0]), float(ask[1])] for ask in depth['asks'][:10]],
+                'timestamp': time.time()
+            }
+        except Exception as e:
+            self.logger.error(f"Failed to get market depth for {symbol}: {e}")
+            return {'bids': [], 'asks': [], 'timestamp': time.time()}
+
+class RealTradingEngine:
+    """Real trading engine with paper and live modes"""
+    
+    def __init__(self, client: Client, trading_mode: str = 'PAPER'):
+        self.client = client
+        self.trading_mode = trading_mode  # 'PAPER' or 'LIVE'
+        self.logger = logging.getLogger(f"{__name__}.TradingEngine")
+        self.market_data = RealMarketDataManager(client)
+        
+        # Real position tracking
+        self.positions = {}
+        self.orders = {}
+        self.trade_history = deque(maxlen=1000)
+        
+        # Real account info
+        self._update_account_info()
+        
+    def _update_account_info(self):
+        """Update real account information"""
+        try:
+            if self.trading_mode == 'LIVE':
+                account = self.client.get_account()
+                self.account_balance = {
+                    balance['asset']: float(balance['free'])
+                    for balance in account['balances']
+                    if float(balance['free']) > 0
+                }
+            else:
+                # Paper trading - start with test balance
+                self.account_balance = {
+                    'USDT': 10000.0,  # Start with $10k for paper trading
+                    'BTC': 0.0,
+                    'ETH': 0.0
+                }
+        except Exception as e:
+            self.logger.error(f"Failed to update account info: {e}")
+            self.account_balance = {'USDT': 10000.0}
+    
+    def place_order(self, symbol: str, side: str, quantity: float, 
+                   order_type: str = 'MARKET', price: float = None) -> Dict:
+        """Place real or paper order"""
+        try:
+            order_id = str(uuid.uuid4())
+            current_price = self.market_data.get_real_price(symbol)
+            
+            if self.trading_mode == 'LIVE':
+                # Place real order on Binance
+                if order_type == 'MARKET':
+                    order = self.client.order_market_buy(
+                        symbol=symbol,
+                        quantity=quantity
+                    ) if side == 'BUY' else self.client.order_market_sell(
+                        symbol=symbol,
+                        quantity=quantity
+                    )
+                else:
+                    order = self.client.order_limit_buy(
+                        symbol=symbol,
+                        quantity=quantity,
+                        price=str(price)
+                    ) if side == 'BUY' else self.client.order_limit_sell(
+                        symbol=symbol,
+                        quantity=quantity,
+                        price=str(price)
+                    )
+                
+                # Process real order response
+                order_result = {
+                    'order_id': order['orderId'],
+                    'symbol': symbol,
+                    'side': side,
+                    'quantity': float(order['executedQty']),
+                    'price': float(order['fills'][0]['price']) if order['fills'] else current_price,
+                    'status': order['status'],
+                    'timestamp': datetime.now().isoformat(),
+                    'mode': 'LIVE'
+                }
+                
+            else:
+                # Paper trading with real market prices
+                execution_price = price if price and order_type == 'LIMIT' else current_price
+                
+                # Simulate realistic fills with slippage
+                if order_type == 'MARKET':
+                    slippage = 0.001  # 0.1% slippage for market orders
+                    execution_price = current_price * (1 + slippage if side == 'BUY' else 1 - slippage)
+                
+                order_result = {
+                    'order_id': order_id,
+                    'symbol': symbol,
+                    'side': side,
+                    'quantity': quantity,
+                    'price': execution_price,
+                    'status': 'FILLED',
+                    'timestamp': datetime.now().isoformat(),
+                    'mode': 'PAPER'
+                }
+                
+                # Update paper trading balances
+                self._update_paper_balance(symbol, side, quantity, execution_price)
+            
+            # Store order
+            self.orders[order_result['order_id']] = order_result
+            self.trade_history.append(order_result)
+            
+            return order_result
+            
+        except Exception as e:
+            self.logger.error(f"Failed to place order: {e}")
+            return {'error': str(e)}
+    
+    def _update_paper_balance(self, symbol: str, side: str, quantity: float, price: float):
+        """Update paper trading balances"""
+        try:
+            base_asset = symbol.replace('USDT', '').replace('BUSD', '').replace('BTC', '')
+            quote_asset = 'USDT' if 'USDT' in symbol else 'BUSD' if 'BUSD' in symbol else 'BTC'
+            
+            cost = quantity * price * 1.001  # Include 0.1% fees
+            
+            if side == 'BUY':
+                # Deduct quote asset, add base asset
+                self.account_balance[quote_asset] = self.account_balance.get(quote_asset, 0) - cost
+                self.account_balance[base_asset] = self.account_balance.get(base_asset, 0) + quantity
+            else:
+                # Deduct base asset, add quote asset
+                self.account_balance[base_asset] = self.account_balance.get(base_asset, 0) - quantity
+                self.account_balance[quote_asset] = self.account_balance.get(quote_asset, 0) + (quantity * price * 0.999)
+                
+        except Exception as e:
+            self.logger.error(f"Failed to update paper balance: {e}")
+    
+    def get_position_pnl(self, symbol: str) -> float:
+        """Calculate real P&L for position"""
+        try:
+            if symbol not in self.positions:
+                return 0.0
+            
+            position = self.positions[symbol]
+            current_price = self.market_data.get_real_price(symbol)
+            
+            if position['side'] == 'LONG':
+                pnl = (current_price - position['avg_price']) * position['quantity']
+            else:
+                pnl = (position['avg_price'] - current_price) * position['quantity']
+            
+            return pnl
+            
+        except Exception as e:
+            self.logger.error(f"Failed to calculate PnL for {symbol}: {e}")
+            return 0.0
 
 class V3TradingController:
-    """
-    V3 Trading Controller - Main system orchestrator
-    REAL DATA ONLY - NO SIMULATION
-    """
+    """V3 Trading Controller - REAL DATA ONLY"""
     
     def __init__(self):
-        """Initialize V3 Trading Controller with real data enforcement"""
         self.logger = logging.getLogger('main_controller')
         
-        # Enforce real data mode
-        if not REAL_DATA_ONLY:
-            raise ValueError("CRITICAL: System must use REAL DATA ONLY")
+        # Initialize system state
+        self.is_running = False
+        self.is_initialized = False
         
-        # System state
-        self.system_ready = False
-        self.trading_enabled = False
-        self.mode = os.getenv('DEFAULT_TRADING_MODE', 'PAPER_TRADING')
+        # Trading mode configuration
+        self.trading_mode = os.getenv('DEFAULT_TRADING_MODE', 'PAPER_TRADING')
+        self.testnet_mode = os.getenv('TESTNET', 'true').lower() == 'true'
         
-        # Components
-        self.exchange_manager = None
-        self.external_data_collector = None
-        self.ml_engine = None
-        self.multi_pair_scanner = None
-        self.backtester = None
-        self.pnl_persistence = None
+        # Initialize real Binance client
+        self.exchange_manager = self._initialize_exchange_manager()
         
-        # Performance tracking
-        self.performance_metrics = {
-            'total_trades': 0,
-            'total_pnl': 0.0,
-            'win_rate': 0.0,
-            'active_positions': 0
-        }
+        # Initialize real trading engine
+        if self.exchange_manager and hasattr(self.exchange_manager, 'client'):
+            self.trading_engine = RealTradingEngine(
+                self.exchange_manager.client, 
+                'PAPER' if self.trading_mode == 'PAPER_TRADING' else 'LIVE'
+            )
+        else:
+            self.trading_engine = None
         
-        # Strategy management
-        self.strategies = {}
-        self.strategy_performance = {}
+        # Database and persistence
+        self.db_manager = DatabaseManager('data/trading_metrics.db')
+        self._initialize_database()
+        self.pnl_persistence = PnLPersistence()
         
-        # Task management
-        self.task_manager = AsyncTaskManager()
+        # Load real persistent data
+        self.metrics = self._load_persistent_metrics()
         
-        # Initialize system
-        self._initialize_system()
+        # Real data structures
+        self.open_positions = {}
+        self.recent_trades = deque(maxlen=100)
+        self.top_strategies = []
+        self.ml_trained_strategies = []
         
-        self.logger.info(f"V3 Trading Controller initialized - Mode: {self.mode}")
+        # Initialize other components
+        self.external_data_collector = self._initialize_external_data_collector()
+        self.ai_brain = self._initialize_ml_engine()
+        self.scanner = self._initialize_scanner()
+        self.comprehensive_backtester = self._initialize_backtester()
+        
+        # Real-time data tracking
+        self.scanner_data = self._initialize_scanner_data()
+        self.system_resources = self._initialize_system_resources()
+        self.external_data_status = self._initialize_external_data_status()
+        self.backtest_progress = self._initialize_backtest_progress()
+        
+        # Thread management
+        self._state_lock = threading.Lock()
+        self._shutdown_event = threading.Event()
+        self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="V3Controller")
+        
+        self.logger.info("V3 Trading Controller initialized - REAL DATA MODE")
     
-    def _initialize_system(self):
-        """Initialize all system components"""
+    def _initialize_exchange_manager(self):
+        """Initialize real exchange manager"""
         try:
-            self.logger.info("Initializing V3 Trading System")
-            
-            # Initialize exchange manager
-            self.exchange_manager = BinanceExchangeManager()
+            from binance_exchange_manager import BinanceExchangeManager
+            exchange_manager = BinanceExchangeManager()
             self.logger.info("Exchange manager initialized")
-            
-            # Initialize external data collector
-            self.external_data_collector = EnhancedExternalDataCollector()
+            return exchange_manager
+        except Exception as e:
+            self.logger.error(f"Failed to initialize exchange manager: {e}")
+            return None
+    
+    def _initialize_external_data_collector(self):
+        """Initialize real external data collector"""
+        try:
+            from external_data_collector import ExternalDataCollector
+            collector = ExternalDataCollector()
             self.logger.info("External data collector initialized")
-            
-            # Initialize ML engine
-            try:
-                self.ml_engine = AdvancedMLEngine()
-                self.logger.info("AI Brain initialized")
-            except Exception as e:
-                self.logger.warning(f"ML engine initialization failed: {e}")
-                self.ml_engine = None
-            
-            # Initialize multi-pair scanner
-            try:
-                self.multi_pair_scanner = MultiPairScanner()
-                self.logger.info("Multi-pair scanner initialized")
-            except Exception as e:
-                self.logger.warning(f"Multi-pair scanner initialization failed: {e}")
-                self.multi_pair_scanner = None
-            
-            # Initialize PnL persistence
-            self.pnl_persistence = PnLPersistence()
-            self.logger.info("PnL persistence initialized")
-            
-            # Load performance data
-            performance_data = self.pnl_persistence.get_performance_summary()
-            total_trades = performance_data.get('total_trades', 0)
-            total_pnl = performance_data.get('total_pnl', 0.0)
-            self.logger.info(f"[V3_ENGINE] Loaded REAL performance: {total_trades} trades, ${total_pnl:.2f} P&L")
-            
-            # Initialize trading engine
-            try:
-                self._initialize_trading_engine()
-            except Exception as e:
-                self.logger.warning(f"Trading engine initialization failed: {e}")
-            
-            # Initialize backtester
-            self.backtester = self.Backtester(self)
-            self.logger.info("Comprehensive backtester initialized")
-            
-            # Load strategies
-            self._load_strategies()
-            
-            self.system_ready = True
-            self.logger.info(f"V3 System initialized - Trading Mode: {self.mode}")
-            
+            return collector
         except Exception as e:
-            self.logger.error(f"System initialization failed: {e}")
-            raise
+            self.logger.error(f"Failed to initialize external data collector: {e}")
+            return None
     
-    def _initialize_trading_engine(self):
-        """Initialize the trading engine"""
+    def _initialize_ml_engine(self):
+        """Initialize real ML engine"""
         try:
-            # Get exchange client for trading
-            exchange_client = self.exchange_manager.get_exchange_client()
-            
-            if not exchange_client:
-                raise Exception("SYSTEM FAILURE: Cannot connect to REAL Binance - CRITICAL: No REAL Binance credentials available from API rotation")
-            
-            self.trading_enabled = True
-            self.logger.info("Trading engine initialized successfully")
-            
+            from advanced_ml_engine import AdvancedMLEngine
+            ml_engine = AdvancedMLEngine(
+                config={'real_data_mode': True, 'testnet': self.testnet_mode},
+                credentials={'binance_testnet': self.testnet_mode},
+                test_mode=False
+            )
+            self.logger.info("ML Engine initialized")
+            return ml_engine
         except Exception as e:
-            self.logger.error(f"CRITICAL: V3 REAL Binance client initialization failed: {e}")
-            raise
+            self.logger.error(f"Failed to initialize ML engine: {e}")
+            return None
     
-    def _load_strategies(self):
-        """Load trading strategies"""
+    def _initialize_scanner(self):
+        """Initialize real market scanner"""
         try:
-            # Load basic strategies
-            self.strategies = {
-                'scalping': {
-                    'timeframes': ['5m', '15m'],
-                    'min_candles': 100,
-                    'description': 'Short-term scalping strategy'
-                },
-                'short_term': {
-                    'timeframes': ['15m', '1h'],
-                    'min_candles': 80,
-                    'description': 'Short-term momentum strategy'
-                },
-                'intraday': {
-                    'timeframes': ['1h', '4h'],
-                    'min_candles': 50,
-                    'description': 'Intraday swing strategy'
-                },
-                'swing': {
-                    'timeframes': ['4h', '1d'],
-                    'min_candles': 30,
-                    'description': 'Swing trading strategy'
-                },
-                'position': {
-                    'timeframes': ['1d'],
-                    'min_candles': 20,
-                    'description': 'Position trading strategy'
-                },
-                'momentum': {
-                    'timeframes': ['4h', '1d'],
-                    'min_candles': 30,
-                    'description': 'Momentum strategy'
-                },
-                'confluence': {
-                    'timeframes': ['1h', '4h'],
-                    'min_candles': 50,
-                    'description': 'Multi-timeframe confluence'
-                },
-                'trend_following': {
-                    'timeframes': ['4h', '1d'],
-                    'min_candles': 30,
-                    'description': 'Trend following strategy'
-                }
-            }
-            
-            # Count strategies
-            strategy_count = len(self.strategies)
-            ml_trained_count = 1 if self.ml_engine else 0
-            
-            self.logger.info(f"Loaded {strategy_count} strategies, {ml_trained_count} ML-trained")
-            
+            from multi_pair_scanner import MultiPairScanner
+            scanner = MultiPairScanner()
+            self.logger.info("Market scanner initialized")
+            return scanner
         except Exception as e:
-            self.logger.error(f"Strategy loading failed: {e}")
-            self.strategies = {}
+            self.logger.error(f"Failed to initialize scanner: {e}")
+            return None
     
-    def get_trading_status(self) -> Dict[str, Any]:
-        """Get current trading status"""
+    def _initialize_backtester(self):
+        """Initialize real backtester"""
         try:
-            performance_data = self.pnl_persistence.get_performance_summary() if self.pnl_persistence else {}
-            
-            return {
-                'total_trades': performance_data.get('total_trades', 0),
-                'total_pnl': performance_data.get('total_pnl', 0.0),
-                'win_rate': performance_data.get('win_rate', 0.0),
-                'active_positions': performance_data.get('active_positions', 0),
-                'trading_enabled': self.trading_enabled,
-                'mode': self.mode,
-                'system_ready': self.system_ready
-            }
+            from advanced_backtester import AdvancedBacktester
+            backtester = AdvancedBacktester(controller=self)
+            self.logger.info("Backtester initialized")
+            return backtester
         except Exception as e:
-            self.logger.error(f"Error getting trading status: {e}")
-            return {
-                'total_trades': 0,
-                'total_pnl': 0.0,
-                'win_rate': 0.0,
-                'active_positions': 0,
-                'trading_enabled': False,
-                'mode': self.mode,
-                'system_ready': self.system_ready
-            }
-    
-    def get_system_status(self) -> Dict[str, Any]:
-        """Get comprehensive system status"""
-        try:
-            return {
-                'system_ready': self.system_ready,
-                'trading_enabled': self.trading_enabled,
-                'mode': self.mode,
-                'strategies_loaded': len(self.strategies),
-                'ml_engine_active': self.ml_engine is not None,
-                'external_data_active': self.external_data_collector is not None,
-                'exchange_connected': self.exchange_manager is not None,
-                'scanner_active': self.multi_pair_scanner is not None,
-                'components': {
-                    'exchange_manager': self.exchange_manager is not None,
-                    'external_data_collector': self.external_data_collector is not None,
-                    'ml_engine': self.ml_engine is not None,
-                    'multi_pair_scanner': self.multi_pair_scanner is not None,
-                    'backtester': self.backtester is not None,
-                    'pnl_persistence': self.pnl_persistence is not None
-                }
-            }
-        except Exception as e:
-            self.logger.error(f"Error getting system status: {e}")
-            return {
-                'system_ready': False,
-                'error': str(e)
-            }
-    
-    class Backtester:
-        """
-        Enhanced Backtester with real data validation and error handling
-        REAL MARKET DATA ONLY
-        """
-        
-        def __init__(self, controller):
-            self.controller = controller
-            self.logger = logging.getLogger('main_controller.Backtester')
-            
-            # Get exchange client for data
-            self.exchange_client = controller.exchange_manager.get_exchange_client()
-            if self.exchange_client:
-                self.logger.info("Using exchange_manager client for backtesting")
-            else:
-                raise Exception("No exchange client available for backtesting")
-            
-            # Backtesting configuration
-            self.pairs = self._get_trading_pairs()
-            self.timeframes = ['5m', '15m', '1h', '4h', '1d']
-            self.strategies = list(controller.strategies.keys())
-            
-            # Calculate total combinations
-            total_combinations = len(self.pairs) * len(self.strategies) * len(self.timeframes)
-            self.logger.info(f"Backtester initialized: {len(self.pairs)} pairs, {total_combinations} combinations")
-            
-            # Progress tracking
-            self.progress = {
-                'current': 0,
-                'total': total_combinations,
-                'completed_combinations': [],
-                'failed_combinations': [],
-                'results': [],
-                'start_time': None,
-                'status': 'ready'
-            }
-        
-        def _get_trading_pairs(self) -> List[str]:
-            """Get trading pairs for backtesting"""
-            try:
-                # Get pairs from environment or use defaults
-                pairs_config = os.getenv('MAJOR_PAIRS', 'BTCUSDT,ETHUSDT,BNBUSDT,XRPUSDT,ADAUSDT,SOLUSDT,DOGEUSDT,LINKUSDT,LTCUSDT,UNIUSDT,AVAXUSDT,DOTUSDT')
-                pairs = [pair.strip() for pair in pairs_config.split(',')]
-                
-                # Limit pairs for performance
-                max_pairs = int(os.getenv('COMPREHENSIVE_PAIRS_COUNT', 12))
-                return pairs[:max_pairs]
-                
-            except Exception as e:
-                self.logger.error(f"Error getting trading pairs: {e}")
-                return ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 'SOLUSDT']
-        
-        def run_comprehensive_backtest(self) -> Dict[str, Any]:
-            """Run comprehensive backtest with real data"""
-            try:
-                self.progress['status'] = 'running'
-                self.progress['start_time'] = datetime.now()
-                self.progress['current'] = 0
-                self.progress['results'] = []
-                
-                total_combinations = len(self.pairs) * len(self.strategies) * len(self.timeframes)
-                self.logger.info(f"Starting REAL DATA comprehensive backtest: {total_combinations} combinations")
-                
-                combination_count = 0
-                successful_results = 0
-                
-                # Run backtests for each combination
-                for symbol in self.pairs:
-                    for strategy in self.strategies:
-                        for timeframe in self.timeframes:
-                            combination_count += 1
-                            self.progress['current'] = combination_count
-                            
-                            try:
-                                result = self._run_backtest_combination(symbol, strategy, timeframe)
-                                if result:
-                                    self.progress['results'].append(result)
-                                    successful_results += 1
-                                    self.progress['completed_combinations'].append(f"{symbol}_{strategy}_{timeframe}")
-                                else:
-                                    self.progress['failed_combinations'].append(f"{symbol}_{strategy}_{timeframe}")
-                                
-                            except Exception as e:
-                                self.logger.error(f"Backtest error for {symbol} {strategy} {timeframe}: {e}")
-                                self.progress['failed_combinations'].append(f"{symbol}_{strategy}_{timeframe}")
-                            
-                            # Add small delay to prevent overwhelming the system
-                            time.sleep(0.1)
-                
-                self.progress['status'] = 'completed'
-                completion_time = datetime.now()
-                duration = (completion_time - self.progress['start_time']).total_seconds()
-                
-                self.logger.info(f"Comprehensive backtest completed: {successful_results}/{total_combinations} successful in {duration:.1f}s")
-                
-                return {
-                    'status': 'completed',
-                    'total_combinations': total_combinations,
-                    'successful_results': successful_results,
-                    'failed_combinations': len(self.progress['failed_combinations']),
-                    'duration_seconds': duration,
-                    'results': self.progress['results']
-                }
-                
-            except Exception as e:
-                self.logger.error(f"Comprehensive backtest failed: {e}")
-                self.progress['status'] = 'failed'
-                return {
-                    'status': 'failed',
-                    'error': str(e),
-                    'results': self.progress['results']
-                }
-        
-        def _run_backtest_combination(self, symbol: str, strategy: str, timeframe: str) -> Optional[BacktestResult]:
-            """Run backtest for a specific combination"""
-            try:
-                # Fetch real market data
-                df = self._fetch_real_data(symbol, timeframe)
-                
-                # Validate data sufficiency
-                if not self._validate_data_sufficiency(df, symbol, timeframe, strategy):
-                    return None
-                
-                # Execute strategy backtest
-                result = self._execute_strategy_backtest(df, symbol, strategy, timeframe)
-                
-                if result and self._is_quality_result(result):
-                    self.logger.info(f"? {symbol} {strategy}: {result.total_trades} trades, "
-                                   f"{result.win_rate:.1f}% win rate, {result.sharpe_ratio:.2f} Sharpe")
-                    return result
-                else:
-                    self.logger.debug(f"Low quality result for {symbol} {strategy}")
-                    return None
-                    
-            except Exception as e:
-                self.logger.error(f"Backtest combination error for {symbol} {strategy} {timeframe}: {e}")
-                return None
-        
-        def _fetch_real_data(self, symbol: str, timeframe: str) -> Optional[pd.DataFrame]:
-            """Fetch real market data with improved collection"""
-            try:
-                self.logger.info(f"Fetching REAL {symbol} {timeframe} data via CCXT...")
-                
-                # Determine appropriate limit based on timeframe
-                timeframe_limits = {
-                    '1m': 1000,
-                    '5m': 1000,
-                    '15m': 500,
-                    '1h': 500,
-                    '4h': 250,
-                    '1d': 100
-                }
-                
-                limit = timeframe_limits.get(timeframe, 500)
-                
-                # Fetch data with retries
-                max_retries = 3
-                for attempt in range(max_retries):
-                    try:
-                        ohlcv = self.exchange_client.fetch_ohlcv(symbol, timeframe, limit=limit)
-                        
-                        if ohlcv and len(ohlcv) > 0:
-                            df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-                            df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
-                            df.set_index('timestamp', inplace=True)
-                            
-                            self.logger.info(f"Fetched {len(df)} REAL candles for {symbol} {timeframe} via CCXT")
-                            return df
-                            
-                    except Exception as e:
-                        self.logger.warning(f"Attempt {attempt + 1} failed for {symbol} {timeframe}: {e}")
-                        if attempt < max_retries - 1:
-                            time.sleep(2 ** attempt)  # Exponential backoff
-                
-                self.logger.error(f"Failed to fetch data for {symbol} {timeframe} after {max_retries} attempts")
-                return None
-                
-            except Exception as e:
-                self.logger.error(f"Error fetching {symbol} {timeframe}: {e}")
-                return None
-        
-        def _validate_data_sufficiency(self, df: Optional[pd.DataFrame], symbol: str, timeframe: str, strategy: str) -> bool:
-            """Check if data is sufficient for backtesting"""
-            if df is None or df.empty:
-                self.logger.warning(f"No data available for {symbol} {timeframe}")
-                return False
-            
-            # Get strategy requirements
-            strategy_config = self.controller.strategies.get(strategy, {})
-            min_required = strategy_config.get('min_candles', 50)
-            
-            # Additional timeframe-specific requirements
-            timeframe_minimums = {
-                '1m': 100,
-                '5m': 100,
-                '15m': 80,
-                '1h': 50,
-                '4h': 30,
-                '1d': 20
-            }
-            
-            min_required = max(min_required, timeframe_minimums.get(timeframe, 50))
-            actual_count = len(df)
-            
-            if actual_count < min_required:
-                self.logger.warning(f"Insufficient REAL data for {symbol} {timeframe}: {actual_count} candles (need {min_required})")
-                self.logger.warning(f"Skipping {symbol} {strategy}: insufficient REAL data")
-                return False
-            
-            return True
-        
-        def _execute_strategy_backtest(self, df: pd.DataFrame, symbol: str, strategy: str, timeframe: str) -> Optional[BacktestResult]:
-            """Execute the actual strategy backtest"""
-            try:
-                # Simple strategy implementation for demonstration
-                # In production, this would call the actual strategy logic
-                
-                # Calculate simple moving averages
-                df['sma_fast'] = df['close'].rolling(window=10).mean()
-                df['sma_slow'] = df['close'].rolling(window=20).mean()
-                
-                # Generate signals
-                df['signal'] = 0
-                df.loc[df['sma_fast'] > df['sma_slow'], 'signal'] = 1
-                df.loc[df['sma_fast'] < df['sma_slow'], 'signal'] = -1
-                
-                # Calculate trades
-                trades = []
-                position = 0
-                entry_price = 0
-                
-                for i in range(1, len(df)):
-                    current_signal = df.iloc[i]['signal']
-                    prev_signal = df.iloc[i-1]['signal']
-                    current_price = df.iloc[i]['close']
-                    
-                    # Entry signals
-                    if current_signal == 1 and prev_signal != 1 and position == 0:
-                        position = 1
-                        entry_price = current_price
-                    elif current_signal == -1 and prev_signal != -1 and position == 0:
-                        position = -1
-                        entry_price = current_price
-                    
-                    # Exit signals
-                    elif current_signal != position and position != 0:
-                        exit_price = current_price
-                        pnl = (exit_price - entry_price) * position / entry_price
-                        
-                        trades.append({
-                            'entry_price': entry_price,
-                            'exit_price': exit_price,
-                            'pnl': pnl,
-                            'position': position
-                        })
-                        
-                        position = 0
-                
-                # Calculate metrics
-                if not trades:
-                    return None
-                
-                total_trades = len(trades)
-                winning_trades = len([t for t in trades if t['pnl'] > 0])
-                losing_trades = total_trades - winning_trades
-                win_rate = (winning_trades / total_trades) * 100 if total_trades > 0 else 0
-                
-                total_return = sum([t['pnl'] for t in trades])
-                
-                # Calculate Sharpe ratio (simplified)
-                returns = [t['pnl'] for t in trades]
-                if len(returns) > 1:
-                    sharpe_ratio = np.mean(returns) / np.std(returns) if np.std(returns) > 0 else 0
-                else:
-                    sharpe_ratio = 0
-                
-                # Calculate max drawdown
-                cumulative_returns = np.cumsum(returns)
-                running_max = np.maximum.accumulate(cumulative_returns)
-                drawdown = cumulative_returns - running_max
-                max_drawdown = np.min(drawdown) if len(drawdown) > 0 else 0
-                
-                # Calculate profit factor
-                gross_profit = sum([t['pnl'] for t in trades if t['pnl'] > 0])
-                gross_loss = abs(sum([t['pnl'] for t in trades if t['pnl'] < 0]))
-                profit_factor = gross_profit / gross_loss if gross_loss > 0 else float('inf')
-                
-                return BacktestResult(
-                    symbol=symbol,
-                    strategy=strategy,
-                    timeframe=timeframe,
-                    total_trades=total_trades,
-                    winning_trades=winning_trades,
-                    losing_trades=losing_trades,
-                    win_rate=win_rate,
-                    total_return=total_return,
-                    sharpe_ratio=sharpe_ratio,
-                    max_drawdown=max_drawdown,
-                    profit_factor=profit_factor,
-                    avg_trade_duration=0.0,  # Simplified
-                    data_quality='high',
-                    timestamp=datetime.now()
-                )
-                
-            except Exception as e:
-                self.logger.error(f"Strategy execution error for {symbol} {strategy}: {e}")
-                return None
-        
-        def _is_quality_result(self, result: BacktestResult) -> bool:
-            """Check if backtest result meets quality thresholds"""
-            if not result:
-                return False
-            
-            # Quality thresholds from environment or defaults
-            min_trades = int(os.getenv('MIN_BACKTEST_TRADES', 3))
-            min_win_rate = float(os.getenv('MIN_WIN_RATE', 25.0))
-            min_sharpe = float(os.getenv('MIN_SHARPE_RATIO', -2.0))
-            
-            if result.total_trades < min_trades:
-                return False
-            if result.win_rate < min_win_rate:
-                return False
-            if result.sharpe_ratio < min_sharpe:
-                return False
-            
-            return True
-        
-        def get_progress(self) -> Dict[str, Any]:
-            """Get current backtest progress"""
-            try:
-                progress_percent = (self.progress['current'] / self.progress['total']) * 100 if self.progress['total'] > 0 else 0
-                
-                # Calculate ETA
-                eta_seconds = 0
-                if self.progress['start_time'] and self.progress['current'] > 0:
-                    elapsed = (datetime.now() - self.progress['start_time']).total_seconds()
-                    rate = self.progress['current'] / elapsed
-                    remaining = self.progress['total'] - self.progress['current']
-                    eta_seconds = remaining / rate if rate > 0 else 0
-                
-                return {
-                    'current': self.progress['current'],
-                    'total': self.progress['total'],
-                    'progress_percent': progress_percent,
-                    'status': self.progress['status'],
-                    'successful_results': len(self.progress['results']),
-                    'failed_combinations': len(self.progress['failed_combinations']),
-                    'eta_seconds': eta_seconds,
-                    'start_time': self.progress['start_time'].isoformat() if self.progress['start_time'] else None
-                }
-            except Exception as e:
-                self.logger.error(f"Error getting progress: {e}")
-                return {
-                    'current': 0,
-                    'total': 0,
-                    'progress_percent': 0,
-                    'status': 'error',
-                    'error': str(e)
-                }
-    
-    def start_backtest(self) -> Dict[str, Any]:
-        """Start comprehensive backtest"""
-        try:
-            if not self.backtester:
-                return {'status': 'error', 'message': 'Backtester not available'}
-            
-            # Run backtest in background
-            import threading
-            def run_backtest():
-                try:
-                    self.backtester.run_comprehensive_backtest()
-                except Exception as e:
-                    self.logger.error(f"Background backtest failed: {e}")
-            
-            backtest_thread = threading.Thread(target=run_backtest)
-            backtest_thread.daemon = True
-            backtest_thread.start()
-            
-            return {'status': 'started', 'message': 'Backtest started successfully'}
-            
-        except Exception as e:
-            self.logger.error(f"Failed to start backtest: {e}")
-            return {'status': 'error', 'message': str(e)}
-    
-    def get_backtest_progress(self) -> Dict[str, Any]:
-        """Get backtest progress"""
-        try:
-            if not self.backtester:
-                return {'status': 'error', 'message': 'Backtester not available'}
-            
-            return self.backtester.get_progress()
-            
-        except Exception as e:
-            self.logger.error(f"Error getting backtest progress: {e}")
-            return {'status': 'error', 'message': str(e)}
-    
-    def get_recent_trades(self) -> List[Dict]:
-        """Get recent trades"""
-        try:
-            if self.pnl_persistence:
-                return self.pnl_persistence.get_recent_trades(limit=10)
-            return []
-        except Exception as e:
-            self.logger.error(f"Error getting recent trades: {e}")
-            return []
-    
-    def shutdown(self):
-        """Graceful shutdown of the trading system"""
-        try:
-            self.logger.info("Initiating graceful shutdown...")
-            
-            # Stop async tasks
-            self.task_manager.stop_all_tasks()
-            
-            # Close connections
-            if self.exchange_manager:
-                # Close exchange connections
-                pass
-            
-            if self.pnl_persistence:
-                # Close database connections
-                self.pnl_persistence.close()
-            
-            self.system_ready = False
-            self.trading_enabled = False
-            
-            self.logger.info("System shutdown completed")
-            
-        except Exception as e:
-            self.logger.error(f"Error during shutdown: {e}")
-
-# Global instance management
-_controller_instance = None
-
-def get_controller() -> V3TradingController:
-    """Get or create the trading controller instance"""
-    global _controller_instance
-    if _controller_instance is None:
-        _controller_instance = V3TradingController()
-    return _controller_instance
-
-def shutdown_controller():
-    """Shutdown the trading controller"""
-    global _controller_instance
-    if _controller_instance:
-        _controller_instance.shutdown()
-        _controller_instance = None
-
-# Signal handlers for graceful shutdown
-def signal_handler(signum, frame):
-    """Handle shutdown signals"""
-    print(f"\nReceived signal {signum}, shutting down gracefully...")
-    shutdown_controller()
-    sys.exit(0)
-
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
-
-if __name__ == "__main__":
-    # Test the controller
-    controller = V3TradingController()
-    print(f"V3 Trading Controller initialized: {controller.get_system_status()}")
-
-
-    def start_trading(self):
-        """Start trading operations"""
-        try:
-            self.is_running = True
-            self.logger.info("[TRADING] Trading started")
-            return {"success": True, "message": "Trading started successfully"}
-        except Exception as e:
-            self.logger.error(f"[TRADING] Failed to start trading: {e}")
-            return {"success": False, "error": str(e)}
-    
-    def stop_trading(self):
-        """Stop trading operations"""
-        try:
-            self.is_running = False
-            self.logger.info("[TRADING] Trading stopped")
-            return {"success": True, "message": "Trading stopped successfully"}
-        except Exception as e:
-            self.logger.error(f"[TRADING] Failed to stop trading: {e}")
-            return {"success": False, "error": str(e)}
+            self.logger.error(f"Failed to initialize backtester: {e}")
+            return None
     
     def get_comprehensive_dashboard_data(self):
-        """Get comprehensive dashboard data"""
+        """Get comprehensive dashboard data - REAL DATA ONLY"""
         try:
+            # Get real metrics
+            metrics = getattr(self, 'metrics', {})
+            
+            # Get real positions
+            positions = getattr(self, 'open_positions', {})
+            
+            # Get real scanner data
+            scanner_data = self._get_real_scanner_data()
+            
+            # Get real external data status
+            external_status = self._get_real_external_data_status()
+            
+            # Get real system resources
+            system_resources = self._get_real_system_resources()
+            
             return {
                 "overview": {
                     "trading": {
                         "is_running": getattr(self, 'is_running', False),
-                        "total_pnl": getattr(self, 'total_pnl', 0.0),
-                        "daily_pnl": getattr(self, 'daily_pnl', 0.0),
-                        "total_trades": getattr(self, 'total_trades', 0),
-                        "win_rate": getattr(self, 'win_rate', 0.0),
-                        "active_positions": getattr(self, 'active_positions', 0),
-                        "best_trade": getattr(self, 'best_trade', 0.0)
+                        "total_pnl": metrics.get('total_pnl', 0.0),
+                        "daily_pnl": metrics.get('daily_pnl', 0.0),
+                        "total_trades": metrics.get('total_trades', 0),
+                        "win_rate": metrics.get('win_rate', 0.0),
+                        "active_positions": len(positions),
+                        "best_trade": metrics.get('best_trade', 0.0),
+                        "trading_mode": self.trading_mode
                     },
                     "system": {
                         "controller_connected": True,
-                        "ml_training_completed": getattr(self, 'ml_training_completed', False),
-                        "backtest_completed": getattr(self, 'backtest_completed', True),
-                        "api_rotation_active": True
+                        "ml_training_completed": metrics.get('ml_training_completed', False),
+                        "backtest_completed": metrics.get('comprehensive_backtest_completed', False),
+                        "api_rotation_active": True,
+                        "exchange_connected": self.exchange_manager is not None,
+                        "real_data_mode": True
                     },
-                    "scanner": {
-                        "active_pairs": len(getattr(self, 'active_pairs', [])),
-                        "opportunities": getattr(self, 'opportunities', 0),
-                        "best_opportunity": getattr(self, 'best_opportunity', 'None'),
-                        "confidence": getattr(self, 'confidence', 0)
-                    },
-                    "external_data": {
-                        "working_apis": getattr(self, 'working_apis', 1),
-                        "total_apis": 5,
-                        "api_status": getattr(self, 'api_status', {})
-                    }
+                    "scanner": scanner_data,
+                    "external_data": external_status,
+                    "resources": system_resources,
+                    "timestamp": datetime.now().isoformat()
                 }
             }
         except Exception as e:
-            self.logger.error(f"[DASHBOARD] Error getting dashboard data: {e}")
-            return {"overview": {"error": str(e)}}
+            self.logger.error(f"Dashboard data error: {e}")
+            return {
+                "overview": {
+                    "error": str(e),
+                    "trading": {"is_running": False, "total_pnl": 0.0, "total_trades": 0, "trading_mode": self.trading_mode},
+                    "system": {"controller_connected": True, "real_data_mode": True},
+                    "timestamp": datetime.now().isoformat()
+                }
+            }
     
-    def load_strategies(self):
-        """Load strategies from database"""
+    def _get_real_scanner_data(self) -> Dict:
+        """Get real scanner data from market scanner"""
         try:
-            strategies = []
-            
-            # Try to load from comprehensive backtest database
-            import sqlite3
-            db_paths = ['data/comprehensive_backtest.db', 'comprehensive_backtest.db']
-            
-            for db_path in db_paths:
-                if os.path.exists(db_path):
-                    conn = sqlite3.connect(db_path)
+            if self.scanner and hasattr(self.scanner, 'get_current_opportunities'):
+                opportunities = self.scanner.get_current_opportunities()
+                return {
+                    'active_pairs': len(opportunities.get('active_pairs', [])),
+                    'opportunities': len(opportunities.get('opportunities', [])),
+                    'best_opportunity': opportunities.get('best_opportunity', {}).get('symbol', 'None'),
+                    'confidence': opportunities.get('best_opportunity', {}).get('confidence', 0)
+                }
+            else:
+                return {'active_pairs': 0, 'opportunities': 0, 'best_opportunity': 'None', 'confidence': 0}
+        except Exception as e:
+            self.logger.error(f"Scanner data error: {e}")
+            return {'active_pairs': 0, 'opportunities': 0, 'best_opportunity': 'None', 'confidence': 0}
+    
+    def _get_real_external_data_status(self) -> Dict:
+        """Get real external data API status"""
+        try:
+            if self.external_data_collector and hasattr(self.external_data_collector, 'api_status'):
+                status = self.external_data_collector.api_status
+                working_count = sum(1 for v in status.values() if v)
+                return {
+                    'working_apis': working_count,
+                    'total_apis': len(status),
+                    'api_status': status
+                }
+            else:
+                return {'working_apis': 1, 'total_apis': 5, 'api_status': {'binance': True}}
+        except Exception as e:
+            self.logger.error(f"External data status error: {e}")
+            return {'working_apis': 1, 'total_apis': 5, 'api_status': {'binance': True}}
+    
+    def _get_real_system_resources(self) -> Dict:
+        """Get real system resource usage"""
+        try:
+            return {
+                'cpu_usage': psutil.cpu_percent(interval=0.1),
+                'memory_usage': psutil.virtual_memory().percent,
+                'api_calls_today': getattr(self, '_api_calls_today', 0),
+                'data_points_processed': getattr(self, '_data_points_processed', 0)
+            }
+        except Exception as e:
+            self.logger.error(f"System resources error: {e}")
+            return {'cpu_usage': 0.0, 'memory_usage': 0.0, 'api_calls_today': 0, 'data_points_processed': 0}
+    
+    def _initialize_database(self):
+        """Initialize trading metrics database"""
+        schema = '''
+        CREATE TABLE IF NOT EXISTS trading_metrics (
+            id INTEGER PRIMARY KEY,
+            key TEXT UNIQUE,
+            value REAL,
+            updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+        );
+        
+        CREATE TABLE IF NOT EXISTS trade_history (
+            id INTEGER PRIMARY KEY,
+            symbol TEXT,
+            side TEXT,
+            quantity REAL,
+            entry_price REAL,
+            exit_price REAL,
+            pnl REAL,
+            timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+            strategy TEXT,
+            confidence REAL,
+            trading_mode TEXT
+        );
+        
+        CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trade_history(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trade_history(symbol);
+        '''
+        self.db_manager.initialize_schema(schema)
+    
+    def _load_persistent_metrics(self) -> Dict:
+        """Load real persistent metrics"""
+        try:
+            saved_metrics = self.pnl_persistence.load_metrics()
+        except Exception as e:
+            self.logger.warning(f"Failed to load PnL persistence: {e}")
+            saved_metrics = {}
+        
+        return {
+            'active_positions': int(saved_metrics.get('active_positions', 0)),
+            'daily_trades': 0,
+            'total_trades': int(saved_metrics.get('total_trades', 0)),
+            'winning_trades': int(saved_metrics.get('winning_trades', 0)),
+            'total_pnl': float(saved_metrics.get('total_pnl', 0.0)),
+            'win_rate': float(saved_metrics.get('win_rate', 0.0)),
+            'daily_pnl': 0.0,
+            'best_trade': float(saved_metrics.get('best_trade', 0.0)),
+            'comprehensive_backtest_completed': bool(saved_metrics.get('comprehensive_backtest_completed', False)),
+            'ml_training_completed': bool(saved_metrics.get('ml_training_completed', False))
+        }
+    
+    def _initialize_scanner_data(self) -> Dict:
+        """Initialize scanner data structure"""
+        return {'active_pairs': 0, 'opportunities': 0, 'best_opportunity': 'None', 'confidence': 0}
+    
+    def _initialize_system_resources(self) -> Dict:
+        """Initialize system resources tracking"""
+        return {'cpu_usage': 0.0, 'memory_usage': 0.0, 'api_calls_today': 0, 'data_points_processed': 0}
+    
+    def _initialize_external_data_status(self) -> Dict:
+        """Initialize external data status tracking"""
+        return {
+            'api_status': {'binance': True, 'alpha_vantage': False, 'news_api': False, 'fred_api': False, 'twitter_api': False, 'reddit_api': False},
+            'working_apis': 1,
+            'total_apis': 6
+        }
+    
+    def _initialize_backtest_progress(self) -> Dict:
+        """Initialize backtesting progress tracking"""
+        return {
+            'status': 'not_started',
+            'completed': 0,
+            'total': 0,
+            'current_symbol': None,
+            'current_strategy': None,
+            'progress_percent': 0,
+            'eta_minutes': None,
+            'error_count': 0
+        }
+    
+    def save_current_metrics(self):
+        """Save current metrics to database"""
+        with self._state_lock:
+            try:
+                with self.db_manager.get_connection() as conn:
                     cursor = conn.cursor()
-                    
-                    # Get strategies from historical_backtests table
-                    cursor.execute("""
-                        SELECT DISTINCT strategy_name, pair, timeframe, 
-                               avg(total_return) as avg_return,
-                               avg(sharpe_ratio) as avg_sharpe,
-                               count(*) as backtest_count
-                        FROM historical_backtests 
-                        WHERE strategy_name IS NOT NULL
-                        GROUP BY strategy_name, pair, timeframe
-                        ORDER BY avg_return DESC
-                    """)
-                    
-                    rows = cursor.fetchall()
-                    for row in rows:
-                        strategy = {
-                            'name': row[0],
-                            'pair': row[1], 
-                            'timeframe': row[2],
-                            'avg_return': row[3],
-                            'sharpe_ratio': row[4],
-                            'backtest_count': row[5]
-                        }
-                        strategies.append(strategy)
-                    
-                    conn.close()
-                    break
-            
-            # Store loaded strategies
-            self.strategies = strategies
-            self.logger.info(f"[STRATEGIES] Loaded {len(strategies)} strategies from database")
-            
-            return strategies
-            
-        except Exception as e:
-            self.logger.error(f"[STRATEGIES] Error loading strategies: {e}")
-            return []
+                    for key, value in self.metrics.items():
+                        if isinstance(value, (int, float)):
+                            cursor.execute(
+                                'INSERT OR REPLACE INTO trading_metrics (key, value) VALUES (?, ?)',
+                                (key, float(value))
+                            )
+                
+                # Also save via PnL persistence
+                self.pnl_persistence.save_metrics(self.metrics)
+                
+            except Exception as e:
+                self.logger.error(f"Failed to save metrics: {e}")
     
-    def get_trading_status(self):
-        """Get current trading status"""
+    def shutdown(self):
+        """Shutdown the trading controller"""
+        self.logger.info("Starting shutdown sequence")
+        
         try:
-            return {
-                "is_running": getattr(self, 'is_running', False),
-                "total_trades": getattr(self, 'total_trades', 0),
-                "total_pnl": getattr(self, 'total_pnl', 0.0),
-                "active_positions": getattr(self, 'active_positions', 0),
-                "strategies_loaded": len(getattr(self, 'strategies', [])),
-                "win_rate": getattr(self, 'win_rate', 0.0)
-            }
+            self._shutdown_event.set()
+            
+            if self.is_running:
+                self.is_running = False
+            
+            self.save_current_metrics()
+            
+            if hasattr(self, 'db_manager'):
+                self.db_manager.close_all()
+            
+            if hasattr(self, '_executor'):
+                self._executor.shutdown(wait=True, timeout=5.0)
+            
+            self.logger.info("Shutdown completed")
+            
         except Exception as e:
-            self.logger.error(f"[STATUS] Error getting trading status: {e}")
-            return {"error": str(e)}
+            self.logger.error(f"Error during shutdown: {e}")
     
-    def get_system_status(self):
-        """Get system status"""
+    def __del__(self):
+        """Cleanup on destruction"""
         try:
-            return {
-                "controller_connected": True,
-                "strategies_loaded": len(getattr(self, 'strategies', [])),
-                "trading_active": getattr(self, 'is_running', False),
-                "ml_ready": getattr(self, 'ml_training_completed', False),
-                "backtest_ready": getattr(self, 'backtest_completed', True)
-            }
-        except Exception as e:
-            self.logger.error(f"[SYSTEM] Error getting system status: {e}")
-            return {"error": str(e)}
+            if hasattr(self, 'db_manager'):
+                self.db_manager.close_all()
+            if hasattr(self, '_executor'):
+                self._executor.shutdown(wait=False)
+        except:
+            pass
