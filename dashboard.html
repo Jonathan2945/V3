@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>V3 Trading System Dashboard</title>
+    <title>V3 Trading System - Real Data Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -12,985 +12,698 @@
         }
 
         body {
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-            background: #000000;
-            color: #00ff00;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #ffffff;
             min-height: 100vh;
-            overflow-x: auto;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 300;
+            text-align: center;
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .system-status {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            opacity: 0.9;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #111111;
-            border-radius: 15px;
-            border: 1px solid #00ff00;
-        }
-
-        .header h1 {
-            color: #00ff00;
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 0 0 20px #00ff00;
-            font-weight: bold;
-        }
-
-        .status-info {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 15px;
-            flex-wrap: wrap;
-        }
-
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9em;
-            color: #88ff88;
-        }
-
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #00ff00;
-            box-shadow: 0 0 10px #00ff00;
-            animation: pulse 2s infinite;
-        }
-
-        .status-dot.inactive {
-            background: #ff0000;
-            box-shadow: 0 0 10px #ff0000;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        .trading-status {
-            text-align: center;
-            margin: 20px 0;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 1.1em;
-            font-weight: bold;
-            border: 2px solid;
-        }
-
-        .trading-active {
-            background: #001100;
-            border-color: #00ff00;
-            color: #00ff00;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
-        }
-
-        .trading-inactive {
-            background: #110000;
-            border-color: #ff0000;
-            color: #ff0000;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
-        }
-
-        .controls {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin: 20px 0;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: 1px solid #00ff00;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-            background: #000000;
-            color: #00ff00;
-            font-family: inherit;
-        }
-
-        .btn:hover {
-            background: #00ff00;
-            color: #000000;
-            box-shadow: 0 0 15px #00ff00;
-        }
-
-        .btn-danger {
-            border-color: #ff0000;
-            color: #ff0000;
-        }
-
-        .btn-danger:hover {
-            background: #ff0000;
-            color: #000000;
-            box-shadow: 0 0 15px #ff0000;
-        }
-
-        .grid {
+            padding: 30px;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .panel:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .panel h3 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #ffd700;
+            border-bottom: 2px solid rgba(255, 215, 0, 0.3);
+            padding-bottom: 10px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
             margin-bottom: 20px;
         }
 
-        .card {
-            background: #111111;
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid #333333;
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            border-color: #00ff00;
-            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
-        }
-
-        .card h3 {
-            color: #00ff00;
-            margin-bottom: 15px;
-            font-size: 1.3em;
-            text-align: center;
-            text-shadow: 0 0 10px #00ff00;
-        }
-
         .metric {
-            display: flex;
-            justify-content: space-between;
-            margin: 10px 0;
-            padding: 8px 0;
-            border-bottom: 1px solid #333333;
-            color: #cccccc;
-        }
-
-        .metric:last-child {
-            border-bottom: none;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #ffd700;
         }
 
         .metric-value {
+            font-size: 24px;
             font-weight: bold;
-            color: #00ff00;
+            color: #ffffff;
+            margin-bottom: 5px;
         }
 
-        .metric-value.negative {
-            color: #ff0000;
+        .metric-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .metric-value.neutral {
-            color: #ffff00;
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .status-active { background: #00ff88; box-shadow: 0 0 10px #00ff88; }
+        .status-inactive { background: #ff4757; box-shadow: 0 0 10px #ff4757; }
+        .status-warning { background: #ffb347; box-shadow: 0 0 10px #ffb347; }
+
+        .progress-container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
         }
 
         .progress-bar {
             width: 100%;
-            height: 20px;
-            background: #333333;
-            border-radius: 10px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
             overflow: hidden;
-            margin: 10px 0;
-            border: 1px solid #555555;
+            margin-bottom: 10px;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, #00ff00, #88ff88);
-            border-radius: 10px;
-            transition: width 0.5s ease;
+            background: linear-gradient(90deg, #00ff88, #00d4ff);
+            border-radius: 4px;
+            transition: width 0.3s ease;
+            animation: pulse 2s infinite;
         }
 
-        .api-grid {
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #00ff88, #00d4ff);
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #ffb347, #ff9800);
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #ff4757, #ff3742);
+        }
+
+        .api-status-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 10px;
-            margin-top: 15px;
         }
 
-        .api-status {
-            padding: 12px 8px;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 0.85em;
-            font-weight: bold;
-            border: 1px solid;
-            background: #000000;
-        }
-
-        .api-connected {
-            color: #00ff00;
-            border-color: #00ff00;
-            box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
-        }
-
-        .api-partial {
-            color: #ffff00;
-            border-color: #ffff00;
-            box-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
-        }
-
-        .api-disconnected {
-            color: #ff0000;
-            border-color: #ff0000;
-            box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
-        }
-
-        .api-connecting {
-            color: #888888;
-            border-color: #666666;
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            0%, 50% { opacity: 1; }
-            51%, 100% { opacity: 0.5; }
-        }
-
-        .social-posts {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-top: 10px;
-        }
-
-        .social-post {
+        .api-status-item {
+            background: rgba(255, 255, 255, 0.05);
             padding: 12px;
-            margin: 8px 0;
-            background: #222222;
             border-radius: 8px;
-            border-left: 3px solid #00ff00;
-            font-size: 0.9em;
-        }
-
-        .social-post.twitter {
-            border-left-color: #1da1f2;
-        }
-
-        .social-post.reddit {
-            border-left-color: #ff4500;
-        }
-
-        .post-header {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            font-size: 0.8em;
-            color: #888888;
+            align-items: center;
+            font-size: 14px;
         }
 
-        .post-content {
-            color: #cccccc;
-            line-height: 1.4;
-        }
-
-        .post-sentiment {
-            margin-top: 8px;
-            font-size: 0.8em;
-            font-weight: bold;
-        }
-
-        .news-item {
+        .log-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
             padding: 15px;
-            margin: 10px 0;
-            background: #222222;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 3px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .log-timestamp {
+            color: #00d4ff;
+            margin-right: 10px;
+        }
+
+        .log-level-info { color: #00ff88; }
+        .log-level-warning { color: #ffb347; }
+        .log-level-error { color: #ff4757; }
+
+        .refresh-indicator {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .error-panel {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid rgba(255, 71, 87, 0.3);
             border-radius: 10px;
-            border-left: 4px solid #00ff00;
+            padding: 15px;
+            margin-bottom: 20px;
         }
 
-        .news-title {
+        .error-title {
+            color: #ff4757;
             font-weight: bold;
-            margin-bottom: 8px;
-            color: #ffffff;
+            margin-bottom: 10px;
         }
 
-        .news-meta {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.85em;
-            color: #cccccc;
-        }
-
-        .sentiment-bullish {
-            color: #00ff00;
-        }
-
-        .sentiment-bearish {
-            color: #ff0000;
-        }
-
-        .sentiment-neutral {
-            color: #ffff00;
-        }
-
-        .fear-greed {
-            text-align: center;
-            padding: 20px;
-        }
-
-        .fear-greed-value {
-            font-size: 3em;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        .fear-greed.extreme-fear .fear-greed-value { color: #ff0000; }
-        .fear-greed.fear .fear-greed-value { color: #ff6600; }
-        .fear-greed.neutral .fear-greed-value { color: #ffff00; }
-        .fear-greed.greed .fear-greed-value { color: #88ff00; }
-        .fear-greed.extreme-greed .fear-greed-value { color: #00ff00; }
-
-        .loading {
-            text-align: center;
-            color: #888888;
-            font-style: italic;
-        }
-
-        .error {
-            color: #ff0000;
-            text-align: center;
-            font-size: 0.9em;
-        }
-
-        .trade-item {
-            padding: 12px;
-            margin: 8px 0;
-            background: #222222;
-            border-radius: 8px;
-            border-left: 3px solid;
-        }
-
-        .trade-profit {
-            border-left-color: #00ff00;
-        }
-
-        .trade-loss {
-            border-left-color: #ff0000;
-        }
-
-        .trade-neutral {
-            border-left-color: #ffff00;
-        }
-
-        .trade-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 6px;
-            font-weight: bold;
-        }
-
-        .trade-details {
-            font-size: 0.9em;
-            color: #cccccc;
-        }
-
-        /* Scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #333333;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #00ff00;
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #88ff88;
+        .hidden {
+            display: none;
         }
 
         @media (max-width: 768px) {
             .container {
-                padding: 10px;
+                grid-template-columns: 1fr;
+                padding: 15px;
             }
             
-            .header h1 {
-                font-size: 2em;
-            }
-            
-            .status-info {
-                gap: 15px;
-            }
-            
-            .controls {
-                gap: 10px;
-            }
-            
-            .btn {
-                padding: 10px 16px;
-                font-size: 0.9em;
+            .metric-grid {
+                grid-template-columns: 1fr 1fr;
             }
         }
     </style>
 </head>
 <body>
+    <div class="header">
+        <h1>V3 Complete Trading System</h1>
+        <div class="system-status">
+            <span class="status-indicator" id="system-status-indicator"></span>
+            <span id="system-status-text">Initializing...</span>
+            <span id="refresh-indicator" class="refresh-indicator hidden">?</span>
+        </div>
+    </div>
+
     <div class="container">
-        <div class="header">
-            <h1>V3 TRADING SYSTEM</h1>
-            <div class="status-info">
-                <div class="status-item">
-                    <div class="status-dot" id="systemStatus"></div>
-                    <span>SYSTEM ONLINE</span>
+        <!-- System Overview -->
+        <div class="panel">
+            <h3>System Overview</h3>
+            <div class="metric-grid">
+                <div class="metric">
+                    <div class="metric-value" id="btc-price">$0.00</div>
+                    <div class="metric-label">BTC Price</div>
                 </div>
-                <div class="status-item">
-                    <span>MODE: <strong>REAL DATA ONLY</strong></span>
+                <div class="metric">
+                    <div class="metric-value" id="total-pnl">$0.00</div>
+                    <div class="metric-label">Total P&L</div>
                 </div>
-                <div class="status-item">
-                    <span>LAST UPDATE: <span id="lastUpdate">--:--:--</span></span>
+                <div class="metric">
+                    <div class="metric-value" id="active-trades">0</div>
+                    <div class="metric-label">Active Trades</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="win-rate">0%</div>
+                    <div class="metric-label">Win Rate</div>
                 </div>
             </div>
         </div>
 
-        <div class="trading-status" id="tradingStatus">
-            <span id="tradingStatusText">TRADING STATUS: UNKNOWN</span>
+        <!-- Trading Controls -->
+        <div class="panel">
+            <h3>Trading Controls</h3>
+            <div class="controls">
+                <button class="btn btn-success" onclick="startTrading()">Start Trading</button>
+                <button class="btn btn-warning" onclick="pauseTrading()">Pause</button>
+                <button class="btn btn-danger" onclick="stopTrading()">Stop All</button>
+                <button class="btn" onclick="refreshData()">Refresh</button>
+            </div>
+            
+            <div class="metric-grid">
+                <div class="metric">
+                    <div class="metric-value" id="trading-status">STOPPED</div>
+                    <div class="metric-label">Status</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="strategies-loaded">0</div>
+                    <div class="metric-label">Strategies</div>
+                </div>
+            </div>
         </div>
 
-        <div class="controls">
-            <button class="btn" onclick="startTrading()">START TRADING</button>
-            <button class="btn btn-danger" onclick="stopTrading()">STOP TRADING</button>
-            <button class="btn" onclick="runBacktest()">RUN BACKTEST</button>
-            <button class="btn" onclick="resetML()">RESET ML</button>
-            <button class="btn" onclick="saveData()">SAVE DATA</button>
-        </div>
-
-        <div class="grid">
-            <div class="card">
-                <h3>P&L OVERVIEW</h3>
-                <div class="metric">
-                    <span>Total P&L</span>
-                    <span class="metric-value" id="totalPnl">$0.00</span>
-                </div>
-                <div class="metric">
-                    <span>Daily P&L</span>
-                    <span class="metric-value" id="dailyPnl">$0.00</span>
-                </div>
-                <div class="metric">
-                    <span>Unrealized P&L</span>
-                    <span class="metric-value" id="unrealizedPnl">$0.00</span>
-                </div>
-                <div class="metric">
-                    <span>Win Rate</span>
-                    <span class="metric-value" id="winRate">0.0%</span>
-                </div>
-                <div class="metric">
-                    <span>Best Trade</span>
-                    <span class="metric-value" id="bestTrade">$0.00</span>
-                </div>
+        <!-- Backtesting Progress -->
+        <div class="panel full-width">
+            <h3>Backtesting Progress</h3>
+            <div id="backtest-error" class="error-panel hidden">
+                <div class="error-title">Backtesting Issues Detected</div>
+                <div id="backtest-error-details"></div>
             </div>
-
-            <div class="card">
-                <h3>TRADING STATS</h3>
-                <div class="metric">
-                    <span>Total Trades</span>
-                    <span class="metric-value" id="totalTrades">0</span>
-                </div>
-                <div class="metric">
-                    <span>Active Positions</span>
-                    <span class="metric-value" id="activePositions">0</span>
-                </div>
-                <div class="metric">
-                    <span>Trade Amount</span>
-                    <span class="metric-value" id="tradeAmount">$0.00</span>
-                </div>
-                <div class="metric">
-                    <span>Account Balance</span>
-                    <span class="metric-value" id="accountBalance">$0.00</span>
-                </div>
-                <div class="metric">
-                    <span>Available Balance</span>
-                    <span class="metric-value" id="availableBalance">$0.00</span>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>SYSTEM RESOURCES</h3>
-                <div class="metric">
-                    <span>CPU Usage</span>
-                    <span class="metric-value" id="cpuUsage">0.0%</span>
-                </div>
-                <div class="metric">
-                    <span>Memory Usage</span>
-                    <span class="metric-value" id="memoryUsage">0.0%</span>
-                </div>
-                <div class="metric">
-                    <span>API Calls Today</span>
-                    <span class="metric-value" id="apiCalls">0</span>
-                </div>
-                <div class="metric">
-                    <span>Data Points</span>
-                    <span class="metric-value" id="dataPoints">0</span>
-                </div>
-                <div class="metric">
-                    <span>Uptime</span>
-                    <span class="metric-value" id="uptime">0m</span>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>BACKTEST PROGRESS</h3>
-                <div class="metric">
-                    <span>Status</span>
-                    <span class="metric-value" id="backtestStatus">NOT_STARTED</span>
-                </div>
-                <div class="metric">
-                    <span>Progress</span>
-                    <span class="metric-value" id="backtestProgress">0.0%</span>
-                </div>
+            
+            <div class="progress-container">
                 <div class="progress-bar">
-                    <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+                    <div class="progress-fill" id="backtest-progress" style="width: 0%"></div>
                 </div>
-                <div class="metric">
-                    <span>Current Symbol</span>
-                    <span class="metric-value" id="currentSymbol">NONE</span>
-                </div>
-                <div class="metric">
-                    <span>ETA</span>
-                    <span class="metric-value" id="eta">UNKNOWN</span>
+                <div style="display: flex; justify-content: space-between; font-size: 14px;">
+                    <span id="backtest-status">Ready to start</span>
+                    <span id="backtest-eta">ETA: --</span>
                 </div>
             </div>
-
-            <div class="card">
-                <h3>FEAR & GREED INDEX</h3>
-                <div class="fear-greed" id="fearGreedContainer">
-                    <div class="fear-greed-value" id="fearGreedValue">50</div>
-                    <div id="fearGreedLabel">NEUTRAL</div>
-                </div>
+            
+            <div class="controls">
+                <button class="btn btn-success" onclick="startBacktest()">Start Comprehensive Backtest</button>
+                <button class="btn btn-warning" onclick="pauseBacktest()">Pause</button>
+                <button class="btn" onclick="clearBacktest()">Clear Progress</button>
             </div>
 
-            <div class="card">
-                <h3>API CONNECTIONS</h3>
-                <div class="api-grid" id="apiGrid">
-                    <div class="api-status api-connecting">
-                        <div>BINANCE</div>
-                        <div id="binanceStatus">CONNECTING...</div>
-                    </div>
-                    <div class="api-status api-connecting">
-                        <div>ALPHA VANTAGE</div>
-                        <div id="alphaVantageStatus">CONNECTING...</div>
-                    </div>
-                    <div class="api-status api-connecting">
-                        <div>NEWS API</div>
-                        <div id="newsApiStatus">CONNECTING...</div>
-                    </div>
-                    <div class="api-status api-connecting">
-                        <div>FRED</div>
-                        <div id="fredStatus">CONNECTING...</div>
-                    </div>
-                    <div class="api-status api-connecting">
-                        <div>TWITTER</div>
-                        <div id="twitterStatus">CONNECTING...</div>
-                    </div>
-                    <div class="api-status api-connecting">
-                        <div>REDDIT</div>
-                        <div id="redditStatus">CONNECTING...</div>
-                    </div>
+            <div class="metric-grid">
+                <div class="metric">
+                    <div class="metric-value" id="backtest-completed">0</div>
+                    <div class="metric-label">Completed</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="backtest-total">768</div>
+                    <div class="metric-label">Total Tests</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="backtest-success">0</div>
+                    <div class="metric-label">Successful</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="ml-models">0</div>
+                    <div class="metric-label">ML Models</div>
                 </div>
             </div>
         </div>
 
-        <div class="grid">
-            <div class="card">
-                <h3>ACTIVE TRADES</h3>
-                <div id="activeTrades">
-                    <div class="loading">LOADING ACTIVE TRADES...</div>
+        <!-- API Status -->
+        <div class="panel">
+            <h3>External APIs</h3>
+            <div class="api-status-grid" id="api-status-grid">
+                <div class="api-status-item">
+                    <span class="status-indicator status-inactive"></span>
+                    Loading...
                 </div>
             </div>
+            <button class="btn" onclick="refreshAPIs()" style="margin-top: 15px;">Refresh API Status</button>
+        </div>
 
-            <div class="card">
-                <h3>RECENT TRADES</h3>
-                <div id="recentTrades">
-                    <div class="loading">LOADING RECENT TRADES...</div>
+        <!-- System Resources -->
+        <div class="panel">
+            <h3>System Resources</h3>
+            <div class="metric-grid">
+                <div class="metric">
+                    <div class="metric-value" id="memory-usage">0%</div>
+                    <div class="metric-label">Memory</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="cpu-usage">0%</div>
+                    <div class="metric-label">CPU</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="uptime">0m</div>
+                    <div class="metric-label">Uptime</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="api-calls">0</div>
+                    <div class="metric-label">API Calls</div>
                 </div>
             </div>
         </div>
 
-        <div class="grid">
-            <div class="card">
-                <h3>MARKET NEWS & SENTIMENT</h3>
-                <div id="marketNews">
-                    <div class="loading">LOADING REAL MARKET NEWS...</div>
-                </div>
-            </div>
-
-            <div class="card">
-                <h3>SOCIAL MEDIA POSTS</h3>
-                <div class="social-posts" id="socialPosts">
-                    <div class="loading">LOADING SOCIAL MEDIA DATA...</div>
+        <!-- System Logs -->
+        <div class="panel full-width">
+            <h3>System Logs</h3>
+            <div class="log-container" id="log-container">
+                <div class="log-entry">
+                    <span class="log-timestamp">[Loading...]</span>
+                    <span class="log-level-info">Initializing dashboard...</span>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
-        let lastUpdateTime = Date.now();
+        // Global state
+        let isRefreshing = false;
+        let systemData = {};
         
-        // Simulate API key rotation counts (you'll need to implement this in backend)
-        const apiCounts = {
-            binance: { connected: 0, total: 3 },
-            alpha_vantage: { connected: 0, total: 3 },
-            news_api: { connected: 0, total: 3 },
-            fred: { connected: 0, total: 3 },
-            twitter: { connected: 0, total: 3 },
-            reddit: { connected: 0, total: 3 }
-        };
+        // API endpoints
+        const API_BASE = '';
         
-        // Update time display
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('lastUpdate').textContent = now.toLocaleTimeString();
-        }
-
-        // Format currency values
-        function formatCurrency(value) {
-            const num = parseFloat(value) || 0;
-            return `$${num.toFixed(2)}`;
-        }
-
-        // Format percentage values
-        function formatPercentage(value) {
-            const num = parseFloat(value) || 0;
-            return `${num.toFixed(1)}%`;
-        }
-
-        // Update metric value with color coding
-        function updateMetric(elementId, value, format = 'text') {
-            const element = document.getElementById(elementId);
-            if (!element) return;
-
-            let displayValue = value;
-            let className = 'metric-value';
-
-            switch (format) {
-                case 'currency':
-                    displayValue = formatCurrency(value);
-                    if (parseFloat(value) > 0) className += ' positive';
-                    else if (parseFloat(value) < 0) className += ' negative';
-                    break;
-                case 'percentage':
-                    displayValue = formatPercentage(value);
-                    if (parseFloat(value) > 0) className += ' positive';
-                    else if (parseFloat(value) < 0) className += ' negative';
-                    break;
-                default:
-                    displayValue = value.toString().toUpperCase();
-            }
-
-            element.textContent = displayValue;
-            element.className = className;
-        }
-
-        // Update trading status
-        function updateTradingStatus(isRunning) {
-            const statusElement = document.getElementById('tradingStatus');
-            const textElement = document.getElementById('tradingStatusText');
-            
-            if (isRunning) {
-                statusElement.className = 'trading-status trading-active';
-                textElement.textContent = 'TRADING ACTIVE - SYSTEM IS EXECUTING TRADES';
-            } else {
-                statusElement.className = 'trading-status trading-inactive';
-                textElement.textContent = 'TRADING INACTIVE - SYSTEM IS MONITORING ONLY';
-            }
-        }
-
-        // Update Fear & Greed Index
-        function updateFearGreed(value, classification) {
-            const container = document.getElementById('fearGreedContainer');
-            const valueElement = document.getElementById('fearGreedValue');
-            const labelElement = document.getElementById('fearGreedLabel');
-
-            valueElement.textContent = value;
-            labelElement.textContent = classification.toUpperCase();
-
-            // Update colors based on value
-            container.className = 'fear-greed';
-            if (value <= 20) container.className += ' extreme-fear';
-            else if (value <= 40) container.className += ' fear';
-            else if (value <= 60) container.className += ' neutral';
-            else if (value <= 80) container.className += ' greed';
-            else container.className += ' extreme-greed';
-        }
-
-        // Update API status with rotation counts
-        function updateAPIStatus(apiData) {
-            const apiNames = ['binance', 'alpha_vantage', 'news_api', 'fred', 'twitter', 'reddit'];
-            const apiLabels = ['BINANCE', 'ALPHA VANTAGE', 'NEWS API', 'FRED', 'TWITTER', 'REDDIT'];
-            const statusElements = ['binanceStatus', 'alphaVantageStatus', 'newsApiStatus', 'fredStatus', 'twitterStatus', 'redditStatus'];
-            
-            for (let i = 0; i < apiNames.length; i++) {
-                const apiName = apiNames[i];
-                const statusElement = document.getElementById(statusElements[i]);
-                const parentElement = statusElement.parentElement;
-                
-                // Simulate API key rotation counts (replace with real data from backend)
-                let connected = 0;
-                let total = 3;
-                
-                if (apiData[apiName]) {
-                    connected = Math.floor(Math.random() * 3) + 1; // Simulate 1-3 connected
-                } else {
-                    connected = 0;
-                }
-                
-                const statusText = `${connected}/${total}`;
-                statusElement.textContent = statusText;
-                
-                // Update styling based on connection status
-                parentElement.className = 'api-status';
-                if (connected === total) {
-                    parentElement.className += ' api-connected';
-                } else if (connected > 0) {
-                    parentElement.className += ' api-partial';
-                } else {
-                    parentElement.className += ' api-disconnected';
-                }
-            }
-        }
-
-        // Update news section
-        function updateNews(newsData) {
-            const newsContainer = document.getElementById('marketNews');
-            
-            if (!newsData || newsData.length === 0) {
-                newsContainer.innerHTML = '<div class="loading">NO REAL NEWS AVAILABLE. CHECK API CONNECTIONS.</div>';
-                return;
-            }
-
-            let html = '';
-            for (const item of newsData.slice(0, 5)) {
-                const sentimentClass = `sentiment-${item.sentiment.toLowerCase()}`;
-                html += `
-                    <div class="news-item">
-                        <div class="news-title">${item.title}</div>
-                        <div class="news-meta">
-                            <span class="${sentimentClass}">SENTIMENT: ${item.sentiment.toUpperCase()}</span>
-                            <span>${item.time_ago}</span>
-                        </div>
-                    </div>
-                `;
-            }
-            
-            newsContainer.innerHTML = html;
-        }
-
-        // Update social media posts - REAL DATA ONLY
-        async function updateSocialPosts() {
-            const container = document.getElementById('socialPosts');
-            
-            try {
-                const response = await fetch('/api/social/posts');
-                const data = await response.json();
-                
-                if (!data.posts || data.posts.length === 0) {
-                    container.innerHTML = '<div class="loading">NO SOCIAL MEDIA DATA AVAILABLE. CHECK API CONNECTIONS.</div>';
-                    return;
-                }
-                
-                let html = '';
-                for (const post of data.posts) {
-                    const sentimentClass = `sentiment-${post.sentiment}`;
-                    html += `
-                        <div class="social-post ${post.platform}">
-                            <div class="post-header">
-                                <span>${post.author}</span>
-                                <span>${post.time}</span>
-                            </div>
-                            <div class="post-content">${post.content}</div>
-                            <div class="post-sentiment ${sentimentClass}">
-                                SENTIMENT: ${post.sentiment.toUpperCase()}
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                container.innerHTML = html;
-                
-            } catch (error) {
-                console.error('Error fetching social posts:', error);
-                container.innerHTML = '<div class="error">ERROR LOADING SOCIAL MEDIA DATA</div>';
-            }
-        }
-
-        // Update trades display
-        function updateTrades(trades, containerId, emptyMessage) {
-            const container = document.getElementById(containerId);
-            
-            if (!trades || trades.length === 0) {
-                container.innerHTML = `<div class="loading">${emptyMessage}</div>`;
-                return;
-            }
-
-            let html = '';
-            for (const trade of trades.slice(0, 5)) {
-                const profitClass = trade.profit > 0 ? 'trade-profit' : trade.profit < 0 ? 'trade-loss' : 'trade-neutral';
-                const profitColor = trade.profit > 0 ? '#00ff00' : trade.profit < 0 ? '#ff0000' : '#ffff00';
-                
-                html += `
-                    <div class="trade-item ${profitClass}">
-                        <div class="trade-header">
-                            <span>${trade.symbol} - ${trade.side.toUpperCase()}</span>
-                            <span style="color: ${profitColor}">${formatCurrency(trade.profit)}</span>
-                        </div>
-                        <div class="trade-details">
-                            ${new Date(trade.timestamp).toLocaleString()}
-                        </div>
-                    </div>
-                `;
-            }
-            
-            container.innerHTML = html;
-        }
-
-        // Fetch and update all data
-        async function updateDashboard() {
-            try {
-                // Fetch overview data
-                const overviewResponse = await fetch('/api/dashboard/overview');
-                const overviewData = await overviewResponse.json();
-
-                // Update trading status
-                if (overviewData.trading) {
-                    updateTradingStatus(overviewData.trading.is_running);
-                    updateMetric('totalPnl', overviewData.trading.total_pnl, 'currency');
-                    updateMetric('dailyPnl', overviewData.trading.daily_pnl, 'currency');
-                    updateMetric('unrealizedPnl', overviewData.trading.unrealized_pnl, 'currency');
-                    updateMetric('totalTrades', overviewData.trading.total_trades);
-                    updateMetric('winRate', overviewData.trading.win_rate, 'percentage');
-                    updateMetric('activePositions', overviewData.trading.active_positions);
-                    updateMetric('bestTrade', overviewData.trading.best_trade, 'currency');
-                    updateMetric('accountBalance', overviewData.trading.account_balance, 'currency');
-                    updateMetric('availableBalance', overviewData.trading.available_balance, 'currency');
-                    updateMetric('tradeAmount', overviewData.trading.trade_amount, 'currency');
-                }
-
-                // Fetch system status
-                const systemResponse = await fetch('/api/system/status');
-                const systemData = await systemResponse.json();
-
-                if (systemData.resources) {
-                    updateMetric('cpuUsage', systemData.resources.cpu_usage, 'percentage');
-                    updateMetric('memoryUsage', systemData.resources.memory_usage, 'percentage');
-                }
-
-                if (systemData.controller) {
-                    updateMetric('apiCalls', systemData.controller.api_calls_today);
-                    updateMetric('dataPoints', systemData.controller.data_points_processed);
-                }
-
-                // Update API status
-                if (systemData.external_apis) {
-                    updateAPIStatus(systemData.external_apis);
-                }
-
-                // Fetch backtest progress
-                const backtestResponse = await fetch('/api/backtest/progress');
-                const backtestData = await backtestResponse.json();
-                
-                if (backtestData.status) {
-                    updateMetric('backtestStatus', backtestData.status);
-                    updateMetric('backtestProgress', backtestData.progress || 0, 'percentage');
-                    updateMetric('currentSymbol', backtestData.current_symbol || 'NONE');
-                    updateMetric('eta', backtestData.eta || 'UNKNOWN');
-                    
-                    // Update progress bar
-                    const progressBar = document.getElementById('progressBar');
-                    if (progressBar) {
-                        progressBar.style.width = `${backtestData.progress || 0}%`;
-                    }
-                }
-
-                // Fetch recent trades
-                const tradesResponse = await fetch('/api/trading/recent-trades');
-                const tradesData = await tradesResponse.json();
-                updateTrades(tradesData.trades, 'recentTrades', 'NO RECENT TRADES');
-
-                // Fetch external news
-                const newsResponse = await fetch('/api/external/news');
-                const newsData = await newsResponse.json();
-                
-                if (newsData.news) {
-                    updateNews(newsData.news);
-                }
-                
-                if (newsData.fear_greed_index) {
-                    updateFearGreed(
-                        newsData.fear_greed_index.value,
-                        newsData.fear_greed_index.classification
-                    );
-                }
-
-                // Update social media posts
-                updateSocialPosts();
-
-                // Update system status indicator
-                document.getElementById('systemStatus').className = 'status-dot';
-                
-                lastUpdateTime = Date.now();
-
-            } catch (error) {
-                console.error('Error updating dashboard:', error);
-                document.getElementById('systemStatus').className = 'status-dot inactive';
-            }
-
-            updateTime();
-        }
-
-        // Control functions
-        async function executeAction(action) {
-            try {
-                const response = await fetch(`/api/control/${action}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({})
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    console.log(`${action} successful:`, result.message);
-                    // Immediately update dashboard after action
-                    setTimeout(updateDashboard, 500);
-                } else {
-                    console.error(`${action} failed:`, result.error);
-                    alert(`${action} failed: ${result.error}`);
-                }
-            } catch (error) {
-                console.error(`Error executing ${action}:`, error);
-                alert(`Error executing ${action}: ${error.message}`);
-            }
-        }
-
-        // Action functions
-        function startTrading() { executeAction('start_trading'); }
-        function stopTrading() { executeAction('stop_trading'); }
-        function runBacktest() { executeAction('start_backtest'); }
-        function resetML() { executeAction('reset_ml_data'); }
-        function saveData() { executeAction('save_metrics'); }
-
         // Initialize dashboard
         document.addEventListener('DOMContentLoaded', function() {
-            updateDashboard();
-            
-            // Update every 5 seconds
-            setInterval(updateDashboard, 5000);
-            
-            // Update time every second
-            setInterval(updateTime, 1000);
+            loadDashboard();
+            setInterval(loadDashboard, 5000); // Refresh every 5 seconds
         });
+        
+        async function loadDashboard() {
+            if (isRefreshing) return;
+            
+            try {
+                isRefreshing = true;
+                showRefreshIndicator(true);
+                
+                // Load all data in parallel
+                const [systemStatus, tradingStatus, backtestStatus, apiStatus] = await Promise.all([
+                    fetchWithFallback('/api/system/status'),
+                    fetchWithFallback('/api/trading/status'), 
+                    fetchWithFallback('/api/backtest/status'),
+                    fetchWithFallback('/api/external/status')
+                ]);
+                
+                updateSystemStatus(systemStatus);
+                updateTradingStatus(tradingStatus);
+                updateBacktestStatus(backtestStatus);
+                updateAPIStatus(apiStatus);
+                updateSystemIndicator(true);
+                
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+                updateSystemIndicator(false);
+                addLogEntry('ERROR', 'Dashboard refresh failed: ' + error.message);
+            } finally {
+                isRefreshing = false;
+                showRefreshIndicator(false);
+            }
+        }
+        
+        async function fetchWithFallback(endpoint) {
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.warn(`Fallback for ${endpoint}:`, error.message);
+                return getFallbackData(endpoint);
+            }
+        }
+        
+        function getFallbackData(endpoint) {
+            // Provide fallback data structure
+            if (endpoint.includes('system/status')) {
+                return {
+                    btc_price: 0,
+                    system_status: 'UNKNOWN',
+                    uptime: 0,
+                    memory_usage: 0,
+                    cpu_usage: 0
+                };
+            }
+            if (endpoint.includes('trading/status')) {
+                return {
+                    total_pnl: 0,
+                    active_trades: 0,
+                    win_rate: 0,
+                    trading_status: 'UNKNOWN',
+                    strategies_loaded: 0
+                };
+            }
+            if (endpoint.includes('backtest/status')) {
+                return {
+                    progress: 0,
+                    completed: 0,
+                    total: 768,
+                    successful: 0,
+                    status: 'Not Started',
+                    eta: null,
+                    ml_models_trained: 0
+                };
+            }
+            if (endpoint.includes('external/status')) {
+                return {
+                    working_apis: {},
+                    api_status: {},
+                    working_count: 0,
+                    total_count: 5
+                };
+            }
+            return {};
+        }
+        
+        function updateSystemStatus(data) {
+            document.getElementById('btc-price').textContent = 
+                data.btc_price ? `$${parseFloat(data.btc_price).toLocaleString()}` : '$0.00';
+            document.getElementById('uptime').textContent = formatUptime(data.uptime || 0);
+            document.getElementById('memory-usage').textContent = `${data.memory_usage || 0}%`;
+            document.getElementById('cpu-usage').textContent = `${data.cpu_usage || 0}%`;
+            document.getElementById('api-calls').textContent = data.api_calls || 0;
+        }
+        
+        function updateTradingStatus(data) {
+            document.getElementById('total-pnl').textContent = 
+                data.total_pnl ? `$${parseFloat(data.total_pnl).toFixed(2)}` : '$0.00';
+            document.getElementById('active-trades').textContent = data.active_trades || 0;
+            document.getElementById('win-rate').textContent = 
+                data.win_rate ? `${parseFloat(data.win_rate).toFixed(1)}%` : '0%';
+            document.getElementById('trading-status').textContent = data.trading_status || 'UNKNOWN';
+            document.getElementById('strategies-loaded').textContent = data.strategies_loaded || 0;
+        }
+        
+        function updateBacktestStatus(data) {
+            const progress = data.progress || 0;
+            document.getElementById('backtest-progress').style.width = `${progress}%`;
+            document.getElementById('backtest-status').textContent = data.status || 'Ready';
+            document.getElementById('backtest-eta').textContent = 
+                data.eta ? `ETA: ${data.eta}` : 'ETA: --';
+            document.getElementById('backtest-completed').textContent = data.completed || 0;
+            document.getElementById('backtest-total').textContent = data.total || 768;
+            document.getElementById('backtest-success').textContent = data.successful || 0;
+            document.getElementById('ml-models').textContent = data.ml_models_trained || 0;
+            
+            // Show errors if any
+            if (data.errors && data.errors.length > 0) {
+                document.getElementById('backtest-error-details').textContent = data.errors.join(', ');
+                document.getElementById('backtest-error').classList.remove('hidden');
+            } else {
+                document.getElementById('backtest-error').classList.add('hidden');
+            }
+        }
+        
+        function updateAPIStatus(data) {
+            const container = document.getElementById('api-status-grid');
+            container.innerHTML = '';
+            
+            const apis = ['ALPHA_VANTAGE', 'NEWS_API', 'FRED', 'REDDIT', 'TWITTER'];
+            
+            apis.forEach(api => {
+                const isWorking = data.working_apis && data.working_apis[api];
+                const statusClass = isWorking ? 'status-active' : 'status-inactive';
+                
+                const item = document.createElement('div');
+                item.className = 'api-status-item';
+                item.innerHTML = `
+                    <span class="status-indicator ${statusClass}"></span>
+                    ${api.replace('_', ' ')}
+                `;
+                container.appendChild(item);
+            });
+        }
+        
+        function updateSystemIndicator(isHealthy) {
+            const indicator = document.getElementById('system-status-indicator');
+            const text = document.getElementById('system-status-text');
+            
+            if (isHealthy) {
+                indicator.className = 'status-indicator status-active';
+                text.textContent = 'System Online - Real Data Mode';
+            } else {
+                indicator.className = 'status-indicator status-warning';
+                text.textContent = 'System Issues Detected';
+            }
+        }
+        
+        function showRefreshIndicator(show) {
+            const indicator = document.getElementById('refresh-indicator');
+            if (show) {
+                indicator.classList.remove('hidden');
+            } else {
+                indicator.classList.add('hidden');
+            }
+        }
+        
+        function addLogEntry(level, message) {
+            const container = document.getElementById('log-container');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `
+                <span class="log-timestamp">[${timestamp}]</span>
+                <span class="log-level-${level.toLowerCase()}">${message}</span>
+            `;
+            
+            container.insertBefore(entry, container.firstChild);
+            
+            // Keep only last 50 entries
+            while (container.children.length > 50) {
+                container.removeChild(container.lastChild);
+            }
+        }
+        
+        function formatUptime(seconds) {
+            if (seconds < 60) return `${seconds}s`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)}m`;
+            return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+        }
+        
+        // Control functions
+        async function startTrading() {
+            try {
+                const response = await fetch('/api/trading/start', { method: 'POST' });
+                const result = await response.json();
+                addLogEntry('INFO', 'Trading started: ' + result.message);
+            } catch (error) {
+                addLogEntry('ERROR', 'Failed to start trading: ' + error.message);
+            }
+        }
+        
+        async function pauseTrading() {
+            try {
+                const response = await fetch('/api/trading/pause', { method: 'POST' });
+                const result = await response.json();
+                addLogEntry('INFO', 'Trading paused: ' + result.message);
+            } catch (error) {
+                addLogEntry('ERROR', 'Failed to pause trading: ' + error.message);
+            }
+        }
+        
+        async function stopTrading() {
+            try {
+                const response = await fetch('/api/trading/stop', { method: 'POST' });
+                const result = await response.json();
+                addLogEntry('INFO', 'Trading stopped: ' + result.message);
+            } catch (error) {
+                addLogEntry('ERROR', 'Failed to stop trading: ' + error.message);
+            }
+        }
+        
+        async function startBacktest() {
+            try {
+                const response = await fetch('/api/backtest/start', { method: 'POST' });
+                const result = await response.json();
+                addLogEntry('INFO', 'Backtest started: ' + result.message);
+            } catch (error) {
+                addLogEntry('ERROR', 'Failed to start backtest: ' + error.message);
+            }
+        }
+        
+        async function pauseBacktest() {
+            try {
+                const response = await fetch('/api/backtest/pause', { method: 'POST' });
+                const result = await response.json();
+                addLogEntry('INFO', 'Backtest paused: ' + result.message);
+            } catch (error) {
+                addLogEntry('ERROR', 'Failed to pause backtest: ' + error.message);
+            }
+        }
+        
+        async function clearBacktest() {
+            try {
+                const response = await fetch('/api/backtest/clear', { method: 'POST' });
+                const result = await response.json();
+                addLogEntry('INFO', 'Backtest progress cleared: ' + result.message);
+            } catch (error) {
+                addLogEntry('ERROR', 'Failed to clear backtest: ' + error.message);
+            }
+        }
+        
+        async function refreshData() {
+            addLogEntry('INFO', 'Manual refresh triggered');
+            await loadDashboard();
+        }
+        
+        async function refreshAPIs() {
+            try {
+                const response = await fetch('/api/external/refresh', { method: 'POST' });
+                const result = await response.json();
+                addLogEntry('INFO', 'API connections refreshed: ' + result.message);
+                await loadDashboard();
+            } catch (error) {
+                addLogEntry('ERROR', 'Failed to refresh APIs: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>
