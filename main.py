@@ -351,7 +351,7 @@ class V3SystemManager:
                 ))
             
             if hasattr(self.controller, 'comprehensive_backtester') and self.controller.comprehensive_backtester:
-                progress = self.controller.comprehensive_backtester.get_progress()
+#                 progress = self.controller.comprehensive_backtester.get_progress()
                 self.logger.info("System Status: {} strategies loaded".format(
                     len(self.controller.top_strategies)
                 ))
