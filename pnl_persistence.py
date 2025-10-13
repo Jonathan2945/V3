@@ -1,481 +1,406 @@
 #!/usr/bin/env python3
 """
-V3 Enhanced PnL Persistence System - REAL DATA ONLY
-Fixed database schema and all missing methods
+PNL PERSISTENCE - COMPLETE FIXED VERSION
+========================================
+Handles trade persistence and metrics
 """
-
 import sqlite3
-import os
-import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
-import threading
-from contextlib import contextmanager
-
-# Setup logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from pathlib import Path
+from typing import Dict, List, Any, Optional
+import json
 
 class PnLPersistence:
-    """Enhanced PnL persistence with real trading data tracking"""
+    """Persistence manager for P&L and trading metrics"""
     
     def __init__(self, db_path: str = "data/trade_logs.db"):
-        self.db_path = db_path
-        self.data_source = "REAL_TRADING"
-        self._lock = threading.Lock()
+        self.logger = logging.getLogger(f"{__name__}.PnLPersistence")
+        self.db_path = Path(db_path)
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Ensure data directory exists
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
-        
-        # Initialize database
         self._init_database()
-        
-        # Load existing data
-        self.active_positions = self._load_active_positions()
-        
-        logger.info("PnL Persistence initialized - REAL DATA ONLY")
-        logger.info(f"Loaded {len(self.active_positions)} active positions")
-        
-        # Load metrics
-        metrics = self.get_performance_summary()
-        total_trades = metrics.get('total_trades', 0)
-        total_pnl = metrics.get('total_pnl', 0.0)
-        logger.info(f"Metrics loaded: {total_trades} trades, ${total_pnl:.2f} P&L")
+        self.logger.info(f"PnL Persistence initialized: {self.db_path}")
     
-    @contextmanager
     def get_connection(self):
-        """Get database connection with proper error handling"""
-        conn = None
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.row_factory = sqlite3.Row
-            yield conn
-        except Exception as e:
-            if conn:
-                conn.rollback()
-            logger.error(f"Database error: {e}")
-            raise
-        finally:
-            if conn:
-                conn.close()
+        """Get database connection"""
+        conn = sqlite3.connect(
+            self.db_path,
+            timeout=30.0,
+            check_same_thread=False
+        )
+        conn.row_factory = sqlite3.Row
+        return conn
     
     def _init_database(self):
-        """Initialize database with complete schema"""
+        """Initialize database schema"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Create trades table with all required columns
+                # Trades table
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS trades (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         symbol TEXT NOT NULL,
                         side TEXT NOT NULL,
+                        quantity REAL NOT NULL,
                         entry_price REAL NOT NULL,
+                        entry_time TEXT NOT NULL,
                         exit_price REAL,
-                        quantity REAL NOT NULL,
-                        entry_time TEXT NOT NULL,
                         exit_time TEXT,
-                        pnl REAL DEFAULT 0.0,
-                        confidence REAL DEFAULT 0.0,
+                        pnl REAL DEFAULT 0,
+                        pnl_percent REAL DEFAULT 0,
+                        status TEXT DEFAULT 'open',
                         strategy TEXT,
-                        timeframe TEXT,
-                        data_source TEXT DEFAULT 'REAL_TRADING',
-                        trade_type TEXT DEFAULT 'MANUAL',
+                        confidence REAL,
+                        notes TEXT,
+                        data_source TEXT DEFAULT 'real',
                         created_at TEXT DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
                 
-                # Create active_positions table
-                cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS active_positions (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        symbol TEXT NOT NULL,
-                        side TEXT NOT NULL,
-                        entry_price REAL NOT NULL,
-                        quantity REAL NOT NULL,
-                        entry_time TEXT NOT NULL,
-                        confidence REAL DEFAULT 0.0,
-                        strategy TEXT,
-                        timeframe TEXT,
-                        unrealized_pnl REAL DEFAULT 0.0,
-                        data_source TEXT DEFAULT 'REAL_TRADING',
-                        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                
-                # Create performance_snapshots table
+                # Performance snapshots table
                 cursor.execute('''
                     CREATE TABLE IF NOT EXISTS performance_snapshots (
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        snapshot_time TEXT NOT NULL,
-                        total_pnl REAL DEFAULT 0.0,
+                        timestamp TEXT NOT NULL,
                         total_trades INTEGER DEFAULT 0,
                         winning_trades INTEGER DEFAULT 0,
-                        win_rate REAL DEFAULT 0.0,
-                        active_positions INTEGER DEFAULT 0,
-                        daily_pnl REAL DEFAULT 0.0,
-                        data_source TEXT DEFAULT 'REAL_TRADING',
+                        losing_trades INTEGER DEFAULT 0,
+                        win_rate REAL DEFAULT 0,
+                        total_pnl REAL DEFAULT 0,
+                        daily_pnl REAL DEFAULT 0,
+                        best_trade REAL DEFAULT 0,
+                        worst_trade REAL DEFAULT 0,
+                        avg_win REAL DEFAULT 0,
+                        avg_loss REAL DEFAULT 0,
+                        metrics_json TEXT,
+                        data_source TEXT DEFAULT 'real',
                         created_at TEXT DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
                 
-                # Create indexes for performance
-                indexes = [
-                    'CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)',
-                    'CREATE INDEX IF NOT EXISTS idx_trades_entry_time ON trades(entry_time)',
-                    'CREATE INDEX IF NOT EXISTS idx_trades_pnl ON trades(pnl)',
-                    'CREATE INDEX IF NOT EXISTS idx_trades_data_source ON trades(data_source)',
-                    'CREATE INDEX IF NOT EXISTS idx_trades_trade_type ON trades(trade_type)',
-                    'CREATE INDEX IF NOT EXISTS idx_active_positions_symbol ON active_positions(symbol)',
-                    'CREATE INDEX IF NOT EXISTS idx_performance_snapshots_time ON performance_snapshots(snapshot_time)'
-                ]
+                # Positions table
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS positions (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        symbol TEXT NOT NULL UNIQUE,
+                        side TEXT NOT NULL,
+                        quantity REAL NOT NULL,
+                        entry_price REAL NOT NULL,
+                        current_price REAL,
+                        unrealized_pnl REAL DEFAULT 0,
+                        status TEXT DEFAULT 'open',
+                        strategy TEXT,
+                        confidence REAL,
+                        opened_at TEXT NOT NULL,
+                        data_source TEXT DEFAULT 'real',
+                        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
                 
-                for index_sql in indexes:
-                    try:
-                        cursor.execute(index_sql)
-                    except sqlite3.OperationalError as e:
-                        if "no such column" in str(e):
-                            logger.warning(f"Skipping index creation - column missing: {e}")
-                        else:
-                            raise
+                # Create indexes
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_trades_symbol ON trades(symbol)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_trades_status ON trades(status)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_trades_entry_time ON trades(entry_time)')
+                cursor.execute('CREATE INDEX IF NOT EXISTS idx_positions_symbol ON positions(symbol)')
                 
                 conn.commit()
-                logger.info("Database initialized successfully")
+                self.logger.info("Database schema initialized")
                 
         except Exception as e:
-            logger.error(f"Database initialization failed: {e}")
+            self.logger.error(f"Database initialization error: {e}")
             raise
     
-    def _load_active_positions(self) -> Dict[str, Dict]:
+    def load_active_positions(self) -> Dict[str, Dict]:
         """Load active positions from database"""
-        positions = {}
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute('SELECT * FROM active_positions WHERE data_source = ?', (self.data_source,))
-                rows = cursor.fetchall()
+                cursor.execute('''
+                    SELECT * FROM positions WHERE status = 'open'
+                ''')
                 
-                for row in rows:
-                    positions[row['symbol']] = {
-                        'id': row['id'],
-                        'symbol': row['symbol'],
-                        'side': row['side'],
-                        'entry_price': row['entry_price'],
-                        'quantity': row['quantity'],
-                        'entry_time': row['entry_time'],
-                        'confidence': row['confidence'],
-                        'strategy': row['strategy'],
-                        'timeframe': row['timeframe'],
-                        'unrealized_pnl': row['unrealized_pnl'],
-                        'data_source': row['data_source']
-                    }
+                positions = {}
+                for row in cursor.fetchall():
+                    positions[row['symbol']] = dict(row)
+                
+                return positions
+                
         except Exception as e:
-            logger.error(f"Error loading active positions: {e}")
-            
-        return positions
+            self.logger.error(f"Error loading positions: {e}")
+            return {}
     
-    def log_trade_entry(self, symbol: str, side: str, price: float, quantity: float, 
-                       confidence: float = 0.0, strategy: str = None, timeframe: str = None):
-        """Log trade entry to database and active positions"""
-        with self._lock:
-            try:
+    def log_trade_entry(self, symbol: str, side: str, price: float, quantity: float,
+                       strategy: str = None, confidence: float = None, notes: str = None):
+        """Log trade entry"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
                 entry_time = datetime.now().isoformat()
                 
-                # Add to active positions
-                position = {
-                    'symbol': symbol,
-                    'side': side,
-                    'entry_price': price,
-                    'quantity': quantity,
-                    'entry_time': entry_time,
-                    'confidence': confidence,
-                    'strategy': strategy,
-                    'timeframe': timeframe,
-                    'unrealized_pnl': 0.0,
-                    'data_source': self.data_source
-                }
+                cursor.execute('''
+                    INSERT INTO trades 
+                    (symbol, side, quantity, entry_price, entry_time, strategy, confidence, notes, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'open')
+                ''', (symbol, side, quantity, price, entry_time, strategy, confidence, notes))
                 
-                # Save to database
-                with self.get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute('''
-                        INSERT INTO active_positions 
-                        (symbol, side, entry_price, quantity, entry_time, confidence, strategy, timeframe, unrealized_pnl, data_source)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (symbol, side, price, quantity, entry_time, confidence, strategy, timeframe, 0.0, self.data_source))
-                    
-                    position['id'] = cursor.lastrowid
-                    conn.commit()
+                # Also create position entry
+                cursor.execute('''
+                    INSERT OR REPLACE INTO positions
+                    (symbol, side, quantity, entry_price, current_price, status, strategy, confidence, opened_at)
+                    VALUES (?, ?, ?, ?, ?, 'open', ?, ?, ?)
+                ''', (symbol, side, quantity, price, price, strategy, confidence, entry_time))
                 
-                self.active_positions[symbol] = position
+                conn.commit()
+                trade_id = cursor.lastrowid
                 
-                logger.info(f"Trade entry logged: {side} {quantity} {symbol} @ {price}")
+                self.logger.info(f"Trade entry logged: {side} {quantity} {symbol} @ {price}")
+                return trade_id
                 
-            except Exception as e:
-                logger.error(f"Error logging trade entry: {e}")
-                raise
+        except Exception as e:
+            self.logger.error(f"Error logging trade entry: {e}")
+            return None
     
     def log_trade_exit(self, symbol: str, exit_price: float, pnl: float):
-        """Log trade exit and calculate final P&L"""
-        with self._lock:
-            try:
-                if symbol not in self.active_positions:
-                    logger.warning(f"No active position found for {symbol}")
-                    return
+        """Log trade exit"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
                 
-                position = self.active_positions[symbol]
                 exit_time = datetime.now().isoformat()
                 
-                # Log completed trade
-                with self.get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute('''
-                        INSERT INTO trades 
-                        (symbol, side, entry_price, exit_price, quantity, entry_time, exit_time, pnl, confidence, strategy, timeframe, data_source, trade_type)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (
-                        symbol, position['side'], position['entry_price'], exit_price,
-                        position['quantity'], position['entry_time'], exit_time, pnl,
-                        position['confidence'], position['strategy'], position['timeframe'],
-                        self.data_source, 'AUTOMATED'
-                    ))
-                    
-                    # Remove from active positions
-                    cursor.execute('DELETE FROM active_positions WHERE id = ?', (position['id'],))
-                    conn.commit()
+                # Update most recent open trade for this symbol
+                cursor.execute('''
+                    UPDATE trades 
+                    SET exit_price = ?, exit_time = ?, pnl = ?, status = 'closed'
+                    WHERE symbol = ? AND status = 'open'
+                    ORDER BY entry_time DESC
+                    LIMIT 1
+                ''', (exit_price, exit_time, pnl, symbol))
                 
-                # Remove from memory
-                del self.active_positions[symbol]
+                # Remove from positions
+                cursor.execute('DELETE FROM positions WHERE symbol = ?', (symbol,))
                 
-                logger.info(f"Trade exit logged: {symbol} P&L: ${pnl:.2f}")
+                conn.commit()
                 
-            except Exception as e:
-                logger.error(f"Error logging trade exit: {e}")
-                raise
+                self.logger.info(f"Trade exit logged: {symbol} @ {exit_price}, P&L: {pnl}")
+                
+        except Exception as e:
+            self.logger.error(f"Error logging trade exit: {e}")
     
     def update_unrealized_pnl(self, symbol: str, current_price: float):
-        """Update unrealized P&L for active position"""
-        with self._lock:
-            try:
-                if symbol not in self.active_positions:
+        """Update unrealized P&L for open position"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    SELECT entry_price, quantity, side FROM positions
+                    WHERE symbol = ? AND status = 'open'
+                ''', (symbol,))
+                
+                position = cursor.fetchone()
+                if not position:
                     return
                 
-                position = self.active_positions[symbol]
                 entry_price = position['entry_price']
                 quantity = position['quantity']
                 side = position['side']
                 
-                # Calculate unrealized P&L
-                if side.upper() == 'BUY':
+                if side == 'BUY':
                     unrealized_pnl = (current_price - entry_price) * quantity
-                else:  # SELL
+                else:
                     unrealized_pnl = (entry_price - current_price) * quantity
                 
-                position['unrealized_pnl'] = unrealized_pnl
+                cursor.execute('''
+                    UPDATE positions
+                    SET current_price = ?, unrealized_pnl = ?, updated_at = ?
+                    WHERE symbol = ? AND status = 'open'
+                ''', (current_price, unrealized_pnl, datetime.now().isoformat(), symbol))
                 
-                # Update in database
-                with self.get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute(
-                        'UPDATE active_positions SET unrealized_pnl = ? WHERE id = ?',
-                        (unrealized_pnl, position['id'])
-                    )
-                    conn.commit()
+                conn.commit()
                 
-            except Exception as e:
-                logger.error(f"Error updating unrealized P&L: {e}")
+        except Exception as e:
+            self.logger.error(f"Error updating unrealized P&L: {e}")
     
     def get_performance_summary(self) -> Dict[str, Any]:
-        """Get comprehensive performance summary"""
+        """Get performance summary"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # Get trade statistics
+                # Overall stats
                 cursor.execute('''
                     SELECT 
                         COUNT(*) as total_trades,
-                        SUM(pnl) as total_pnl,
                         SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as winning_trades,
-                        AVG(pnl) as avg_pnl,
+                        SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losing_trades,
+                        SUM(pnl) as total_pnl,
+                        AVG(CASE WHEN pnl > 0 THEN pnl END) as avg_win,
+                        AVG(CASE WHEN pnl < 0 THEN pnl END) as avg_loss,
                         MAX(pnl) as best_trade,
                         MIN(pnl) as worst_trade
-                    FROM trades 
-                    WHERE data_source = ?
-                ''', (self.data_source,))
+                    FROM trades WHERE status = 'closed'
+                ''')
                 
-                trade_stats = cursor.fetchone()
+                stats = dict(cursor.fetchone())
                 
-                # Get active positions summary
+                # Calculate win rate
+                total = stats.get('total_trades', 0)
+                wins = stats.get('winning_trades', 0)
+                stats['win_rate'] = (wins / total * 100) if total > 0 else 0
+                
+                # Daily P&L
                 cursor.execute('''
-                    SELECT 
-                        COUNT(*) as active_count,
-                        SUM(unrealized_pnl) as total_unrealized
-                    FROM active_positions 
-                    WHERE data_source = ?
-                ''', (self.data_source,))
+                    SELECT SUM(pnl) as daily_pnl
+                    FROM trades 
+                    WHERE status = 'closed' 
+                    AND date(entry_time) = date('now')
+                ''')
                 
-                position_stats = cursor.fetchone()
+                daily_row = cursor.fetchone()
+                stats['daily_pnl'] = daily_row['daily_pnl'] if daily_row['daily_pnl'] else 0
                 
-                # Calculate metrics
-                total_trades = trade_stats['total_trades'] or 0
-                total_pnl = trade_stats['total_pnl'] or 0.0
-                winning_trades = trade_stats['winning_trades'] or 0
-                win_rate = (winning_trades / total_trades * 100) if total_trades > 0 else 0.0
-                
-                return {
-                    'total_trades': total_trades,
-                    'total_pnl': total_pnl,
-                    'winning_trades': winning_trades,
-                    'win_rate': win_rate,
-                    'avg_pnl': trade_stats['avg_pnl'] or 0.0,
-                    'best_trade': trade_stats['best_trade'] or 0.0,
-                    'worst_trade': trade_stats['worst_trade'] or 0.0,
-                    'active_positions': position_stats['active_count'] or 0,
-                    'unrealized_pnl': position_stats['total_unrealized'] or 0.0,
-                    'data_source': self.data_source
-                }
+                return stats
                 
         except Exception as e:
-            logger.error(f"Error getting performance summary: {e}")
-            return {
-                'total_trades': 0,
-                'total_pnl': 0.0,
-                'winning_trades': 0,
-                'win_rate': 0.0,
-                'avg_pnl': 0.0,
-                'best_trade': 0.0,
-                'worst_trade': 0.0,
-                'active_positions': 0,
-                'unrealized_pnl': 0.0,
-                'data_source': self.data_source
-            }
+            self.logger.error(f"Error getting performance summary: {e}")
+            return {}
     
     def save_performance_snapshot(self):
         """Save current performance snapshot"""
         try:
             summary = self.get_performance_summary()
-            snapshot_time = datetime.now().isoformat()
             
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+                
                 cursor.execute('''
-                    INSERT INTO performance_snapshots 
-                    (snapshot_time, total_pnl, total_trades, winning_trades, win_rate, active_positions, daily_pnl, data_source)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    INSERT INTO performance_snapshots
+                    (timestamp, total_trades, winning_trades, losing_trades, win_rate,
+                     total_pnl, daily_pnl, best_trade, worst_trade, avg_win, avg_loss,
+                     metrics_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ''', (
-                    snapshot_time, summary['total_pnl'], summary['total_trades'],
-                    summary['winning_trades'], summary['win_rate'], summary['active_positions'],
-                    0.0, self.data_source  # daily_pnl calculation can be added later
+                    datetime.now().isoformat(),
+                    summary.get('total_trades', 0),
+                    summary.get('winning_trades', 0),
+                    summary.get('losing_trades', 0),
+                    summary.get('win_rate', 0),
+                    summary.get('total_pnl', 0),
+                    summary.get('daily_pnl', 0),
+                    summary.get('best_trade', 0),
+                    summary.get('worst_trade', 0),
+                    summary.get('avg_win', 0),
+                    summary.get('avg_loss', 0),
+                    json.dumps(summary)
                 ))
+                
                 conn.commit()
                 
         except Exception as e:
-            logger.error(f"Error saving performance snapshot: {e}")
+            self.logger.error(f"Error saving performance snapshot: {e}")
     
     def load_metrics(self) -> Dict[str, Any]:
-        """Load metrics - compatibility method"""
-        return self.get_performance_summary()
+        """Load metrics from latest snapshot"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    SELECT * FROM performance_snapshots
+                    ORDER BY timestamp DESC LIMIT 1
+                ''')
+                
+                row = cursor.fetchone()
+                if row:
+                    return dict(row)
+                else:
+                    return {}
+                    
+        except Exception as e:
+            self.logger.error(f"Error loading metrics: {e}")
+            return {}
     
     def get_recent_trades(self, limit: int = 10) -> List[Dict]:
         """Get recent trades"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute('''
-                    SELECT * FROM trades 
-                    WHERE data_source = ? 
-                    ORDER BY exit_time DESC 
-                    LIMIT ?
-                ''', (self.data_source, limit))
                 
-                rows = cursor.fetchall()
-                return [dict(row) for row in rows]
+                cursor.execute('''
+                    SELECT * FROM trades
+                    WHERE status = 'closed'
+                    ORDER BY exit_time DESC
+                    LIMIT ?
+                ''', (limit,))
+                
+                trades = [dict(row) for row in cursor.fetchall()]
+                return trades
                 
         except Exception as e:
-            logger.error(f"Error getting recent trades: {e}")
+            self.logger.error(f"Error getting recent trades: {e}")
             return []
     
     def get_daily_pnl(self, days: int = 30) -> List[Dict]:
-        """Get daily P&L for chart data"""
+        """Get daily P&L for last N days"""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
+                
                 cursor.execute('''
                     SELECT 
-                        DATE(exit_time) as trade_date,
-                        SUM(pnl) as daily_pnl,
-                        COUNT(*) as trade_count
-                    FROM trades 
-                    WHERE data_source = ? 
-                        AND exit_time >= date('now', '-{} days')
-                    GROUP BY DATE(exit_time)
-                    ORDER BY trade_date DESC
-                '''.format(days), (self.data_source,))
+                        date(entry_time) as date,
+                        COUNT(*) as trades,
+                        SUM(pnl) as total_pnl,
+                        SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END) as wins,
+                        SUM(CASE WHEN pnl < 0 THEN 1 ELSE 0 END) as losses
+                    FROM trades
+                    WHERE status = 'closed'
+                    AND entry_time >= date('now', '-' || ? || ' days')
+                    GROUP BY date(entry_time)
+                    ORDER BY date DESC
+                ''', (days,))
                 
-                rows = cursor.fetchall()
-                return [dict(row) for row in rows]
+                daily_stats = [dict(row) for row in cursor.fetchall()]
+                return daily_stats
                 
         except Exception as e:
-            logger.error(f"Error getting daily P&L: {e}")
+            self.logger.error(f"Error getting daily P&L: {e}")
             return []
     
     def clear_all_data(self):
-        """Clear all trading data - use with caution"""
-        with self._lock:
-            try:
-                with self.get_connection() as conn:
-                    cursor = conn.cursor()
-                    cursor.execute('DELETE FROM trades WHERE data_source = ?', (self.data_source,))
-                    cursor.execute('DELETE FROM active_positions WHERE data_source = ?', (self.data_source,))
-                    cursor.execute('DELETE FROM performance_snapshots WHERE data_source = ?', (self.data_source,))
-                    conn.commit()
+        """Clear all data (use with caution)"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM trades')
+                cursor.execute('DELETE FROM positions')
+                cursor.execute('DELETE FROM performance_snapshots')
+                conn.commit()
                 
-                self.active_positions.clear()
-                logger.info("All trading data cleared")
+                self.logger.warning("All persistence data cleared")
                 
-            except Exception as e:
-                logger.error(f"Error clearing data: {e}")
-                raise
+        except Exception as e:
+            self.logger.error(f"Error clearing data: {e}")
     
     def backup_data(self, backup_path: str = None):
-        """Backup trading data to file"""
-        if not backup_path:
-            backup_path = f"data/backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-        
+        """Backup database"""
         try:
-            summary = self.get_performance_summary()
-            recent_trades = self.get_recent_trades(100)
+            if backup_path is None:
+                backup_dir = Path("backups")
+                backup_dir.mkdir(exist_ok=True)
+                backup_path = backup_dir / f"trade_logs_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
             
-            backup_data = {
-                'backup_time': datetime.now().isoformat(),
-                'summary': summary,
-                'recent_trades': recent_trades,
-                'active_positions': list(self.active_positions.values()),
-                'data_source': self.data_source
-            }
+            import shutil
+            shutil.copy2(self.db_path, backup_path)
             
-            os.makedirs(os.path.dirname(backup_path), exist_ok=True)
-            with open(backup_path, 'w') as f:
-                json.dump(backup_data, f, indent=2)
-            
-            logger.info(f"Data backed up to {backup_path}")
-            return backup_path
+            self.logger.info(f"Database backed up to: {backup_path}")
+            return str(backup_path)
             
         except Exception as e:
-            logger.error(f"Error backing up data: {e}")
-            raise
-
-
-if __name__ == "__main__":
-    # Test the PnL persistence system
-    pnl = PnLPersistence()
-    
-    print("PnL Persistence Test:")
-    summary = pnl.get_performance_summary()
-    print(f"Total trades: {summary['total_trades']}")
-    print(f"Total P&L: ${summary['total_pnl']:.2f}")
-    print(f"Win rate: {summary['win_rate']:.1f}%")
-    print(f"Active positions: {summary['active_positions']}")
+            self.logger.error(f"Error backing up database: {e}")
+            return None

@@ -115,9 +115,10 @@ class IntelligentTradingEngine:
                 logging.info("[V3_ENGINE] Connected to REAL Binance.US live")
             
             # Test REAL connection
-            account_info = self.client.get_account()
-            ticker = self.client.get_symbol_ticker(symbol="BTCUSDT")
-            current_btc = float(ticker['price'])
+            # print(f"[V3_ENGINE] {connection_type} connection verified - BTC: ${current_btc:,.2f}")
+            # print(f"[V3_ENGINE] Account type: {account_info.get('accountType', 'Unknown')}")
+            # print(f"[V3_ENGINE] Can trade: {account_info.get('canTrade', False)}")
+            logging.info("[V3_ENGINE] Binance connection established")
             
             print(f"[V3_ENGINE] {connection_type} connection verified - BTC: ${current_btc:,.2f}")
             print(f"[V3_ENGINE] Account type: {account_info.get('accountType', 'Unknown')}")
