@@ -986,16 +986,16 @@ class V3TradingController:
                         'timeframes': strategy[1],
                         'strategy_type': strategy[2],
                         'return_pct': strategy[3],
-                        'win_rate': strategy[4],
+                        'win_rate': strategy[4] * 100 if strategy[4] < 1 else strategy[4],
                         'sharpe_ratio': strategy[5],
                         'total_trades': strategy[6],
-                        'expected_win_rate': strategy[4]
+                        'expected_win_rate': strategy[4] * 100 if strategy[4] < 1 else strategy[4]
                     }
                     
                     self.top_strategies.append(strategy_data)
                     
                     # RELAXED: win_rate > 50% AND sharpe > 0.7
-                    if strategy[4] > 50 and strategy[5] > 0.7:
+                    if (strategy[4] * 100 if strategy[4] < 1 else strategy[4]) > 50 and strategy[5] > 0.7:
                         self.ml_trained_strategies.append(strategy_data)
                 
                 conn.close()
@@ -1172,6 +1172,9 @@ class V3TradingController:
     
     def _calculate_strategy_confidence(self, strategy_type, rsi, sma_short, sma_long, price_change, volume_avg, base_win_rate):
         """Calculate strategy confidence"""
+        # Ensure base_win_rate is percentage
+        if base_win_rate < 1:
+            base_win_rate = base_win_rate * 100
         try:
             confidence = base_win_rate
             
@@ -1238,8 +1241,12 @@ class V3TradingController:
     
     async def _execute_real_trading_logic(self):
         """Execute real trading logic"""
+        self.logger.info(f"[TRADE DEBUG] scanner_data: {self.scanner_data}")
+        self.logger.info(f"[TRADE DEBUG] is_trading: {self.is_trading}")
+        """Execute real trading logic"""
         try:
             self.logger.info("[TRADE] Execute trading logic called")
+            self.logger.info("[TRADE DEBUG] Checking opportunities...")
             if self.scanner_data['opportunities'] == 0:
                 self.logger.info("[TRADE] No opportunities found")
                 return
@@ -1260,6 +1267,43 @@ class V3TradingController:
             
             trade_amount_usdt = float(os.getenv('TRADE_AMOUNT_USDT', '5.0'))
             quantity = trade_amount_usdt / current_price
+            
+            # Get LOT_SIZE filter from exchange
+            try:
+                symbol_info = self.trading_engine.client.get_symbol_info(best_pair if "best_pair" in locals() else symbol)
+                step_size = None
+                for f in symbol_info['filters']:
+                    if f['filterType'] == 'LOT_SIZE':
+                        step_size = float(f['stepSize'])
+                        break
+                
+                if step_size:
+                    # Round to step size
+                    precision = len(str(step_size).rstrip('0').split('.')[-1]) if '.' in str(step_size) else 0
+                    quantity = round(quantity / step_size) * step_size
+                    quantity = round(quantity, precision)
+                    
+                    # Check MIN_NOTIONAL
+                    min_notional = None
+                    for f in symbol_info['filters']:
+                        if f['filterType'] == 'NOTIONAL':
+                            min_notional = float(f['minNotional'])
+                            break
+                    
+                    if min_notional:
+                        notional_value = quantity * current_price
+                        if notional_value < min_notional:
+                            # Increase quantity to meet minimum (round UP)
+                            import math
+                            quantity = min_notional / current_price
+                            quantity = math.ceil(quantity / step_size) * step_size
+                            quantity = round(quantity, precision)
+                            self.logger.info(f"Adjusted quantity to meet MIN_NOTIONAL: {quantity}")
+                else:
+                    quantity = round(quantity, 2)
+            except Exception as e:
+                self.logger.warning(f"Could not get LOT_SIZE for {symbol}, using default rounding: {e}")
+                quantity = round(quantity, 1)
             
             success = await self._execute_binance_trade(best_pair, trade_side, quantity, current_price, confidence)
             
