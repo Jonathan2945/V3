@@ -1029,6 +1029,7 @@ class V3TradingController:
     async def _update_real_time_data(self):
         """Update real-time data and execute trading"""
         try:
+            self.logger.debug("[UPDATE] _update_real_time_data called")
             self.system_resources['cpu_usage'] = psutil.cpu_percent(interval=0.1)
             self.system_resources['memory_usage'] = psutil.virtual_memory().percent
             
@@ -1064,7 +1065,9 @@ class V3TradingController:
     async def _scan_real_market_opportunities(self):
         """Scan real market for opportunities"""
         try:
+            self.logger.info("[SCAN] Scanning market for opportunities...")
             if not self.trading_engine or not hasattr(self.trading_engine, 'client'):
+                self.logger.warning("[SCAN] No trading engine or client available")
                 return
             
             major_pairs = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'XRPUSDT']
@@ -1236,7 +1239,9 @@ class V3TradingController:
     async def _execute_real_trading_logic(self):
         """Execute real trading logic"""
         try:
+            self.logger.info("[TRADE] Execute trading logic called")
             if self.scanner_data['opportunities'] == 0:
+                self.logger.info("[TRADE] No opportunities found")
                 return
             
             best_pair = self.scanner_data['best_opportunity']
